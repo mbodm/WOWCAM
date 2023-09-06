@@ -11,7 +11,7 @@ WOWCAM will be the official next generation [WADM](https://github.com/MBODM/WADM
 
 Promises:
 - It will make WoW addon mangement great again!
-- It has an "unzip-only" fallback mode, if https://curseforge.com change stuff again.
+- It has an "unzip-only" fallback mode, if https://curseforge.com changes stuff again.
 - It will NOT be that "Windows default style" ugly as f**k.
 
 In short: Work in progress...

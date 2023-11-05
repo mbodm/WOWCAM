@@ -6,7 +6,7 @@ namespace WOWCAM
     {
         public App()
         {
-            MainWindow = new MainWindow(new DefaultAppHelper(), new DefaultWpfHelper());
+            MainWindow = new MainWindow(new Helper());
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

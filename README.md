@@ -3,7 +3,7 @@ A simple World of Warcraft addon manager for CurseForge addons
 
 #### Under construction
 
-The new WOWCAM tool ("_**W**orld **o**f **W**arcraft **C**urse **A**ddon **M**anager_") is being built here...
+The new WOWCAM tool ("_**W**orld **o**f **W**arcraft **C**urse **A**ddon **M**anager_") evolves here...
 
 #### Whaaat?
 
@@ -12,7 +12,7 @@ WOWCAM will be the official next generation [WADM](https://github.com/MBODM/WADM
 Promises:
 - It will make WoW addon mangement great again!
 - It will include an "unzip-only" fallback mode (since https://curseforge.com could change again).
-- It will **not** be that "Windows default style" ugly as f**k.
+- It will **not** be that "Windows default style" ugly as f**k and it **will** have a dark theme!
 
 #### In short:
 

@@ -6,6 +6,7 @@ namespace WOWCAM.Core
 {
     public sealed class XmlConfigReader : IConfigReader
     {
+        private const string OperatingModeElementName = "mode";
         private const string DownloadFolderElementName = "download";
         private const string UnzipFolderElementName = "unzip";
         private const string TempFolderElementName = "temp";
@@ -38,11 +39,13 @@ namespace WOWCAM.Core
 
             // General file structure is always required, but some fileds may be empty, dependent on mode.
 
+            
+
+
+
+            var mode = document?.Element("root")?.Element(OperatingModeElementName)?.Value?.ToString() ?? string.Empty;
+            OperatingMode = Enum.TryParse(mode, out OperatingMode value) ? value : OperatingMode.DownloadAndUnzip;
             DownloadFolder = document?.Element("root")?.Element(DownloadFolderElementName)?.Value?.ToString() ?? string.Empty;
-
-
-
-
             UnzipFolder = document?.Element("root")?.Element(UnzipFolderElementName)?.Value?.ToString() ?? string.Empty;
             TempFolder = document?.Element("root")?.Element(TempFolderElementName)?.Value?.ToString() ?? string.Empty;
 
@@ -51,21 +54,7 @@ namespace WOWCAM.Core
              Select(e => e.Value.Trim().ToLower())?.
              Distinct() ?? Enumerable.Empty<string>();
         }
-
-        private bool ValidatePerXSD()
-        {
-            var schemas = new XmlSchemaSet();
-            schemas.Add("", "");
-            var document = XDocument.Load(xmlFile);
-            var isValid = true;
-            document.Validate(schemas, (o, e) =>
-            {
-                Debug.WriteLine(e.Message);
-                isValid = false;
-            });
-            return isValid;
-        }
-
+        
         public void ValidateConfig(bool downloadRelated, bool unzipRelated)
         {
             if (downloadRelated)
@@ -82,6 +71,20 @@ namespace WOWCAM.Core
             {
                 ValidateFolderPath(TempFolder, TempFolderElementName);
             }
+        }
+
+        private bool ValidateFileStructure()
+        {
+            var schemas = new XmlSchemaSet();
+            schemas.Add("", "");
+            var document = XDocument.Load(xmlFile);
+            var isValid = true;
+            document.Validate(schemas, (o, e) =>
+            {
+                Debug.WriteLine(e.Message);
+                isValid = false;
+            });
+            return isValid;
         }
 
         private void ValidateDownloadRelatedEntries()

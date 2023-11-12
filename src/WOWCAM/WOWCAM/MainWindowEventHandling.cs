@@ -7,11 +7,13 @@ namespace WOWCAM
 {
     public partial class MainWindow : Window
     {
+        private OperatingMode mode = OperatingMode.DownloadAndUnzip;
+
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Todo: Load settings.
+            configReader.ReadConfig();
 
-            mode = OperatingMode.DownloadAndUnzip; // Fake
+            mode = configReader.OperatingMode;
 
             HandleMode();
 
@@ -23,11 +25,6 @@ namespace WOWCAM
             {
                 webView.Source = new Uri("https://www.curseforge.com/wow/addons/details");
             }
-        }
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            // Todo: Save settings.
         }
 
         private void HyperlinkConfigFolder_Click(object sender, RoutedEventArgs e)

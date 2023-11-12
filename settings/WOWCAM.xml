@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ========================================================================================== -->
+<!-- Please have a look at https://github.com/mbodm/wowcam for more information about this file -->
+<!-- ========================================================================================== -->
+<root>
+	<mode>DownloadAndUnzip</mode>
+	<load>retail</load>
+	<temp>%TEMP%</temp>
+	<profiles>
+		<retail>
+			<folders>
+				<download>%USERPROFILE%\Desktop\RetailAddons</download>
+				<unzip>%PROGRAMFILES(X86)%\World of Warcraft\_retail_\Interface\AddOns</unzip>
+			</folders>
+			<addons1>
+				<url>https://www.curseforge.com/wow/addons/deadly-boss-mods</url>
+				<url>https://www.curseforge.com/wow/addons/details</url>
+				<url>https://www.curseforge.com/wow/addons/groupfinderflags</url>
+				<url>https://www.curseforge.com/wow/addons/handynotes</url>
+				<url>https://www.curseforge.com/wow/addons/handynotes-dragonflight</url>
+				<url>https://www.curseforge.com/wow/addons/raiderio</url>
+				<url>https://www.curseforge.com/wow/addons/tradeskill-master</url>
+				<url>https://www.curseforge.com/wow/addons/tomtom</url>
+				<url>https://www.curseforge.com/wow/addons/weakauras-2</url>
+			</addons1>
+		</retail>
+	</profiles>
+</root>

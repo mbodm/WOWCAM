@@ -1,19 +1,23 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using WOWCAM.Core;
 
 namespace WOWCAM
 {
     public partial class MainWindow : Window
     {
-        private readonly IAppHelper appHelper;
         private readonly IWpfHelper wpfHelper;
+        private readonly IConfigReader configReader;
 
-        private OperatingMode mode = OperatingMode.DownloadAndUnzip;
-
-        public MainWindow(IAppHelper appHelper, IWpfHelper wpfHelper)
+        public MainWindow(IAppHelper appHelper, IWpfHelper wpfHelper, IConfigReader configReader)
         {
-            this.appHelper = appHelper ?? throw new System.ArgumentNullException(nameof(appHelper));
+            if (appHelper is null)
+            {
+                throw new ArgumentNullException(nameof(appHelper));
+            }
+
             this.wpfHelper = wpfHelper ?? throw new System.ArgumentNullException(nameof(wpfHelper));
+            this.configReader = configReader ?? throw new ArgumentNullException(nameof(configReader));
 
             InitializeComponent();
 

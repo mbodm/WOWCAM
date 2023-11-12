@@ -6,7 +6,7 @@
         xmlns:Wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         x:Class="WOWCAM.MainWindow"
         mc:Ignorable="d"
-        Title="WOWCAM" Width="480" Height="300" WindowStartupLocation="CenterScreen" Loaded="Window_Loaded" Closing="Window_Closing">
+        Title="WOWCAM" Width="480" Height="300" WindowStartupLocation="CenterScreen" Loaded="Window_Loaded">
     <DockPanel Margin="10">
         <StackPanel DockPanel.Dock="Bottom">
             <DockPanel LastChildFill="False" Margin="1 5 1 0">

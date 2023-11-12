@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using WOWCAM.Core;
 
 namespace WOWCAM
 {
@@ -6,7 +7,7 @@ namespace WOWCAM
     {
         public App()
         {
-            MainWindow = new MainWindow(new DefaultAppHelper(), new DefaultWpfHelper());
+            MainWindow = new MainWindow(new DefaultAppHelper(), new DefaultWpfHelper(), new XmlConfigReader(new DefaultCurseHelper()));
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

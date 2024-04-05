@@ -1,17 +1,16 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.6.33829.357
+VisualStudioVersion = 17.9.34723.18
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WOWCAM", "WOWCAM\WOWCAM.csproj", "{9AAECCCF-45D9-4275-8679-4395FD6A7792}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WOWCAM", "WOWCAM\WOWCAM.csproj", "{325596FC-EBBA-467B-8618-6318745A7A73}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WOWCAM.Core", "WOWCAM.Core\WOWCAM.Core.csproj", "{FC9FB13F-3DED-4537-8F4D-CD2AFEA3984F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WOWCAM.WebView", "WOWCAM.WebView\WOWCAM.WebView.csproj", "{B1C0122B-EF0F-42F1-BE6F-A0F634DCB118}"
 	ProjectSection(ProjectDependencies) = postProject
-		{4E22C8E6-5435-4F86-9CD9-987DE66422F9} = {4E22C8E6-5435-4F86-9CD9-987DE66422F9}
-		{DD92BB2B-132A-4B14-90A0-92BAB6BBA8CD} = {DD92BB2B-132A-4B14-90A0-92BAB6BBA8CD}
+		{FC9FB13F-3DED-4537-8F4D-CD2AFEA3984F} = {FC9FB13F-3DED-4537-8F4D-CD2AFEA3984F}
 	EndProjectSection
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WOWCAM.Core", "WOWCAM.Core\WOWCAM.Core.csproj", "{4E22C8E6-5435-4F86-9CD9-987DE66422F9}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WOWCAM.WebView", "WOWCAM.WebView\WOWCAM.WebView.csproj", "{DD92BB2B-132A-4B14-90A0-92BAB6BBA8CD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,23 +18,23 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9AAECCCF-45D9-4275-8679-4395FD6A7792}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9AAECCCF-45D9-4275-8679-4395FD6A7792}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9AAECCCF-45D9-4275-8679-4395FD6A7792}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9AAECCCF-45D9-4275-8679-4395FD6A7792}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4E22C8E6-5435-4F86-9CD9-987DE66422F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4E22C8E6-5435-4F86-9CD9-987DE66422F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4E22C8E6-5435-4F86-9CD9-987DE66422F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4E22C8E6-5435-4F86-9CD9-987DE66422F9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DD92BB2B-132A-4B14-90A0-92BAB6BBA8CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DD92BB2B-132A-4B14-90A0-92BAB6BBA8CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DD92BB2B-132A-4B14-90A0-92BAB6BBA8CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DD92BB2B-132A-4B14-90A0-92BAB6BBA8CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{325596FC-EBBA-467B-8618-6318745A7A73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{325596FC-EBBA-467B-8618-6318745A7A73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{325596FC-EBBA-467B-8618-6318745A7A73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{325596FC-EBBA-467B-8618-6318745A7A73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC9FB13F-3DED-4537-8F4D-CD2AFEA3984F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC9FB13F-3DED-4537-8F4D-CD2AFEA3984F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC9FB13F-3DED-4537-8F4D-CD2AFEA3984F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC9FB13F-3DED-4537-8F4D-CD2AFEA3984F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1C0122B-EF0F-42F1-BE6F-A0F634DCB118}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1C0122B-EF0F-42F1-BE6F-A0F634DCB118}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1C0122B-EF0F-42F1-BE6F-A0F634DCB118}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1C0122B-EF0F-42F1-BE6F-A0F634DCB118}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {888B727C-7F19-4AEB-A846-DD308DD6338A}
+		SolutionGuid = {85660382-66A0-421A-87C3-BA07DD8F6FE7}
 	EndGlobalSection
 EndGlobal

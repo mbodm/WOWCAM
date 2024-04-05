@@ -41,9 +41,9 @@ namespace WOWCAM.Core
 
             var document = XDocument.Load(xmlFile);
 
-            //if (!ValidateFileStructure())
+            if (!ValidateFileStructure())
             {
-                //throw new InvalidOperationException("Todo");
+                throw new InvalidOperationException("Todo");
             }
 
 

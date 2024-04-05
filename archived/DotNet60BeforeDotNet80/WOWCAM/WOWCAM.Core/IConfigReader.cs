@@ -2,7 +2,7 @@
 {
     public interface IConfigReader
     {
-        string Storage { get; } // Using such a generic term here, since this could be a file, or database, or whatever.
+        string Storage { get; } // Using such a generic term here, since config could be a file, or database, or whatever.
 
         OperatingMode OperatingMode { get; }
         string LoadedProfile { get; }

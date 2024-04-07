@@ -1,17 +1,18 @@
 ﻿namespace WOWCAM.Core
 {
-    public interface IConfigReader
+    public interface IConfig
     {
         string Storage { get; } // Using such a generic term here, since this could be a file, or database, or whatever.
 
-        OperatingMode OperatingMode { get; }
-        string LoadedProfile { get; }
+        string ActiveProfile { get; }
         string TempFolder { get; }
+        OperatingMode OperatingMode { get; }
         string DownloadFolder { get; }
         string UnzipFolder { get; }
         IEnumerable<string> AddonUrls { get; }
 
-        void ValidateConfig(bool downloadMode, bool unzipMode);
-        void ReadConfig();
+        bool Exists();
+        Task CreateEmptyAsync(CancellationToken cancellationToken = default);
+        Task LoadAsync(CancellationToken cancellationToken = default);
     }
 }

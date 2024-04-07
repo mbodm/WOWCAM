@@ -5,6 +5,6 @@
         DownloadOnly,
         UnzipOnly,
         DownloadAndUnzip,
-        Update,
+        SmartUpdate,
     }
 }

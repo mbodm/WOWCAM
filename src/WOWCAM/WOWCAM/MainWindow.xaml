@@ -20,7 +20,7 @@
                     <Hyperlink TextDecorations="None" x:Name="hyperlink1" Click="Hyperlink_Click">Hyperlink1</Hyperlink>
                 </TextBlock>
             </DockPanel>
-            <TextBlock Margin="0 20 0 0" Text="Status:" />
+            <TextBlock Margin="0 20 0 0" x:Name="textBlockProgressBar" Text="Status:" />
             <DockPanel>
                 <Button DockPanel.Dock="Right" Width="75" Height="25" Margin="10 0 0 0" x:Name="button" Click="Button_Click" Content="Button" />
                 <ProgressBar DockPanel.Dock="Left" Height="25" x:Name="progressBar" />

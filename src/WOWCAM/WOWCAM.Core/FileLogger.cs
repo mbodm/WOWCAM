@@ -6,7 +6,7 @@ namespace WOWCAM.Core
     public sealed class FileLogger : ILogger
     {
         private readonly object syncRoot = new();
-        private readonly string logFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WADH.log");
+        private readonly string logFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM.log");
         private readonly string newLine = Environment.NewLine;
 
         public string Storage => logFile;
@@ -26,14 +26,11 @@ namespace WOWCAM.Core
 
         public void Log(IEnumerable<string> multiLineMessage, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            if (multiLineMessage is null)
-            {
-                throw new ArgumentNullException(nameof(multiLineMessage));
-            }
+            ArgumentNullException.ThrowIfNull(multiLineMessage);
 
             if (!multiLineMessage.Any())
             {
-                throw new ArgumentNullException(nameof(multiLineMessage), "Enumerable cannot be empty.");
+                throw new ArgumentNullException(nameof(multiLineMessage), "Enumerable is empty.");
             }
 
             var message = string.Join(newLine, multiLineMessage);
@@ -46,10 +43,7 @@ namespace WOWCAM.Core
 
         public void Log(Exception exception, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            if (exception is null)
-            {
-                throw new ArgumentNullException(nameof(exception));
-            }
+            ArgumentNullException.ThrowIfNull(exception);
 
             var message = $"Exception-Type: {exception.GetType().Name}{newLine}" + $"Exception-Message: {exception.Message}";
 

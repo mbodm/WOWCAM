@@ -7,7 +7,7 @@ namespace WOWCAM
     {
         public App()
         {
-            MainWindow = new MainWindow(new DefaultAppHelper(), new DefaultWpfHelper(), new XmlConfigReader(new DefaultCurseHelper()));
+            MainWindow = new MainWindow(new XmlFileConfig(new FileLogger(), new DefaultCurseHelper()));
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

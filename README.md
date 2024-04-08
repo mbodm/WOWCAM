@@ -14,12 +14,12 @@ Promises:
 - It will include an "unzip-only" fallback mode (since https://curseforge.com could change again).
 - It will **not** be that "Windows default style" ugly as f**k and it **will** have a dark theme!
 
-Update 04/2024
+#### Update 04/2024
 
 I decided against an "unzip-only" fallback mode, for the following reasons:
-
-- An "ooerating mode" will make a LOT of things way more complex (config handling, adaptive UI, etc.) and will bloat the source code a lot.
-- 
+- An "operating mode" will make a LOT of things way more complex (config handling, adaptive UI, etc.) and will bloat the source code a lot.
+- Since a "download-only" mode makes not much sense, it's just the "unzip-only" mode.
+- For pure unzipping [WAUZ](https://github.com/MBODM/WAUZ) is still there, which fullfills such requirements way more precise.
 
 #### In short:
 

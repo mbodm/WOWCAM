@@ -19,7 +19,7 @@ Promises:
 I decided against an "unzip-only" fallback mode, for the following reasons:
 - An "operating mode" will make a LOT of things way more complex (config handling, adaptive UI, etc.) and will bloat the source code in various locations a lot.
 - Since a "download-only" mode makes not much sense, it's just the "unzip-only" mode.
-- For pure unzipping [WAUZ](https://github.com/MBODM/WAUZ) is still there, which fullfills such requirements way more precise.
+- For pure unzipping, [WAUZ](https://github.com/MBODM/WAUZ) is still there. And it fullfills the requirements way more precise.
 
 #### In short:
 

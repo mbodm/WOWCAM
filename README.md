@@ -22,6 +22,7 @@ I decided against an "unzip-only" fallback mode, for the following reasons:
 - Since a "download-only" mode makes not much sense, it's just the "unzip-only" mode.
 - For pure unzipping, [WAUZ](https://github.com/MBODM/WAUZ) is still there. And it fullfills the requirements way more precise.
 - It allows me to focus more on the core features, with my sparse time.
+- This doesn't mean there will be **never** such an "unzip-only" fallback mechanism.
 
 #### In short:
 

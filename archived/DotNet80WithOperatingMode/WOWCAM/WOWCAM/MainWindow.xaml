@@ -10,16 +10,19 @@
     <DockPanel Margin="10">
         <StackPanel DockPanel.Dock="Bottom">
             <DockPanel LastChildFill="False" Margin="1 5 1 0">
-                <TextBlock DockPanel.Dock="Right" Margin="15 0 0 0" x:Name="textBlockTargetFolder">
-                    <Hyperlink TextDecorations="None" x:Name="hyperlinkTargetFolder" Click="HyperlinkTargetFolder_Click">Target-Folder</Hyperlink>
-                </TextBlock>
-                <TextBlock DockPanel.Dock="Right" x:Name="textBlockConfigFolder">
+                <TextBlock DockPanel.Dock="Left">
                     <Hyperlink TextDecorations="None" x:Name="hyperlinkConfigFolder" Click="HyperlinkConfigFolder_Click">Config-Folder</Hyperlink>
+                </TextBlock>
+                <TextBlock DockPanel.Dock="Right" Margin="20 0 0 0" x:Name="textBlockHyperlink2">
+                    <Hyperlink TextDecorations="None" x:Name="hyperlink2" Click="Hyperlink_Click">Hyperlink2</Hyperlink>
+                </TextBlock>
+                <TextBlock DockPanel.Dock="Right" x:Name="textBlockHyperlink1">
+                    <Hyperlink TextDecorations="None" x:Name="hyperlink1" Click="Hyperlink_Click">Hyperlink1</Hyperlink>
                 </TextBlock>
             </DockPanel>
             <TextBlock Margin="0 20 0 0" x:Name="textBlockProgressBar" Text="Status:" />
             <DockPanel>
-                <Button DockPanel.Dock="Right" Width="75" Height="25" Margin="10 0 0 0" x:Name="button" Click="Button_Click" Content="Update" />
+                <Button DockPanel.Dock="Right" Width="75" Height="25" Margin="10 0 0 0" x:Name="button" Click="Button_Click" Content="Button" />
                 <ProgressBar DockPanel.Dock="Left" Height="25" x:Name="progressBar" />
             </DockPanel>
         </StackPanel>

@@ -9,19 +9,14 @@ namespace WOWCAM.Core
 
         private readonly string xmlFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM.xml");
 
-        public string Storage => xmlFile;
-
         public string ActiveProfile { get; private set; } = string.Empty;
+        public string ApplicationMode { get; private set; } = string.Empty;
         public string TempFolder { get; private set; } = string.Empty;
-        public OperatingMode OperatingMode { get; private set; } = OperatingMode.DownloadAndUnzip;
-        public string DownloadFolder { get; private set; } = string.Empty;
-        public string UnzipFolder { get; private set; } = string.Empty;
-        public IEnumerable<string> AddonUrls { get; private set; } = Enumerable.Empty<string>();
+        public string TargetFolder { get; private set; } = string.Empty;
+        public IEnumerable<string> AddonUrls { get; private set; } = [];
 
-        public bool Exists()
-        {
-            return File.Exists(xmlFile);
-        }
+        public string Storage => xmlFile;
+        public bool Exists => File.Exists(xmlFile);
 
         public Task CreateEmptyAsync(CancellationToken cancellationToken = default)
         {
@@ -33,15 +28,12 @@ namespace WOWCAM.Core
                 <wowcam>
                 	<general>
                 		<profile>retail</profile>
+                		<mode>normal</mode>
                 		<temp>%TEMP%</temp>
                 	</general>
                 	<profiles>
                 		<retail>
-                			<mode>DownloadAndUnzip</mode>
-                			<folders>
-                				<download>%USERPROFILE%\Desktop\RetailAddons</download>
-                				<unzip>%PROGRAMFILES(X86)%\World of Warcraft\_retail_\Interface\AddOns</unzip>
-                			</folders>
+                			<folder>%PROGRAMFILES(X86)%\World of Warcraft\_retail_\Interface\AddOns</folder>
                 			<addons>
                 				<url>https://www.curseforge.com/wow/addons/deadly-boss-mods</url>
                 				<url>https://www.curseforge.com/wow/addons/details</url>
@@ -91,7 +83,7 @@ namespace WOWCAM.Core
             }
             catch (Exception e)
             {
-                var tail = "Please check the config file and visit the project's site for more information about the file format.";
+                var tail = "Please check the config file and visit the project's site for more information about the config file format.";
 
                 throw new InvalidOperationException($"{e.Message} {tail}");
             }
@@ -101,32 +93,14 @@ namespace WOWCAM.Core
         {
             CheckBasicFileStructure(doc);
 
-            TempFolder = GetTempFolder(doc);
             ActiveProfile = GetActiveProfile(doc);
+            ApplicationMode = GetApplicationMode(doc);
+            TempFolder = GetTempFolder(doc);
 
             CheckActiveProfileSection(doc, ActiveProfile);
 
-            OperatingMode = GetOperatingMode(doc, ActiveProfile);
-
-            switch (OperatingMode)
-            {
-                case OperatingMode.DownloadOnly:
-                    DownloadFolder = GetDownloadFolder(doc, ActiveProfile);
-                    AddonUrls = GetAddonUrls(doc, ActiveProfile);
-                    break;
-                case OperatingMode.UnzipOnly:
-                    DownloadFolder = GetDownloadFolder(doc, ActiveProfile);
-                    UnzipFolder = GetUnzipFolder(doc, ActiveProfile);
-                    break;
-                case OperatingMode.DownloadAndUnzip:
-                    DownloadFolder = GetDownloadFolder(doc, ActiveProfile);
-                    UnzipFolder = GetUnzipFolder(doc, ActiveProfile);
-                    AddonUrls = GetAddonUrls(doc, ActiveProfile);
-                    break;
-                case OperatingMode.SmartUpdate:
-                    // Todo
-                    break;
-            }
+            TargetFolder = GetTargetFolder(doc, ActiveProfile);
+            AddonUrls = GetAddonUrls(doc, ActiveProfile);
         }
 
         private static void CheckBasicFileStructure(XDocument doc)
@@ -149,15 +123,6 @@ namespace WOWCAM.Core
                 throw new InvalidOperationException("Error in config file: The <profiles> section not contains any elements.");
         }
 
-        private static string GetTempFolder(XDocument doc)
-        {
-            var temp = doc.Root?.Element("general")?.Element("temp")?.Value?.Trim() ?? string.Empty;
-
-            // No <temp> not means error since <temp> is not a must-have setting
-
-            return Environment.ExpandEnvironmentVariables(temp);
-        }
-
         private static string GetActiveProfile(XDocument doc)
         {
             var profile = doc.Root?.Element("general")?.Element("profile")?.Value?.Trim() ?? string.Empty;
@@ -170,6 +135,24 @@ namespace WOWCAM.Core
             return profile;
         }
 
+        private static string GetApplicationMode(XDocument doc)
+        {
+            var mode = doc.Root?.Element("general")?.Element("mode")?.Value?.Trim() ?? string.Empty;
+
+            // No <mode> not means error since <mode> is not a must-have setting
+
+            return mode;
+        }
+
+        private static string GetTempFolder(XDocument doc)
+        {
+            var temp = doc.Root?.Element("general")?.Element("temp")?.Value?.Trim() ?? string.Empty;
+
+            // No <temp> not means error since <temp> is not a must-have setting
+
+            return Environment.ExpandEnvironmentVariables(temp);
+        }
+
         private static void CheckActiveProfileSection(XDocument doc, string activeProfile)
         {
             if (doc.Root?.Element("profiles")?.Element(activeProfile) == null)
@@ -178,38 +161,18 @@ namespace WOWCAM.Core
             }
         }
 
-        private static OperatingMode GetOperatingMode(XDocument doc, string profile)
+        private static string GetTargetFolder(XDocument doc, string profile)
         {
-            var mode = doc.Root?.Element("profiles")?.Element(profile)?.Element("mode")?.Value?.Trim() ?? string.Empty;
+            var folder = doc.Root?.Element("profiles")?.Element(profile)?.Element("folders")?.Element("download")?.Value?.Trim() ??
+                throw new InvalidOperationException("Error in config file: Could not determine target folder for given profile.");
 
-            if (mode == string.Empty || !Enum.TryParse(mode, out OperatingMode operatingMode))
-            {
-                throw new InvalidOperationException("Error in config file: Could not determine operating mode for given profile.");
-            }
-
-            return operatingMode;
-        }
-
-        private static string GetDownloadFolder(XDocument doc, string profile)
-        {
-            var download = doc.Root?.Element("profiles")?.Element(profile)?.Element("folders")?.Element("download")?.Value?.Trim() ??
-                throw new InvalidOperationException("Error in config file: Could not determine download folder for given profile.");
-
-            return Environment.ExpandEnvironmentVariables(download);
-        }
-
-        private static string GetUnzipFolder(XDocument doc, string profile)
-        {
-            var unzip = doc.Root?.Element("profiles")?.Element(profile)?.Element("folders")?.Element("unzip")?.Value?.Trim() ??
-                throw new InvalidOperationException("Error in config file: Could not determine unzip folder for given profile.");
-
-            return Environment.ExpandEnvironmentVariables(unzip);
+            return Environment.ExpandEnvironmentVariables(folder);
         }
 
         private static IEnumerable<string> GetAddonUrls(XDocument doc, string profile)
         {
             var addons = doc.Root?.Element("profiles")?.Element(profile)?.Element("addons") ??
-                throw new InvalidOperationException("Error in config file: Could not determine addons for given profile.");
+                throw new InvalidOperationException("Error in config file: Could not determine addon urls for given profile.");
 
             var urls = addons.Elements()?.Where(e => e.Name == "url")?.Select(e => e.Value.Trim().ToLower())?.Distinct() ?? [];
 
@@ -218,37 +181,24 @@ namespace WOWCAM.Core
 
         private void ValidateData()
         {
-            const string NoDownloadFolder1 = "Config file contains no download folder to download the zip files into.";
-            const string NoDownloadFolder2 = "Config file contains no download folder to unzip files from.";
-            const string NoUnzipFolder = "Config file contains no unzip folder to extract the zip files into.";
-            const string InvalidDownloadFolder = "Config file contains download folder which is not a valid absolute file system path.";
-            const string InvalidUnzipFolder = "Config file contains unzip folder which is not a valid absolute file system path.";
-            const string NoAddonUrls = "Config file contains 0 url entries and this means there is nothing to download.";
-            const string InvalidAddonUrls = "Config file contains at least 1 url entry which is not a valid Curse addon url.";
-
-            switch (OperatingMode)
+            if (TargetFolder == string.Empty)
             {
-                case OperatingMode.DownloadOnly:
-                    if (DownloadFolder == string.Empty) throw new InvalidOperationException(NoDownloadFolder1);
-                    if (!IsValidAbsolutePath(DownloadFolder)) throw new InvalidOperationException(InvalidDownloadFolder);
-                    break;
-                case OperatingMode.UnzipOnly:
-                    if (DownloadFolder == string.Empty) throw new InvalidOperationException(NoDownloadFolder2);
-                    if (!IsValidAbsolutePath(DownloadFolder)) throw new InvalidOperationException(InvalidDownloadFolder);
-                    if (UnzipFolder == string.Empty) throw new InvalidOperationException(NoUnzipFolder);
-                    if (!IsValidAbsolutePath(UnzipFolder)) throw new InvalidOperationException(InvalidUnzipFolder);
-                    break;
-                case OperatingMode.DownloadAndUnzip:
-                    if (DownloadFolder == string.Empty) throw new InvalidOperationException(NoDownloadFolder1);
-                    if (!IsValidAbsolutePath(DownloadFolder)) throw new InvalidOperationException(InvalidDownloadFolder);
-                    if (UnzipFolder == string.Empty) throw new InvalidOperationException(NoUnzipFolder);
-                    if (!IsValidAbsolutePath(UnzipFolder)) throw new InvalidOperationException(InvalidUnzipFolder);
-                    if (!AddonUrls.Any()) throw new InvalidOperationException(NoAddonUrls);
-                    if (AddonUrls.Any(url => !curseHelper.IsAddonPageUrl(url))) throw new InvalidOperationException(InvalidAddonUrls);
-                    break;
-                case OperatingMode.SmartUpdate:
-                    // Todo
-                    break;
+                throw new InvalidOperationException("Config file contains no target folder to download and extract the zip files into.");
+            }
+
+            if (!IsValidAbsolutePath(TargetFolder))
+            {
+                throw new InvalidOperationException("Config file contains a target folder which is not a valid absolute file system path.");
+            }
+
+            if (!AddonUrls.Any())
+            {
+                throw new InvalidOperationException("Config file contains 0 addon url entries and this means there is nothing to download.");
+            }
+
+            if (AddonUrls.Any(url => !curseHelper.IsAddonPageUrl(url)))
+            {
+                throw new InvalidOperationException("Config file contains at least 1 url entry which is not a valid Curse addon url.");
             }
         }
 
@@ -256,6 +206,11 @@ namespace WOWCAM.Core
         {
             try
             {
+                if (!Path.IsPathRooted(path))
+                {
+                    return false;
+                }
+
                 Path.GetFullPath(path);
             }
             catch
@@ -263,14 +218,7 @@ namespace WOWCAM.Core
                 return false;
             }
 
-            try
-            {
-                return Path.IsPathRooted(path);
-            }
-            catch
-            {
-                return false;
-            }
+            return true;
         }
     }
 }

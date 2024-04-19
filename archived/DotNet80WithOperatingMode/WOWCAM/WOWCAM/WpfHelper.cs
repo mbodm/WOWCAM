@@ -20,6 +20,11 @@ namespace WOWCAM
             MessageBox.Show(message, "Information", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
+        public static bool AskQuestion(string message)
+        {
+            return MessageBox.Show(message, "Information", MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes;
+        }
+
         public static void ShowError(string message)
         {
             MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);

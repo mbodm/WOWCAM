@@ -7,7 +7,9 @@ namespace WOWCAM
     {
         public App()
         {
-            MainWindow = new MainWindow(new XmlFileConfig(new FileLogger(), new DefaultCurseHelper()));
+            var logger = new FileLogger();
+
+            MainWindow = new MainWindow(new XmlFileConfig(logger, new DefaultCurseHelper()), new DefaultProcessHelper(logger));
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

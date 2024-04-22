@@ -1,6 +1,6 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Windows;
-using System.Windows.Documents;
 using WOWCAM.Core;
 
 namespace WOWCAM
@@ -8,23 +8,28 @@ namespace WOWCAM
     public partial class MainWindow : Window
     {
         private readonly IConfig config;
+        private readonly IProcessHelper processHelper;
 
-        public MainWindow(IConfig config)
+        public MainWindow(IConfig config, IProcessHelper processHelper)
         {
             this.config = config ?? throw new ArgumentNullException(nameof(config));
+            this.processHelper = processHelper ?? throw new ArgumentNullException(nameof(processHelper));
 
             InitializeComponent();
 
             // 16:10 format (1440x900 fits Curse site better than 1280x800)
+            // In XAML it's 480x300 (for a better XAML editor preview size)
             Width = 1440;
             Height = 900;
-            MinWidth = 1440 / 2;
-            MinHeight = 900 / 2;
+            MinWidth = Width / 2;
+            MinHeight = Height / 2;
 
             Title = $"WOWCAM {AppHelper.GetApplicationVersion()}";
 
-            InitControls();
+            SetControls(false);
         }
+
+        #region Events
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -44,19 +49,44 @@ namespace WOWCAM
                 return;
             }
 
-            ConfigureControls();
+            if (!Directory.Exists(config.TargetFolder))
+            {
+                // I decided to NOT create the folder by code here since the default config contains assumptions about WoW folder in %PROGRAMFILES(X86)%
+
+                WpfHelper.ShowError("The configured target folder not exists. Please make sure the folder exists.");
+
+                return;
+            }
 
             await ConfigureWebView();
+
+            ConfigureControls();
+
+            SetControls(true);
         }
 
         private void HyperlinkConfigFolder_Click(object sender, RoutedEventArgs e)
         {
-            WpfHelper.ShowInfo("Todo: Show config folder.");
+            try
+            {
+                processHelper.OpenFolderInExplorer(config.Storage);
+            }
+            catch (Exception ex)
+            {
+                WpfHelper.ShowError(ex.Message);
+            }
         }
 
         private void HyperlinkTargetFolder_Click(object sender, RoutedEventArgs e)
         {
-            WpfHelper.ShowInfo("Todo: Show target folder.");
+            try
+            {
+                processHelper.OpenFolderInExplorer(config.TargetFolder);
+            }
+            catch (Exception ex)
+            {
+                WpfHelper.ShowError(ex.Message);
+            }
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -64,46 +94,17 @@ namespace WOWCAM
             WpfHelper.ShowInfo("Todo: Do stuff.");
         }
 
-        private void InitControls()
+        #endregion
+
+        #region Methods
+
+        private void SetControls(bool enabled)
         {
-            textBlockConfigFolder.Visibility = Visibility.Hidden;
-            textBlockTargetFolder.Visibility = Visibility.Hidden;
-            textBlockProgressBar.Visibility = Visibility.Hidden;
-            progressBar.Visibility = Visibility.Hidden;
-            button.Visibility = Visibility.Hidden;
-            button.IsEnabled = false;
-        }
-
-        private void ConfigureControls()
-        {
-            if (CheckFolders())
-            {
-                textBlockHyperlink1.Visibility = Visibility.Visible;
-                textBlockHyperlink2.Visibility = Visibility.Visible;
-                button.IsEnabled = true;
-            }
-
-            WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
-            WpfHelper.DisableHyperlinkHoverEffect(hyperlinkTargetFolder);
-
-            textBlockProgressBar.Visibility = Visibility.Visible;
-            progressBar.Value = 75;
-            progressBar.Visibility = Visibility.Visible;
-            button.Visibility = Visibility.Visible;
-        }
-        
-        private bool CheckFolders()
-        {
-            // I decided to NOT create the folder by code here since the default config contains assumptions about WoW folder in %PROGRAMFILES(X86)%
-
-            if (!Directory.Exists(config.TargetFolder))
-            {
-                WpfHelper.ShowError("The configured target folder not exists. Please make sure the folder exists.");
-
-                return false;
-            }
-
-            return true;
+            textBlockConfigFolder.IsEnabled = enabled;
+            textBlockTargetFolder.IsEnabled = enabled;
+            labelProgressBar.IsEnabled = enabled;
+            progressBar.IsEnabled = enabled;
+            button.IsEnabled = enabled;
         }
 
         private async Task ConfigureWebView()
@@ -112,5 +113,15 @@ namespace WOWCAM
 
             webView.IsEnabled = false;
         }
+
+        private void ConfigureControls()
+        {
+            WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
+            WpfHelper.DisableHyperlinkHoverEffect(hyperlinkTargetFolder);
+
+            progressBar.Value = 75; // Todo: Remove after testing.
+        }
+
+        #endregion
     }
 }

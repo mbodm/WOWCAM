@@ -8,7 +8,8 @@ namespace WOWCAM.Core
             "document.body.style.overflow = 'hidden';";
 
         public string HideCookiebarScript =>
-            "document.querySelector('script[src*=\"cookiebar\"]').onload = () => document.querySelector('#cookiebar').style.visibility = 'hidden';";
+            "document.querySelector('script[src*=\"cookiebar\"]').onload = () => document.querySelector('#cookiebar').style.display = 'none';";
+        // Todo: Set the "client-marketing" class also to display:none
 
         public string GrabJsonScript =>
             "document.querySelector('script#__NEXT_DATA__')?.innerHTML ?? '';";

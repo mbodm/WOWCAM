@@ -4,7 +4,7 @@ namespace WOWCAM.Core
 {
     public interface ILogger
     {
-        string Storage { get; } // Using such a generic term here, since this could be a file, or database, or whatever.
+        string Storage { get; } // Using such a generic term here since this could be a file/database/whatever
 
         void Log(string message, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0);
         void Log(IEnumerable<string> multiLineMessage, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0);

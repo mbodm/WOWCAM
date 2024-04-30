@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using WOWCAM.Core;
 
@@ -8,11 +7,13 @@ namespace WOWCAM
     public partial class MainWindow : Window
     {
         private readonly IConfig config;
+        private readonly IConfigValidator configValidator;
         private readonly IProcessHelper processHelper;
 
-        public MainWindow(IConfig config, IProcessHelper processHelper)
+        public MainWindow(IConfig config, IConfigValidator configValidator, IProcessHelper processHelper)
         {
             this.config = config ?? throw new ArgumentNullException(nameof(config));
+            this.configValidator = configValidator ?? throw new ArgumentNullException(nameof(configValidator));
             this.processHelper = processHelper ?? throw new ArgumentNullException(nameof(processHelper));
 
             InitializeComponent();
@@ -41,6 +42,8 @@ namespace WOWCAM
                 }
 
                 await config.LoadAsync();
+
+                configValidator.Validate();
             }
             catch (Exception ex)
             {
@@ -59,9 +62,7 @@ namespace WOWCAM
             }
 
             await ConfigureWebView();
-
-            ConfigureControls();
-
+            
             SetControls(true);
         }
 
@@ -69,7 +70,7 @@ namespace WOWCAM
         {
             try
             {
-                processHelper.OpenFolderInExplorer(config.Storage);
+                processHelper.OpenFolderInExplorer(Path.GetDirectoryName(config.Storage) ?? string.Empty);
             }
             catch (Exception ex)
             {
@@ -105,6 +106,14 @@ namespace WOWCAM
             labelProgressBar.IsEnabled = enabled;
             progressBar.IsEnabled = enabled;
             button.IsEnabled = enabled;
+            
+            if (enabled)
+            {
+                WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
+                WpfHelper.DisableHyperlinkHoverEffect(hyperlinkTargetFolder);
+
+                progressBar.Value = 75; // Todo: Remove after testing.
+            }
         }
 
         private async Task ConfigureWebView()
@@ -112,14 +121,6 @@ namespace WOWCAM
             await webView.EnsureCoreWebView2Async();
 
             webView.IsEnabled = false;
-        }
-
-        private void ConfigureControls()
-        {
-            WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
-            WpfHelper.DisableHyperlinkHoverEffect(hyperlinkTargetFolder);
-
-            progressBar.Value = 75; // Todo: Remove after testing.
         }
 
         #endregion

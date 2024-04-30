@@ -2,16 +2,17 @@
 
 namespace WOWCAM.Core
 {
-    public sealed class XmlFileConfig(ILogger logger, ICurseHelper curseHelper) : IConfig
+    public sealed class XmlFileConfig(ILogger logger) : IConfig
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly ICurseHelper curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
 
         private readonly string xmlFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM.xml");
 
         public string ActiveProfile { get; private set; } = string.Empty;
-        public string ApplicationMode { get; private set; } = string.Empty;
         public string TempFolder { get; private set; } = string.Empty;
+        public bool SmartUpdate { get; private set; } = false;
+        public bool SilentMode { get; private set; } = false;
+        public bool UnzipOnly { get; private set; } = false;
         public string TargetFolder { get; private set; } = string.Empty;
         public IEnumerable<string> AddonUrls { get; private set; } = [];
 
@@ -28,9 +29,13 @@ namespace WOWCAM.Core
                 <wowcam>
                 	<general>
                 		<profile>retail</profile>
-                		<mode>normal</mode>
                 		<temp>%TEMP%</temp>
                 	</general>
+                	<options>
+                		<smartupdate>false</smartupdate>
+                		<silentmode>false</silentmode>
+                		<unziponly>false</unziponly>
+                	</options>
                 	<profiles>
                 		<retail>
                 			<folder>%PROGRAMFILES(X86)%\World of Warcraft\_retail_\Interface\AddOns</folder>
@@ -68,7 +73,18 @@ namespace WOWCAM.Core
 
             try
             {
-                ReadData(doc);
+                CheckBasicFileStructure(doc);
+
+                ActiveProfile = GetActiveProfile(doc);
+                CheckActiveProfileSection(doc, ActiveProfile);
+                TempFolder = GetTempFolder(doc);
+
+                SmartUpdate = GetSmartUpdate(doc);
+                SilentMode = GetSilentMode(doc);
+                UnzipOnly = GetUnzipOnly(doc);
+
+                TargetFolder = GetTargetFolder(doc, ActiveProfile);
+                AddonUrls = GetAddonUrls(doc, ActiveProfile);
             }
             catch (Exception e)
             {
@@ -76,31 +92,6 @@ namespace WOWCAM.Core
 
                 throw new InvalidOperationException("Format error in config file (see log file for details).", e);
             }
-
-            try
-            {
-                ValidateData();
-            }
-            catch (Exception e)
-            {
-                var tail = "Please check the config file and visit the project's site for more information about the config file format.";
-
-                throw new InvalidOperationException($"{e.Message} {tail}");
-            }
-        }
-
-        private void ReadData(XDocument doc)
-        {
-            CheckBasicFileStructure(doc);
-
-            ActiveProfile = GetActiveProfile(doc);
-            ApplicationMode = GetApplicationMode(doc);
-            TempFolder = GetTempFolder(doc);
-
-            CheckActiveProfileSection(doc, ActiveProfile);
-
-            TargetFolder = GetTargetFolder(doc, ActiveProfile);
-            AddonUrls = GetAddonUrls(doc, ActiveProfile);
         }
 
         private static void CheckBasicFileStructure(XDocument doc)
@@ -110,115 +101,77 @@ namespace WOWCAM.Core
             if (root == null || root.Name != "wowcam")
                 throw new InvalidOperationException("Error in config file: The <wowcam> root element not exists.");
 
-            var general = root.Element("general") ??
+            if (root.Element("general") == null)
                 throw new InvalidOperationException("Error in config file: The <general> section not exists.");
 
-            if (!general.HasElements)
-                throw new InvalidOperationException("Error in config file: The <general> section not contains any elements.");
+            if (root.Element("options") == null)
+                throw new InvalidOperationException("Error in config file: The <options> section not exists.");
 
             var profiles = root.Element("profiles") ??
                 throw new InvalidOperationException("Error in config file: The <profiles> section not exists.");
 
             if (!profiles.HasElements)
-                throw new InvalidOperationException("Error in config file: The <profiles> section not contains any elements.");
+                throw new InvalidOperationException("Error in config file: The <profiles> section not contains any profiles.");
         }
 
         private static string GetActiveProfile(XDocument doc)
         {
-            var profile = doc.Root?.Element("general")?.Element("profile")?.Value?.Trim() ?? string.Empty;
-
-            if (profile == string.Empty)
-            {
+            return doc.Root?.Element("general")?.Element("profile")?.Value?.Trim() ??
                 throw new InvalidOperationException("Error in config file: Could not determine active profile.");
-            }
-
-            return profile;
-        }
-
-        private static string GetApplicationMode(XDocument doc)
-        {
-            var mode = doc.Root?.Element("general")?.Element("mode")?.Value?.Trim() ?? string.Empty;
-
-            // No <mode> not means error since <mode> is not a must-have setting
-
-            return mode;
-        }
-
-        private static string GetTempFolder(XDocument doc)
-        {
-            var temp = doc.Root?.Element("general")?.Element("temp")?.Value?.Trim() ?? string.Empty;
-
-            // No <temp> not means error since <temp> is not a must-have setting
-
-            return Environment.ExpandEnvironmentVariables(temp);
         }
 
         private static void CheckActiveProfileSection(XDocument doc, string activeProfile)
         {
             if (doc.Root?.Element("profiles")?.Element(activeProfile) == null)
-            {
                 throw new InvalidOperationException("Error in config file: The active profile, specified in <general> section, not exists in <profiles> section.");
-            }
+        }
+
+        private static string GetTempFolder(XDocument doc)
+        {
+            // No <temp> not means error since it's not a must-have setting (if not existing a fallback value is used)
+            var s = doc.Root?.Element("general")?.Element("temp")?.Value?.Trim() ?? "%TEMP%";
+
+            return Environment.ExpandEnvironmentVariables(s);
+        }
+
+        private static bool GetSmartUpdate(XDocument doc)
+        {
+            // No <smartupdate> not means error since it's not a must-have setting (if not existing a fallback value is used)
+            var s = doc.Root?.Element("options")?.Element("smartupdate")?.Value?.Trim() ?? "false";
+
+            return bool.TryParse(s, out bool b) && b;
+        }
+
+        private static bool GetSilentMode(XDocument doc)
+        {
+            // No <silentmode> not means error since it's not a must-have setting (if not existing a fallback value is used)
+            var s = doc.Root?.Element("options")?.Element("silentmode")?.Value?.Trim() ?? "false";
+
+            return bool.TryParse(s, out bool b) && b;
+        }
+
+        private static bool GetUnzipOnly(XDocument doc)
+        {
+            // No <unziponly> not means error since it's not a must-have setting (if not existing a fallback value is used)
+            var s = doc.Root?.Element("options")?.Element("unziponly")?.Value?.Trim() ?? "false";
+
+            return bool.TryParse(s, out bool b) && b;
         }
 
         private static string GetTargetFolder(XDocument doc, string profile)
         {
-            var folder = doc.Root?.Element("profiles")?.Element(profile)?.Element("folders")?.Element("download")?.Value?.Trim() ??
+            var s = doc.Root?.Element("profiles")?.Element(profile)?.Element("folder")?.Value?.Trim() ??
                 throw new InvalidOperationException("Error in config file: Could not determine target folder for given profile.");
 
-            return Environment.ExpandEnvironmentVariables(folder);
+            return Environment.ExpandEnvironmentVariables(s);
         }
 
         private static IEnumerable<string> GetAddonUrls(XDocument doc, string profile)
         {
-            var addons = doc.Root?.Element("profiles")?.Element(profile)?.Element("addons") ??
+            var element = doc.Root?.Element("profiles")?.Element(profile)?.Element("addons") ??
                 throw new InvalidOperationException("Error in config file: Could not determine addon urls for given profile.");
 
-            var urls = addons.Elements()?.Where(e => e.Name == "url")?.Select(e => e.Value.Trim().ToLower())?.Distinct() ?? [];
-
-            return urls;
-        }
-
-        private void ValidateData()
-        {
-            if (TargetFolder == string.Empty)
-            {
-                throw new InvalidOperationException("Config file contains no target folder to download and extract the zip files into.");
-            }
-
-            if (!IsValidAbsolutePath(TargetFolder))
-            {
-                throw new InvalidOperationException("Config file contains a target folder which is not a valid absolute file system path.");
-            }
-
-            if (!AddonUrls.Any())
-            {
-                throw new InvalidOperationException("Config file contains 0 addon url entries and this means there is nothing to download.");
-            }
-
-            if (AddonUrls.Any(url => !curseHelper.IsAddonPageUrl(url)))
-            {
-                throw new InvalidOperationException("Config file contains at least 1 url entry which is not a valid Curse addon url.");
-            }
-        }
-
-        private static bool IsValidAbsolutePath(string path)
-        {
-            try
-            {
-                if (!Path.IsPathRooted(path))
-                {
-                    return false;
-                }
-
-                Path.GetFullPath(path);
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
+            return element.Elements()?.Where(e => e.Name == "url")?.Select(e => e.Value.Trim().ToLower())?.Distinct() ?? [];
         }
     }
 }

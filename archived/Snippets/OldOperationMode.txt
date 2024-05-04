@@ -1,0 +1,131 @@
+
+
+
+
+        private void ValidateConfig()
+        {
+            switch (OperatingMode)
+            {
+                case OperatingMode.DownloadOnly:
+                    Vali
+                    break;
+                case OperatingMode.UnzipOnly:
+                    break;
+                case OperatingMode.DownloadAndUnzip:
+                    break;
+                case OperatingMode.SmartUpdate:
+                    break;
+                default:
+                    break;
+            }
+
+
+        }
+
+        private void ValidateDownloadFolder()
+        {
+            try
+            {
+                Path.GetFullPath(DownloadFolder);
+            }
+            catch
+            {
+                throw new InvalidOperationException("Config file contains download folder which is an invalid file system path or an empty string.");
+            }
+        }
+
+        private void ValidateUnzipFolder()
+        {
+            try
+            {
+                Path.GetFullPath(UnzipFolder);
+            }
+            catch
+            {
+                throw new InvalidOperationException("Config file contains unzip folder which is an invalid file system path or an empty string.");
+            }
+        }
+
+        private void ValidateAddonUrls()
+        {
+            if (!AddonUrls.Any())
+            {
+                throw new InvalidOperationException("Config file contains 0 url entries and this means there is nothing to download.");
+            }
+
+            if (AddonUrls.Any(url => !curseHelper.IsAddonPageUrl(url)))
+            {
+                throw new InvalidOperationException("Config file contains at least 1 url entry which is not a valid Curse addon url.");
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        private void ValidateDownloadRelatedEntries()
+        {
+            if (DownloadFolder == string.Empty)
+            {
+                throw new InvalidOperationException("Used profile in config file contains no download folder, to download the zip files into.");
+            }
+
+            ValidateFolderPath(DownloadFolder, "");
+
+            if (!AddonUrls.Any())
+            {
+                throw new InvalidOperationException("Config file contains no urls, so there is nothing to download.");
+            }
+
+            if (AddonUrls.Any(url => !curseHelper.IsAddonPageUrl(url)))
+            {
+                throw new InvalidOperationException("Config file contains invalid urls, whose content is not a valid Curse addon url.");
+            }
+        }
+
+        private void ValidateUnzipRelatedEntries()
+        {
+            if (DownloadFolder == string.Empty)
+            {
+                throw new InvalidOperationException("Config file contains no download folder, to unzip files from.");
+            }
+
+            ValidateFolderPath(DownloadFolder, DownloadFolderElementName);
+
+            if (UnzipFolder == string.Empty)
+            {
+                throw new InvalidOperationException("Config file contains no unzip folder, to extract the zip files into.");
+            }
+
+            ValidateFolderPath(UnzipFolder, UnzipFolderElementName);
+        }
+
+        private static void ValidateFolderPath(string folderPath, string elementName)
+        {
+            try
+            {
+                Path.GetFullPath(folderPath);
+            }
+            catch
+            {
+                throw new InvalidOperationException($"Error in config fileUsed profile Config file contains invalid <{elementName}> folder entry, whose content is not a valid filesystem path.");
+            }
+        }
+    }
+}

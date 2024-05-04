@@ -62,7 +62,7 @@ namespace WOWCAM
             }
 
             await ConfigureWebView();
-            
+
             SetControls(true);
         }
 
@@ -106,7 +106,7 @@ namespace WOWCAM
             labelProgressBar.IsEnabled = enabled;
             progressBar.IsEnabled = enabled;
             button.IsEnabled = enabled;
-            
+
             if (enabled)
             {
                 WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);

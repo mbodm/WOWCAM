@@ -13,7 +13,7 @@
         string Storage { get; } // Using such a generic term here since this could be a file/database/whatever
         bool Exists { get; }
 
-        Task CreateEmptyAsync(CancellationToken cancellationToken = default);
+        Task CreateDefaultAsync(CancellationToken cancellationToken = default);
         Task LoadAsync(CancellationToken cancellationToken = default);
     }
 }

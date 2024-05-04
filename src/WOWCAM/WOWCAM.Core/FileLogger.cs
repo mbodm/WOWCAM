@@ -11,6 +11,18 @@ namespace WOWCAM.Core
 
         public string Storage => logFile;
 
+        public void ClearLog()
+        {
+            lock (syncRoot)
+            {
+                if (File.Exists(Storage))
+                {
+                    File.Delete(Storage);
+                    File.WriteAllText(Storage, string.Empty);
+                }
+            }
+        }
+
         public void Log(string message, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
             if (string.IsNullOrWhiteSpace(message))
@@ -20,7 +32,7 @@ namespace WOWCAM.Core
 
             lock (syncRoot)
             {
-                WriteLogEntry("Message", file, line, message);
+                AppendLogEntry("Message", file, line, message);
             }
         }
 
@@ -37,7 +49,7 @@ namespace WOWCAM.Core
 
             lock (syncRoot)
             {
-                WriteLogEntry("Message", file, line, message);
+                AppendLogEntry("Message", file, line, message);
             }
         }
 
@@ -56,11 +68,11 @@ namespace WOWCAM.Core
 
             lock (syncRoot)
             {
-                WriteLogEntry("Exception", file, line, message);
+                AppendLogEntry("Exception", file, line, message);
             }
         }
 
-        private void WriteLogEntry(string header, string file, int line, string message)
+        private void AppendLogEntry(string header, string file, int line, string message)
         {
             var now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 

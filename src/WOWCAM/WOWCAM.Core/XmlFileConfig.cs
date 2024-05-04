@@ -19,7 +19,7 @@ namespace WOWCAM.Core
         public string Storage => xmlFile;
         public bool Exists => File.Exists(xmlFile);
 
-        public Task CreateEmptyAsync(CancellationToken cancellationToken = default)
+        public Task CreateDefaultAsync(CancellationToken cancellationToken = default)
         {
             var s = """
                 <?xml version="1.0" encoding="utf-8"?>

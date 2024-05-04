@@ -1,20 +1,27 @@
 ﻿using System.IO;
 using System.Windows;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
 using WOWCAM.Core;
+using WOWCAM.WebView;
 
 namespace WOWCAM
 {
     public partial class MainWindow : Window
     {
+        private readonly ILogger logger;
         private readonly IConfig config;
         private readonly IConfigValidator configValidator;
         private readonly IProcessHelper processHelper;
+        private readonly IWebViewHelper webViewHelper;
 
-        public MainWindow(IConfig config, IConfigValidator configValidator, IProcessHelper processHelper)
+        public MainWindow(ILogger logger, IConfig config, IConfigValidator configValidator, IProcessHelper processHelper, IWebViewHelper webViewHelper)
         {
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.configValidator = configValidator ?? throw new ArgumentNullException(nameof(configValidator));
             this.processHelper = processHelper ?? throw new ArgumentNullException(nameof(processHelper));
+            this.webViewHelper = webViewHelper ?? throw new ArgumentNullException(nameof(webViewHelper));
 
             InitializeComponent();
 
@@ -38,7 +45,7 @@ namespace WOWCAM
             {
                 if (!config.Exists)
                 {
-                    await config.CreateEmptyAsync();
+                    await config.CreateDefaultAsync();
                 }
 
                 await config.LoadAsync();
@@ -52,14 +59,20 @@ namespace WOWCAM
                 return;
             }
 
-            if (!Directory.Exists(config.TargetFolder))
+            // I decided to NOT create the folders by code here since the default config makes various assumptions i.e. about WoW folder in %PROGRAMFILES(X86)%
+
+            if (!Directory.Exists(config.TempFolder))
             {
-                // I decided to NOT create the folder by code here since the default config contains assumptions about WoW folder in %PROGRAMFILES(X86)%
-
-                WpfHelper.ShowError("The configured target folder not exists. Please make sure the folder exists.");
-
+                WpfHelper.ShowError("The configured temp folder not exists. Please make sure the folder exists.");
                 return;
             }
+            
+            if (!Directory.Exists(config.TargetFolder))
+            {
+                WpfHelper.ShowError("The configured target folder not exists. Please make sure the folder exists.");
+                return;
+            }
+
 
             await ConfigureWebView();
 
@@ -90,9 +103,22 @@ namespace WOWCAM
             }
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            WpfHelper.ShowInfo("Todo: Do stuff.");
+
+
+
+            logger.ClearLog();
+
+            var s = config.AddonUrls.First();
+            var d = s + "/download";
+
+            foreach (var addonUrl in config.AddonUrls)
+            {
+                await webViewHelper.DownloadAddonAsync(d);
+            }
+           
+            WpfHelper.ShowInfo("FERTIG");
         }
 
         #endregion
@@ -118,9 +144,24 @@ namespace WOWCAM
 
         private async Task ConfigureWebView()
         {
-            await webView.EnsureCoreWebView2Async();
+            webView.CoreWebView2InitializationCompleted += (sender, e) =>
+            {
+                if (sender is Microsoft.Web.WebView2.Wpf.WebView2 webView)
+                {
+                    if (e.IsSuccess)
+                    {
+                        webViewHelper.Initialize(webView.CoreWebView2, config.TargetFolder);
+                    }
+                    else
+                    {
+                        logger.Log($"WebView2 initialization failed (the event's exception message was \"{e.InitializationException.Message}\").");
+                    }
+                }
+            };
 
-            webView.IsEnabled = false;
+            var environment = await webViewHelper.CreateEnvironmentBeforeInitializeAsync(config.TempFolder);
+
+            await webView.EnsureCoreWebView2Async(environment);
         }
 
         #endregion

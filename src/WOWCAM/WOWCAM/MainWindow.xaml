@@ -23,7 +23,7 @@
             </DockPanel>
         </StackPanel>
         <Border DockPanel.Dock="Top" BorderBrush="{Binding ElementName=progressBar, Path=BorderBrush}" BorderThickness="1">
-            <Wpf:WebView2 Name="webView"></Wpf:WebView2>
+            <Wpf:WebView2 Name="webView" Width="0" Height="0"></Wpf:WebView2>
         </Border>
     </DockPanel>
 </Window>

@@ -135,6 +135,8 @@ namespace WOWCAM.WebView
 
             e.DownloadOperation.BytesReceivedChanged += BytesReceivedChanged;
             e.DownloadOperation.StateChanged += StateChanged;
+
+            e.Handled = true; // Do not show Microsoft Edge´s default download dialog
         }
 
         private void BytesReceivedChanged(object? sender, object e)

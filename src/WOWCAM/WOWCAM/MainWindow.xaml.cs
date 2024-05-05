@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Diagnostics.Metrics;
+using System.IO;
 using System.Windows;
 using Microsoft.Web.WebView2.Wpf;
 using WOWCAM.Core;
@@ -39,6 +40,8 @@ namespace WOWCAM
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            logger.ClearLog();
+
             try
             {
                 if (!config.Exists)
@@ -100,28 +103,33 @@ namespace WOWCAM
                 WpfHelper.ShowError(ex.Message);
             }
         }
-
+        
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            logger.ClearLog();
-            
-            var q = new Queue<string>(config.AddonUrls);
+            var startMessage = "Start addon download ================================================================================";
+            var addonQueue = new Queue<string>(config.AddonUrls);
+            progressBar.Maximum = addonQueue.Count;
 
             webViewHelper.DownloadCompleted += (s, e) =>
             {
-                logger.Log("--------------------------------------------------------");
+                logger.Log(startMessage);
 
-                if (q.Count > 0)
+                //labelProgressBar.Content = counter.ToString();
+                progressBar.Value++;
+
+                if (addonQueue.Count > 0)
                 {
-                    webViewHelper.DownloadAsync(q.Dequeue());
+                    webViewHelper.DownloadAsync(addonQueue.Dequeue());
                 }
                 else
                 {
                     WpfHelper.ShowInfo("Alle feddig.");
                 }
             };
-                        
-            webViewHelper.DownloadAsync(q.Dequeue());
+
+            logger.Log(startMessage);
+
+            webViewHelper.DownloadAsync(addonQueue.Dequeue());
         }
 
         private void SetControls(bool enabled)
@@ -136,8 +144,6 @@ namespace WOWCAM
             {
                 WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
                 WpfHelper.DisableHyperlinkHoverEffect(hyperlinkTargetFolder);
-
-                progressBar.Value = 75; // Todo: Remove after testing.
             }
         }
 

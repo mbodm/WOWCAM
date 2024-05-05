@@ -84,7 +84,7 @@ namespace WOWCAM.WebView
             }
             else
             {
-                coreWebView.Navigate(addonUrl);
+                coreWebView.Navigate(addonDownloadUrl);
             }
         }
 

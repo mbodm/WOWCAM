@@ -111,9 +111,13 @@ namespace WOWCAM
             {
                 logger.Log("--------------------------------------------------------");
 
-                if (q.Count != 0)
+                if (q.Count > 0)
                 {
                     webViewHelper.DownloadAsync(q.Dequeue());
+                }
+                else
+                {
+                    WpfHelper.ShowInfo("Alle feddig.");
                 }
             };
                         

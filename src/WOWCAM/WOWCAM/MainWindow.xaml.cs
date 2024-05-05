@@ -1,9 +1,9 @@
 ﻿using System.IO;
 using System.Windows;
-using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.WinForms;
+using Microsoft.Web.WebView2.Wpf;
 using WOWCAM.Core;
 using WOWCAM.WebView;
+using static System.Net.WebRequestMethods;
 
 namespace WOWCAM
 {
@@ -37,8 +37,6 @@ namespace WOWCAM
             SetControls(false);
         }
 
-        #region Events
-
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
             try
@@ -66,7 +64,7 @@ namespace WOWCAM
                 WpfHelper.ShowError("The configured temp folder not exists. Please make sure the folder exists.");
                 return;
             }
-            
+
             if (!Directory.Exists(config.TargetFolder))
             {
                 WpfHelper.ShowError("The configured target folder not exists. Please make sure the folder exists.");
@@ -74,7 +72,7 @@ namespace WOWCAM
             }
 
 
-            await ConfigureWebView();
+            await ConfigureWebViewAsync();
 
             SetControls(true);
         }
@@ -103,27 +101,24 @@ namespace WOWCAM
             }
         }
 
-        private async void Button_Click(object sender, RoutedEventArgs e)
+        private void Button_Click(object sender, RoutedEventArgs e)
         {
-
-
-
             logger.ClearLog();
+            
+            var q = new Queue<string>(config.AddonUrls);
 
-            var s = config.AddonUrls.First();
-            var d = s + "/download";
-
-            foreach (var addonUrl in config.AddonUrls)
+            webViewHelper.DownloadCompleted += (s, e) =>
             {
-                await webViewHelper.DownloadAddonAsync(d);
-            }
-           
-            WpfHelper.ShowInfo("FERTIG");
+                logger.Log("--------------------------------------------------------");
+
+                if (q.Count != 0)
+                {
+                    webViewHelper.DownloadAsync(q.Dequeue());
+                }
+            };
+                        
+            webViewHelper.DownloadAsync(q.Dequeue());
         }
-
-        #endregion
-
-        #region Methods
 
         private void SetControls(bool enabled)
         {
@@ -142,11 +137,11 @@ namespace WOWCAM
             }
         }
 
-        private async Task ConfigureWebView()
+        private async Task ConfigureWebViewAsync()
         {
             webView.CoreWebView2InitializationCompleted += (sender, e) =>
             {
-                if (sender is Microsoft.Web.WebView2.Wpf.WebView2 webView)
+                if (sender is WebView2 webView)
                 {
                     if (e.IsSuccess)
                     {
@@ -155,15 +150,15 @@ namespace WOWCAM
                     else
                     {
                         logger.Log($"WebView2 initialization failed (the event's exception message was \"{e.InitializationException.Message}\").");
+
+                        WpfHelper.ShowError("WebView2 initialization failed (see log file for details).");
                     }
                 }
             };
 
-            var environment = await webViewHelper.CreateEnvironmentBeforeInitializeAsync(config.TempFolder);
+            var environment = await webViewHelper.CreateEnvironmentAsync(config.TempFolder);
 
             await webView.EnsureCoreWebView2Async(environment);
         }
-
-        #endregion
     }
 }

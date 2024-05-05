@@ -15,11 +15,7 @@ namespace WOWCAM.Core
         {
             lock (syncRoot)
             {
-                if (File.Exists(Storage))
-                {
-                    File.Delete(Storage);
-                    File.WriteAllText(Storage, string.Empty);
-                }
+                File.WriteAllText(Storage, string.Empty);
             }
         }
 
@@ -36,16 +32,16 @@ namespace WOWCAM.Core
             }
         }
 
-        public void Log(IEnumerable<string> multiLineMessage, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        public void Log(IEnumerable<string> lines, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            ArgumentNullException.ThrowIfNull(multiLineMessage);
+            ArgumentNullException.ThrowIfNull(lines);
 
-            if (!multiLineMessage.Any())
+            if (!lines.Any())
             {
-                throw new ArgumentNullException(nameof(multiLineMessage), "Enumerable is empty.");
+                throw new ArgumentNullException(nameof(lines), "Enumerable is empty.");
             }
 
-            var message = string.Join(newLine, multiLineMessage);
+            var message = string.Join(newLine, lines);
 
             lock (syncRoot)
             {
@@ -74,7 +70,7 @@ namespace WOWCAM.Core
 
         private void AppendLogEntry(string header, string file, int line, string message)
         {
-            var now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            var now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
 
             file = Path.GetFileName(file);
 

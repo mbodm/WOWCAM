@@ -3,13 +3,11 @@ using WOWCAM.Core;
 
 namespace WOWCAM.WebView
 {
-    public sealed class DefaultWebViewHelper(ILogger logger, ICurseHelper curseHelper) : IWebViewHelper
+    public sealed class DefaultWebViewHelper(ILogger logger) : IWebViewHelper
     {
-        private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly ICurseHelper curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
-
         private const string NotInitializedError = "This instance was not initialized. Please call the initialization method first.";
 
+        private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private CoreWebView2? coreWebView = null;
 
         public event EventHandler<FetchCompletedEventArgs>? FetchCompleted;
@@ -71,8 +69,11 @@ namespace WOWCAM.WebView
 
             coreWebView.NavigationStarting += NavigationStarting;
             coreWebView.NavigationCompleted += NavigationCompleted;
+            coreWebView.DownloadStarting += DownloadStarting;
 
-            if (coreWebView.Source.ToString() == addonUrl)
+            var addonDownloadUrl = addonUrl.TrimEnd('/') + "/download";
+
+            if (coreWebView.Source.ToString() == addonDownloadUrl)
             {
                 // If the site has already been loaded then the events are not raised without this.
                 // Happens when there is only 1 URL in queue. Important i.e. for GUI button state.
@@ -81,7 +82,7 @@ namespace WOWCAM.WebView
             }
             else
             {
-                coreWebView.Navigate(addonUrl);
+                coreWebView.Navigate(addonDownloadUrl);
             }
         }
 
@@ -97,8 +98,21 @@ namespace WOWCAM.WebView
             ]));
         }
 
-        private async void NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+        private void NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
         {
+            // Notes:
+            // 1)
+            // At the time of writing this code, the EventArgs e still not including the Uri.
+            // Have a look at https://github.com/MicrosoftEdge/WebView2Feedback/issues/580
+            // 2)
+            // I also tried using the CoreWebView2.Source property, but this also failed:
+            // Have a look at https://github.com/MicrosoftEdge/WebView2Feedback/issues/3461
+            // 3)
+            // Redirects do not raise this event (in contrast to NavigationStarting event).
+            // Therefore only the addon page and the final redirect will raise this event.
+            // 4)
+            // And the CoreWebView2.Source property value also does not change on redirects.
+
             logger.Log(LogHelper.CreateLines(nameof(NavigationCompleted), sender, e,
             [
                 $"{nameof(e.HttpStatusCode)} = {e.HttpStatusCode}",
@@ -106,25 +120,36 @@ namespace WOWCAM.WebView
                 $"{nameof(e.NavigationId)} = {e.NavigationId}",
                 $"{nameof(e.WebErrorStatus)} = {e.WebErrorStatus}"
             ]));
+        }
 
-            if (sender is CoreWebView2 senderWebView && e.IsSuccess)
+        private void DownloadStarting(object? sender, CoreWebView2DownloadStartingEventArgs e)
+        {
+            logger.Log(LogHelper.CreateLines(nameof(DownloadStarting), sender, e, LogHelper.GetDownloadOperationDetails(e.DownloadOperation)));
+
+            e.DownloadOperation.StateChanged += StateChanged;
+            e.Cancel = true;
+        }
+
+        private void StateChanged(object? sender, object e)
+        {
+            logger.Log(LogHelper.CreateLines(nameof(DownloadStarting), sender, e, LogHelper.GetDownloadOperationDetails(sender)));
+
+            if (sender is CoreWebView2DownloadOperation downloadOperation &&
+                downloadOperation.State == CoreWebView2DownloadState.Interrupted &&
+                downloadOperation.InterruptReason == CoreWebView2DownloadInterruptReason.UserCanceled)
             {
-                var result = await senderWebView.ExecuteScriptWithResultAsync(curseHelper.FetchJsonScript);
-
-                if (result.Succeeded)
+                if (coreWebView != null)
                 {
-                    var addonPageJson = result.ResultAsJson.TrimStart('"').TrimEnd('"');
-
-                    if (coreWebView != null)
-                    {
-                        coreWebView.NavigationStarting -= NavigationStarting;
-                        coreWebView.NavigationCompleted -= NavigationCompleted;
-                    }
-
-                    IsFetching = false;
-
-                    FetchCompleted?.Invoke(this, new FetchCompletedEventArgs(addonPageJson, null, false, null));
+                    coreWebView.NavigationStarting -= NavigationStarting;
+                    coreWebView.NavigationCompleted -= NavigationCompleted;
+                    coreWebView.DownloadStarting -= DownloadStarting;
                 }
+
+                downloadOperation.StateChanged -= StateChanged;
+
+                IsFetching = false;
+
+                FetchCompleted?.Invoke(this, new FetchCompletedEventArgs(downloadOperation.Uri, null, false, null));
             }
         }
     }

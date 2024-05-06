@@ -10,12 +10,11 @@ namespace WOWCAM
         {
             var logger = new FileLogger();
             var config = new XmlFileConfig(logger);
-            var curseHelper = new DefaultCurseHelper();
-            var configValidator = new XmlFileConfigValidator(logger, config, curseHelper);
+            var configValidator = new XmlFileConfigValidator(logger, config, new DefaultCurseHelper());
             var processHelper = new DefaultProcessHelper(logger);
-            var webViewHelper = new DefaultWebViewHelper(logger, curseHelper);
+            var webViewHelper = new DefaultWebViewHelper(logger);
 
-            MainWindow = new MainWindow(logger, config, configValidator, processHelper, webViewHelper, curseHelper);
+            MainWindow = new MainWindow(logger, config, configValidator, processHelper, webViewHelper);
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

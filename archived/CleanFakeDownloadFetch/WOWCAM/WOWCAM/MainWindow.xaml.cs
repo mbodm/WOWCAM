@@ -13,17 +13,14 @@ namespace WOWCAM
         private readonly IConfigValidator configValidator;
         private readonly IProcessHelper processHelper;
         private readonly IWebViewHelper webViewHelper;
-        private readonly ICurseHelper curseHelper;
 
-        public MainWindow(
-            ILogger logger, IConfig config, IConfigValidator configValidator, IProcessHelper processHelper, IWebViewHelper webViewHelper, ICurseHelper curseHelper)
+        public MainWindow(ILogger logger, IConfig config, IConfigValidator configValidator, IProcessHelper processHelper, IWebViewHelper webViewHelper)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.configValidator = configValidator ?? throw new ArgumentNullException(nameof(configValidator));
             this.processHelper = processHelper ?? throw new ArgumentNullException(nameof(processHelper));
             this.webViewHelper = webViewHelper ?? throw new ArgumentNullException(nameof(webViewHelper));
-            this.curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
 
             InitializeComponent();
 
@@ -105,18 +102,16 @@ namespace WOWCAM
             }
         }
 
-        private Task<IEnumerable<string>> ShibbyAsync()
+        private void Button_Click(object sender, RoutedEventArgs e)
         {
-            var tcs = new TaskCompletionSource<IEnumerable<string>>();
-            
+            var logMessage = "Start fetch ================================================================================";
             var addonQueue = new Queue<string>(config.AddonUrls);
-            var addonJsons = new List<string>();
 
             progressBar.Maximum = addonQueue.Count;
 
             webViewHelper.FetchCompleted += (s, e) =>
             {
-                addonJsons.Add(e.AddonPageJson);
+                logger.Log(logMessage);
 
                 progressBar.Value++;
 
@@ -126,29 +121,13 @@ namespace WOWCAM
                 }
                 else
                 {
-                    labelProgressBar.Content = "Finished";
-
-                    var h = addonJsons.Select(addonJson =>
-                    {
-                        var addonPageJsonModel = curseHelper.SerializeAddonPageJson(addonJson);
-                        var initialDownloadUrl = curseHelper.BuildInitialDownloadUrl(addonPageJsonModel.ProjectId, addonPageJsonModel.FileId);
-                        return initialDownloadUrl;
-                    });
-                    
-                    tcs.SetResult(h);
+                    WpfHelper.ShowInfo("Alle feddig.");
                 }
             };
 
+            logger.Log(logMessage);
+
             webViewHelper.FetchAsync(addonQueue.Dequeue());
-
-            return tcs.Task;
-        }
-
-        private async void Button_Click(object sender, RoutedEventArgs e)
-        {
-            var urls = await ShibbyAsync();
-
-            WpfHelper.ShowInfo("cool");
         }
 
         private void SetControls(bool enabled)

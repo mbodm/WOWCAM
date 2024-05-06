@@ -8,14 +8,12 @@ namespace WOWCAM.WebView
         private const string NotInitializedError = "This instance was not initialized. Please call the initialization method first.";
 
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
         private CoreWebView2? coreWebView = null;
 
-        public event EventHandler<DownloadCompletedEventArgs>? DownloadCompleted;
+        public event EventHandler<FetchCompletedEventArgs>? FetchCompleted;
 
         public bool IsInitialized => coreWebView != null;
-
-        public bool IsDownloading { get; private set; }
+        public bool IsFetching { get; private set; }
 
         public Task<CoreWebView2Environment> CreateEnvironmentAsync(string tempFolder)
         {
@@ -48,7 +46,7 @@ namespace WOWCAM.WebView
             this.coreWebView = coreWebView;
         }
 
-        public void DownloadAsync(string addonUrl)
+        public void FetchAsync(string addonUrl)
         {
             if (string.IsNullOrWhiteSpace(addonUrl))
             {
@@ -60,12 +58,12 @@ namespace WOWCAM.WebView
                 throw new InvalidOperationException(NotInitializedError);
             }
 
-            if (IsDownloading)
+            if (IsFetching)
             {
-                throw new InvalidOperationException("Download is already running.");
+                throw new InvalidOperationException("Fetch is already running.");
             }
 
-            IsDownloading = true;
+            IsFetching = true;
 
             coreWebView.Stop(); // Just to make sure
 
@@ -87,8 +85,6 @@ namespace WOWCAM.WebView
                 coreWebView.Navigate(addonDownloadUrl);
             }
         }
-
-        #region WebView2-Events
 
         private void NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
         {
@@ -128,65 +124,33 @@ namespace WOWCAM.WebView
 
         private void DownloadStarting(object? sender, CoreWebView2DownloadStartingEventArgs e)
         {
-            logger.Log(LogHelper.CreateLines(nameof(DownloadStarting), sender, e,
-            [
-                $"{nameof(e.ResultFilePath)} = {e.ResultFilePath}"
-            ]));
+            logger.Log(LogHelper.CreateLines(nameof(DownloadStarting), sender, e, LogHelper.GetDownloadOperationDetails(e.DownloadOperation)));
 
-            e.DownloadOperation.BytesReceivedChanged += BytesReceivedChanged;
             e.DownloadOperation.StateChanged += StateChanged;
-
-            e.Handled = true; // Do not show Microsoft Edge´s default download dialog
-        }
-
-        private void BytesReceivedChanged(object? sender, object e)
-        {
-            logger.Log(LogHelper.CreateLines(nameof(BytesReceivedChanged), sender, e, LogHelper.GetDownloadOperationDetails(sender)));
-
-            if (sender is CoreWebView2DownloadOperation downloadOperation)
-            {
-                if ((ulong)downloadOperation.BytesReceived < downloadOperation.TotalBytesToReceive)
-                {
-                    // Todo: ?
-
-                    // Only show real chunks and not just the final chunk, when there is only one.
-                    // This happens sometimes for mid-sized files. The very small ones create no
-                    // event at all. The very big ones create a bunch of events. But for all the
-                    // mid-sized files there is only 1 event with i.e. 12345/12345 byte progress.
-                    // Therefore it seems OK to ignore them, for better readability of log output.
-                }
-            }
+            e.Cancel = true;
         }
 
         private void StateChanged(object? sender, object e)
         {
-            logger.Log(LogHelper.CreateLines(nameof(StateChanged), sender, e, LogHelper.GetDownloadOperationDetails(sender)));
+            logger.Log(LogHelper.CreateLines(nameof(DownloadStarting), sender, e, LogHelper.GetDownloadOperationDetails(sender)));
 
-            if (sender is CoreWebView2DownloadOperation downloadOperation && downloadOperation.State == CoreWebView2DownloadState.Completed)
+            if (sender is CoreWebView2DownloadOperation downloadOperation &&
+                downloadOperation.State == CoreWebView2DownloadState.Interrupted &&
+                downloadOperation.InterruptReason == CoreWebView2DownloadInterruptReason.UserCanceled)
             {
-                FinishDownload(downloadOperation);
+                if (coreWebView != null)
+                {
+                    coreWebView.NavigationStarting -= NavigationStarting;
+                    coreWebView.NavigationCompleted -= NavigationCompleted;
+                    coreWebView.DownloadStarting -= DownloadStarting;
+                }
+
+                downloadOperation.StateChanged -= StateChanged;
+
+                IsFetching = false;
+
+                FetchCompleted?.Invoke(this, new FetchCompletedEventArgs(downloadOperation.Uri, null, false, null));
             }
-        }
-
-        #endregion
-
-        private void FinishDownload(CoreWebView2DownloadOperation downloadOperation)
-        {
-            if (coreWebView == null)
-            {
-                throw new InvalidOperationException(NotInitializedError);
-            }
-
-            coreWebView.NavigationStarting -= NavigationStarting;
-            coreWebView.NavigationCompleted -= NavigationCompleted;
-            coreWebView.DownloadStarting -= DownloadStarting;
-
-            downloadOperation.BytesReceivedChanged -= BytesReceivedChanged;
-            downloadOperation.StateChanged -= StateChanged;
-
-            IsDownloading = false;
-
-            DownloadCompleted?.Invoke(this, new DownloadCompletedEventArgs(null, false, null));
         }
     }
 }

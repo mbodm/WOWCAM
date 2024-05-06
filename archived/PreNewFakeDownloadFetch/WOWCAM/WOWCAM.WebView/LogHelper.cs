@@ -16,9 +16,9 @@ namespace WOWCAM.WebView
             return lines.Concat(details);
         }
 
-        public static IEnumerable<string> GetDownloadOperationDetails(object? o)
+        public static IEnumerable<string> GetDownloadOperationDetails(object? sender)
         {
-            if (o is CoreWebView2DownloadOperation downloadOperation)
+            if (sender is CoreWebView2DownloadOperation downloadOperation)
             {
                 return
                 [

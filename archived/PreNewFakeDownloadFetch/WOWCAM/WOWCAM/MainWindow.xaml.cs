@@ -1,8 +1,10 @@
-﻿using System.IO;
+﻿using System.Diagnostics.Metrics;
+using System.IO;
 using System.Windows;
 using Microsoft.Web.WebView2.Wpf;
 using WOWCAM.Core;
 using WOWCAM.WebView;
+using static System.Net.WebRequestMethods;
 
 namespace WOWCAM
 {
@@ -13,14 +15,17 @@ namespace WOWCAM
         private readonly IConfigValidator configValidator;
         private readonly IProcessHelper processHelper;
         private readonly IWebViewHelper webViewHelper;
+        private readonly ICurseHelper curseHelper;
 
-        public MainWindow(ILogger logger, IConfig config, IConfigValidator configValidator, IProcessHelper processHelper, IWebViewHelper webViewHelper)
+        public MainWindow(
+            ILogger logger, IConfig config, IConfigValidator configValidator, IProcessHelper processHelper, IWebViewHelper webViewHelper, ICurseHelper curseHelper)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.configValidator = configValidator ?? throw new ArgumentNullException(nameof(configValidator));
             this.processHelper = processHelper ?? throw new ArgumentNullException(nameof(processHelper));
             this.webViewHelper = webViewHelper ?? throw new ArgumentNullException(nameof(webViewHelper));
+            this.curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
 
             InitializeComponent();
 
@@ -104,20 +109,19 @@ namespace WOWCAM
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            var logMessage = "Start fetch ================================================================================";
+            var startMessage = "Start addon download ================================================================================";
             var addonQueue = new Queue<string>(config.AddonUrls);
-
             progressBar.Maximum = addonQueue.Count;
 
-            webViewHelper.FetchCompleted += (s, e) =>
+            webViewHelper.DownloadCompleted += (s, e) =>
             {
-                logger.Log(logMessage);
+                logger.Log(startMessage);
 
                 progressBar.Value++;
 
                 if (addonQueue.Count > 0)
                 {
-                    webViewHelper.FetchAsync(addonQueue.Dequeue());
+                    webViewHelper.DownloadAsync(addonQueue.Dequeue());
                 }
                 else
                 {
@@ -125,9 +129,35 @@ namespace WOWCAM
                 }
             };
 
-            logger.Log(logMessage);
+            logger.Log(startMessage);
 
-            webViewHelper.FetchAsync(addonQueue.Dequeue());
+            webViewHelper.DownloadAsync(addonQueue.Dequeue());
+
+            /*
+            webViewHelper.FetchCompleted += (s, e) =>
+            {
+                var parsed = curseHelper.SerializeAddonPageJson(e.Json);
+
+                if (parsed.IsValid)
+                {
+                    logger.Log(
+                    [
+                        "JSON",
+                        $"{nameof(parsed.FileId)} = {parsed.FileId}",
+                        $"{nameof(parsed.FileName)} = {parsed.FileName}",
+                        $"{nameof(parsed.FileSize)} = {parsed.FileSize}",
+                        $"{nameof(parsed.ProjectId)} = {parsed.ProjectId}",
+                        $"{nameof(parsed.ProjectName)} = {parsed.ProjectName}",
+                        $"{nameof(parsed.ProjectSlug)} = {parsed.ProjectSlug}",
+                    ]);
+
+                    WpfHelper.ShowInfo("feddig.");
+                }
+            };
+
+            logger.Log(startMessage);
+            webViewHelper.FetchAsync(config.AddonUrls.First());
+            */
         }
 
         private void SetControls(bool enabled)

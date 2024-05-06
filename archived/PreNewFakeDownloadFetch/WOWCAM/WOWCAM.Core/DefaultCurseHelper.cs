@@ -71,7 +71,7 @@ namespace WOWCAM.Core
             {
                 return invalid;
             }
-
+            
             try
             {
                 var base64Encoded = json.TrimStart('"').TrimEnd('"');

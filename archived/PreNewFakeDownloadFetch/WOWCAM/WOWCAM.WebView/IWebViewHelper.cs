@@ -20,12 +20,15 @@ namespace WOWCAM.WebView
         // https://learn.microsoft.com/en-us/dotnet/standard/asynchronous-programming-patterns/best-practices-for-implementing-the-event-based-asynchronous-pattern
 
         event EventHandler<FetchCompletedEventArgs> FetchCompleted;
+        event EventHandler<DownloadCompletedEventArgs> DownloadCompleted;
 
         bool IsInitialized { get; }
         bool IsFetching { get; }
+        bool IsDownloading { get; }
 
         Task<CoreWebView2Environment> CreateEnvironmentAsync(string tempFolder);
         void Initialize(CoreWebView2 coreWebView, string downloadFolder);
         void FetchAsync(string addonUrl);
+        void DownloadAsync(string addonUrl);
     }
 }

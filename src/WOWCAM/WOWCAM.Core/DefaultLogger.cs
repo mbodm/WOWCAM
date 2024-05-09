@@ -3,7 +3,7 @@ using System.Text;
 
 namespace WOWCAM.Core
 {
-    public sealed class FileLogger : ILogger
+    public sealed class DefaultLogger : ILogger
     {
         private readonly object syncRoot = new();
         private readonly string logFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM.log");

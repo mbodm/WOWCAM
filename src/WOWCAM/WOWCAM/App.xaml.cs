@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Net.Http;
+using System.Windows;
 using WOWCAM.Core;
 
 namespace WOWCAM
@@ -7,15 +8,19 @@ namespace WOWCAM
     {
         public App()
         {
-            var logger = new FileLogger();
-            var config = new XmlFileConfig(logger);
+            var logger = new DefaultLogger();
+            var config = new DefaultConfig(logger);
+            var fileSystemHelper = new DefaultFileSystemHelper();
             var curseHelper = new DefaultCurseHelper();
-            var configValidator = new XmlFileConfigValidator(logger, config, curseHelper);
-            var processHelper = new DefaultProcessHelper(logger);
             var webViewHelper = new DefaultWebViewHelper(logger, curseHelper);
-            var downloadHelper = new DefaultDownloadHelper();
 
-            MainWindow = new MainWindow(logger, config, configValidator, processHelper, webViewHelper, curseHelper, downloadHelper);
+            MainWindow = new MainWindow(
+                logger,
+                config,
+                new DefaultConfigValidator(logger, config, fileSystemHelper, curseHelper),
+                webViewHelper,
+                new DefaultProcessHelper(logger),
+                new DefaultBusinessLogic(logger, webViewHelper, new DefaultDownloadHelper(new HttpClient()), new DefaultZipFileHelper(), fileSystemHelper));
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

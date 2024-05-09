@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace WOWCAM.Curse
+namespace WOWCAM.Core
 {
     public sealed class DefaultCurseHelper : ICurseHelper
     {

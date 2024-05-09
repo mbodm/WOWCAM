@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Windows;
 using WOWCAM.Core;
 
@@ -11,27 +10,18 @@ namespace WOWCAM
         private readonly ILogger logger;
         private readonly IConfig config;
         private readonly IConfigValidator configValidator;
-        private readonly IProcessHelper processHelper;
         private readonly IWebViewHelper webViewHelper;
-        private readonly ICurseHelper curseHelper;
-        private readonly IDownloadHelper downloadHelper;
+        private readonly IProcessHelper processHelper;
+        private readonly IBusinessLogic businessLogic;
 
-        public MainWindow(
-            ILogger logger,
-            IConfig config,
-            IConfigValidator configValidator,
-            IProcessHelper processHelper,
-            IWebViewHelper webViewHelper,
-            ICurseHelper curseHelper,
-            IDownloadHelper downloadHelper)
+        public MainWindow(ILogger logger, IConfig config, IConfigValidator configValidator, IWebViewHelper webViewHelper, IProcessHelper processHelper, IBusinessLogic businessLogic)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.configValidator = configValidator ?? throw new ArgumentNullException(nameof(configValidator));
-            this.processHelper = processHelper ?? throw new ArgumentNullException(nameof(processHelper));
             this.webViewHelper = webViewHelper ?? throw new ArgumentNullException(nameof(webViewHelper));
-            this.curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
-            this.downloadHelper = downloadHelper ?? throw new ArgumentNullException(nameof(downloadHelper));
+            this.processHelper = processHelper ?? throw new ArgumentNullException(nameof(processHelper));
+            this.businessLogic = businessLogic ?? throw new ArgumentNullException(nameof(businessLogic));
 
             InitializeComponent();
 
@@ -115,44 +105,13 @@ namespace WOWCAM
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
+            progressBar.Value = 0;
+            progressBar.Maximum = config.AddonUrls.Count() * 3;
+            var progress = new Progress<bool>(p => progressBar.Value++);
             var sw = Stopwatch.StartNew();
-            var jsonList = await webViewHelper.FetchJsonAsync(webView.CoreWebView2, config.AddonUrls);
+            await businessLogic.ProcessAddonsAsync(webView.CoreWebView2, config.AddonUrls, config.TempFolder, config.TargetFolder, progress);
             sw.Stop();
-            var tuples = jsonList.Select(json =>
-            {
-                var jsonModel = curseHelper.SerializeAddonPageJson(json);
-                var downloadUrl = curseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
-
-                return (downloadUrl, jsonModel);
-            });
-            WpfHelper.ShowInfo("Time: " + sw.ElapsedMilliseconds.ToString() + "ms for JSON");
-
-
-            ulong sum = 0;
-
-
-            var fuzz = tuples.Select(tuple => (double)tuple.jsonModel.FileSize).Sum();
-
-
-            tuples.ToList().ForEach(tuple => sum += tuple.jsonModel.FileSize);
-
-
-
-            long amende = 0;
-
-
-            progressBar.Maximum = sum;
-            var progress = new Progress<DownloadHelperProgressData>(p =>
-            {
-                progressBar.Value += p.ReceivedBytes;
-                amende += p.ReceivedBytes;
-            });
-            sw.Restart();
-            var tasks = tuples.Select(tuple => downloadHelper.DownloadAsync(tuple.downloadUrl, Path.Combine(config.TargetFolder, tuple.jsonModel.FileName), progress));
-            await Task.WhenAll(tasks);
-            sw.Stop();
-
-            WpfHelper.ShowInfo("Time: " + sw.ElapsedMilliseconds.ToString() + "ms for download | amende = " + amende);
+            WpfHelper.ShowInfo("Time: " + sw.ElapsedMilliseconds.ToString() + "ms");
         }
 
         private void SetControls(bool enabled)

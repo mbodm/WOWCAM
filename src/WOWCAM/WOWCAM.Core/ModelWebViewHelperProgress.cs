@@ -1,4 +1,4 @@
-﻿namespace WOWCAM.Curse
+﻿namespace WOWCAM.Core
 {
     public sealed record ModelWebViewHelperProgress(
         string AddonUrl,

@@ -2,7 +2,7 @@
 
 namespace WOWCAM.Core
 {
-    public sealed class XmlFileConfig(ILogger logger) : IConfig
+    public sealed class DefaultConfig(ILogger logger) : IConfig
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 

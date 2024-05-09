@@ -1,8 +1,7 @@
 ﻿using System.Text;
 using Microsoft.Web.WebView2.Core;
-using WOWCAM.Core;
 
-namespace WOWCAM.Curse
+namespace WOWCAM.Core
 {
     public sealed class DefaultWebViewHelper(ILogger logger, ICurseHelper curseHelper) : IWebViewHelper
     {
@@ -21,32 +20,20 @@ namespace WOWCAM.Curse
             return CoreWebView2Environment.CreateAsync(userDataFolder: Path.Combine(tempFolder, "MBODM-WOWCAM-WebView2-UDF"));
         }
 
-        public async Task<IEnumerable<string>> GetDownloadUrlsAsync(
-            CoreWebView2 coreWebView, IEnumerable<string> addonUrls, IProgress<ModelWebViewHelperProgress>? progress = default, CancellationToken cancellationToken = default)
+        public async Task<ModelDownloadUrlData> GetDownloadUrlDataAsync(CoreWebView2 coreWebView, string addonUrl)
         {
-            ArgumentNullException.ThrowIfNull(coreWebView);
-            ArgumentNullException.ThrowIfNull(addonUrls);
+            // No cancellation support here, since there is no load progression for WebView2 and the only thing i could use is e.Cancel in the NavigationStarting event.
+            // And to me it makes no sense to support cancellation just to stop before the data transfer even has started. Therefore i decided against cancellation here.
 
-            var result = new List<string>();
+            var base64 = await FetchJsonAsync(coreWebView, addonUrl);
 
-            foreach (var addonUrl in addonUrls)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
+            var bytes = Convert.FromBase64String(base64);
+            var json = Encoding.UTF8.GetString(bytes);
 
-                var base64 = await FetchJsonAsync(coreWebView, addonUrl);
+            var jsonModel = curseHelper.SerializeAddonPageJson(json);
+            var downloadUrl = curseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
 
-                var bytes = Convert.FromBase64String(base64);
-                var json = Encoding.UTF8.GetString(bytes);
-
-                var jsonModel = curseHelper.SerializeAddonPageJson(json);
-                var downloadUrl = curseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
-
-                result.Add(downloadUrl);
-
-                progress?.Report(new ModelWebViewHelperProgress(addonUrl, downloadUrl));
-            }
-
-            return result;
+            return new ModelDownloadUrlData(downloadUrl, jsonModel.FileName);
         }
 
         private Task<string> FetchJsonAsync(CoreWebView2 coreWebView, string addonUrl)

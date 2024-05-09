@@ -1,8 +1,8 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
+using System.Runtime.CompilerServices;
 using System.Windows;
-using Microsoft.Web.WebView2.Wpf;
 using WOWCAM.Core;
-using WOWCAM.WebView;
 
 namespace WOWCAM
 {
@@ -14,9 +14,16 @@ namespace WOWCAM
         private readonly IProcessHelper processHelper;
         private readonly IWebViewHelper webViewHelper;
         private readonly ICurseHelper curseHelper;
+        private readonly IDownloadHelper downloadHelper;
 
         public MainWindow(
-            ILogger logger, IConfig config, IConfigValidator configValidator, IProcessHelper processHelper, IWebViewHelper webViewHelper, ICurseHelper curseHelper)
+            ILogger logger,
+            IConfig config,
+            IConfigValidator configValidator,
+            IProcessHelper processHelper,
+            IWebViewHelper webViewHelper,
+            ICurseHelper curseHelper,
+            IDownloadHelper downloadHelper)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
@@ -24,6 +31,7 @@ namespace WOWCAM
             this.processHelper = processHelper ?? throw new ArgumentNullException(nameof(processHelper));
             this.webViewHelper = webViewHelper ?? throw new ArgumentNullException(nameof(webViewHelper));
             this.curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
+            this.downloadHelper = downloadHelper ?? throw new ArgumentNullException(nameof(downloadHelper));
 
             InitializeComponent();
 
@@ -105,50 +113,46 @@ namespace WOWCAM
             }
         }
 
-        private Task<IEnumerable<string>> ShibbyAsync()
-        {
-            var tcs = new TaskCompletionSource<IEnumerable<string>>();
-            
-            var addonQueue = new Queue<string>(config.AddonUrls);
-            var addonJsons = new List<string>();
-
-            progressBar.Maximum = addonQueue.Count;
-
-            webViewHelper.FetchCompleted += (s, e) =>
-            {
-                addonJsons.Add(e.AddonPageJson);
-
-                progressBar.Value++;
-
-                if (addonQueue.Count > 0)
-                {
-                    webViewHelper.FetchAsync(addonQueue.Dequeue());
-                }
-                else
-                {
-                    labelProgressBar.Content = "Finished";
-
-                    var h = addonJsons.Select(addonJson =>
-                    {
-                        var addonPageJsonModel = curseHelper.SerializeAddonPageJson(addonJson);
-                        var initialDownloadUrl = curseHelper.BuildInitialDownloadUrl(addonPageJsonModel.ProjectId, addonPageJsonModel.FileId);
-                        return initialDownloadUrl;
-                    });
-                    
-                    tcs.SetResult(h);
-                }
-            };
-
-            webViewHelper.FetchAsync(addonQueue.Dequeue());
-
-            return tcs.Task;
-        }
-
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            var urls = await ShibbyAsync();
+            var sw = Stopwatch.StartNew();
+            var jsonList = await webViewHelper.FetchJsonAsync(webView.CoreWebView2, config.AddonUrls);
+            sw.Stop();
+            var tuples = jsonList.Select(json =>
+            {
+                var jsonModel = curseHelper.SerializeAddonPageJson(json);
+                var downloadUrl = curseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
 
-            WpfHelper.ShowInfo("cool");
+                return (downloadUrl, jsonModel);
+            });
+            WpfHelper.ShowInfo("Time: " + sw.ElapsedMilliseconds.ToString() + "ms for JSON");
+
+
+            ulong sum = 0;
+
+
+            var fuzz = tuples.Select(tuple => (double)tuple.jsonModel.FileSize).Sum();
+
+
+            tuples.ToList().ForEach(tuple => sum += tuple.jsonModel.FileSize);
+
+
+
+            long amende = 0;
+
+
+            progressBar.Maximum = sum;
+            var progress = new Progress<DownloadHelperProgressData>(p =>
+            {
+                progressBar.Value += p.ReceivedBytes;
+                amende += p.ReceivedBytes;
+            });
+            sw.Restart();
+            var tasks = tuples.Select(tuple => downloadHelper.DownloadAsync(tuple.downloadUrl, Path.Combine(config.TargetFolder, tuple.jsonModel.FileName), progress));
+            await Task.WhenAll(tasks);
+            sw.Stop();
+
+            WpfHelper.ShowInfo("Time: " + sw.ElapsedMilliseconds.ToString() + "ms for download | amende = " + amende);
         }
 
         private void SetControls(bool enabled)
@@ -170,18 +174,11 @@ namespace WOWCAM
         {
             webView.CoreWebView2InitializationCompleted += (sender, e) =>
             {
-                if (sender is WebView2 webView)
+                if (!e.IsSuccess)
                 {
-                    if (e.IsSuccess)
-                    {
-                        webViewHelper.Initialize(webView.CoreWebView2, config.TargetFolder);
-                    }
-                    else
-                    {
-                        logger.Log($"WebView2 initialization failed (the event's exception message was \"{e.InitializationException.Message}\").");
+                    logger.Log($"WebView2 initialization failed (the event's exception message was \"{e.InitializationException.Message}\").");
 
-                        WpfHelper.ShowError("WebView2 initialization failed (see log file for details).");
-                    }
+                    WpfHelper.ShowError("WebView2 initialization failed (see log file for details).");
                 }
             };
 

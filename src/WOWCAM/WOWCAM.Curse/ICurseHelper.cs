@@ -1,4 +1,4 @@
-﻿namespace WOWCAM.Core
+﻿namespace WOWCAM.Curse
 {
     public interface ICurseHelper
     {
@@ -8,7 +8,7 @@
         bool IsInitialDownloadUrl(string url);
         bool IsRealDownloadUrl(string url);
         string GetAddonSlugNameFromAddonPageUrl(string url);
-        CurseHelperJson SerializeAddonPageJson(string json);
+        ModelCurseHelperJson SerializeAddonPageJson(string json);
         string BuildInitialDownloadUrl(ulong projectId, ulong fileId);
     }
 }

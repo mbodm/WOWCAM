@@ -1,7 +1,6 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
 
-namespace WOWCAM.Core
+namespace WOWCAM.Curse
 {
     public sealed class DefaultCurseHelper : ICurseHelper
     {
@@ -36,7 +35,7 @@ namespace WOWCAM.Core
             return IsAddonPageUrl(url) ? url.Split("https://www.curseforge.com/wow/addons/").Last().ToLower() : string.Empty;
         }
 
-        public CurseHelperJson SerializeAddonPageJson(string json)
+        public ModelCurseHelperJson SerializeAddonPageJson(string json)
         {
             // Curse addon page JSON format:
             // props
@@ -50,7 +49,7 @@ namespace WOWCAM.Core
             //       name           --> Useful name of the addon            Example --> "Deadly Boss Mods (DBM)"
             //       slug           --> Slug name of the addon              Example --> "deadly-boss-mods"
 
-            var invalid = new CurseHelperJson(false, 0, string.Empty, string.Empty, 0, string.Empty, 0);
+            var invalid = new ModelCurseHelperJson(false, 0, string.Empty, string.Empty, 0, string.Empty, 0);
 
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -59,10 +58,7 @@ namespace WOWCAM.Core
 
             try
             {
-                var bytes = Convert.FromBase64String(json);
-                var decoded = Encoding.UTF8.GetString(bytes);
-
-                var doc = JsonDocument.Parse(decoded);
+                var doc = JsonDocument.Parse(json);
 
                 var project = doc.RootElement.GetProperty("props").GetProperty("pageProps").GetProperty("project");
                 var projectId = project.GetProperty("id").GetUInt64();
@@ -73,7 +69,7 @@ namespace WOWCAM.Core
                 var fileName = mainFile.GetProperty("fileName").GetString() ?? string.Empty;
                 var fileSize = mainFile.GetProperty("fileLength").GetUInt64();
 
-                return new CurseHelperJson(true, projectId, projectName, projectSlug, fileId, fileName, fileSize);
+                return new ModelCurseHelperJson(true, projectId, projectName, projectSlug, fileId, fileName, fileSize);
             }
             catch
             {

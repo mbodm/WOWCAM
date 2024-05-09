@@ -1,6 +1,5 @@
 ﻿using System.Windows;
 using WOWCAM.Core;
-using WOWCAM.WebView;
 
 namespace WOWCAM
 {
@@ -14,8 +13,9 @@ namespace WOWCAM
             var configValidator = new XmlFileConfigValidator(logger, config, curseHelper);
             var processHelper = new DefaultProcessHelper(logger);
             var webViewHelper = new DefaultWebViewHelper(logger, curseHelper);
+            var downloadHelper = new DefaultDownloadHelper();
 
-            MainWindow = new MainWindow(logger, config, configValidator, processHelper, webViewHelper, curseHelper);
+            MainWindow = new MainWindow(logger, config, configValidator, processHelper, webViewHelper, curseHelper, downloadHelper);
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

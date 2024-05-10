@@ -12,16 +12,17 @@ namespace WOWCAM
         private readonly IConfigValidator configValidator;
         private readonly IWebViewHelper webViewHelper;
         private readonly IProcessHelper processHelper;
-        private readonly IBusinessLogic businessLogic;
+        private readonly IAddonProcessing addonProcessing;
 
-        public MainWindow(ILogger logger, IConfig config, IConfigValidator configValidator, IWebViewHelper webViewHelper, IProcessHelper processHelper, IBusinessLogic businessLogic)
+        public MainWindow(
+            ILogger logger, IConfig config, IConfigValidator configValidator, IWebViewHelper webViewHelper, IProcessHelper processHelper, IAddonProcessing addonProcessing)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.configValidator = configValidator ?? throw new ArgumentNullException(nameof(configValidator));
             this.webViewHelper = webViewHelper ?? throw new ArgumentNullException(nameof(webViewHelper));
             this.processHelper = processHelper ?? throw new ArgumentNullException(nameof(processHelper));
-            this.businessLogic = businessLogic ?? throw new ArgumentNullException(nameof(businessLogic));
+            this.addonProcessing = addonProcessing ?? throw new ArgumentNullException(nameof(addonProcessing));
 
             InitializeComponent();
 
@@ -106,10 +107,10 @@ namespace WOWCAM
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
             progressBar.Value = 0;
-            progressBar.Maximum = config.AddonUrls.Count() * 3;
+            progressBar.Maximum = config.AddonUrls.Count() * 4;
             var progress = new Progress<bool>(p => progressBar.Value++);
             var sw = Stopwatch.StartNew();
-            await businessLogic.ProcessAddonsAsync(webView.CoreWebView2, config.AddonUrls, config.TempFolder, config.TargetFolder, progress);
+            await addonProcessing.ProcessAddonsAsync(webView.CoreWebView2, config.AddonUrls, config.TempFolder, config.TargetFolder, progress);
             sw.Stop();
             WpfHelper.ShowInfo("Time: " + sw.ElapsedMilliseconds.ToString() + "ms");
         }

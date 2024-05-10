@@ -2,7 +2,7 @@
 
 namespace WOWCAM.Core
 {
-    public interface IBusinessLogic
+    public interface IAddonProcessing
     {
         public Task ProcessAddonsAsync(CoreWebView2 coreWebView, IEnumerable<string> addonUrls, string tempFolder, string targetFolder,
             IProgress<bool>? progress, CancellationToken cancellationToken = default);

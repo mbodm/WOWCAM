@@ -20,7 +20,7 @@ namespace WOWCAM
                 new DefaultConfigValidator(logger, config, fileSystemHelper, curseHelper),
                 webViewHelper,
                 new DefaultProcessHelper(logger),
-                new DefaultBusinessLogic(logger, webViewHelper, new DefaultDownloadHelper(new HttpClient()), new DefaultZipFileHelper(), fileSystemHelper));
+                new DefaultAddonProcessing(logger, webViewHelper, new DefaultDownloadHelper(new HttpClient()), new DefaultZipFileHelper(), fileSystemHelper));
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

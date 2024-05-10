@@ -23,14 +23,9 @@ namespace WOWCAM.Core
 
                     using var zipArchive = ZipFile.OpenRead(zipFile);
 
-                    var hasContent = zipArchive.Entries.ToList().Any();
+                    var hasContent = zipArchive.Entries.ToList().Count != 0;
 
-                    if (!hasContent)
-                    {
-                        return false;
-                    }
-
-                    return true;
+                    return hasContent;
                 }
                 catch
                 {

@@ -8,7 +8,7 @@
         bool IsInitialDownloadUrl(string url);
         bool IsRealDownloadUrl(string url);
         string GetAddonSlugNameFromAddonPageUrl(string url);
-        ModelCurseHelperJson SerializeAddonPageJson(string json);
+        ModelAddonPageJson SerializeAddonPageJson(string json);
         string BuildInitialDownloadUrl(ulong projectId, ulong fileId);
     }
 }

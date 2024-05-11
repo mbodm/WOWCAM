@@ -4,6 +4,6 @@
     {
         bool IsValidAbsolutePath(string path);
         Task DeleteFolderContentAsync(string folder, CancellationToken cancellationToken = default);
-        IEnumerable<string> GetAllZipFilesInFolder(string folder);
+        Task MoveFolderContentAsync(string sourceFolder, string destFolder, CancellationToken cancellationToken = default);
     }
 }

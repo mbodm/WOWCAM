@@ -81,10 +81,10 @@
             // instead of the xxxFileSystemEntries() and xxxFileSystemInfos() methods. Cause the
             // latter ones need some additional if-clauses then, to differ files from directories.
 
+            var dirs = Directory.EnumerateDirectories(folder);
             var files = Directory.EnumerateFiles(folder);
-            var directories = Directory.EnumerateDirectories(folder);
 
-            if (!files.Any() && !directories.Any())
+            if (!dirs.Any() && !files.Any())
             {
                 return;
             }
@@ -97,8 +97,8 @@
             // No need for a ThrowIfCancellationRequested() here, since Task.Run() cancels on its own (if the
             // task has not already started) and since the sync method one-liner can not be cancelled anyway.
 
-            tasks.AddRange(files.Select(s => Task.Run(() => File.Delete(s), cancellationToken)));
-            tasks.AddRange(directories.Select(s => Task.Run(() => Directory.Delete(s, true), cancellationToken)));
+            tasks.AddRange(dirs.Select(dir => Task.Run(() => Directory.Delete(dir, true), cancellationToken)));
+            tasks.AddRange(files.Select(file => Task.Run(() => File.Delete(file), cancellationToken)));
 
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
@@ -122,9 +122,65 @@
             }
         }
 
-        public IEnumerable<string> GetAllZipFilesInFolder(string folder)
+        public Task MoveFolderContentAsync(string sourceFolder, string destFolder, CancellationToken cancellationToken = default)
         {
-            return Directory.EnumerateFiles(folder, "*.zip", SearchOption.TopDirectoryOnly);
+            if (string.IsNullOrWhiteSpace(sourceFolder))
+            {
+                throw new ArgumentException($"'{nameof(sourceFolder)}' cannot be null or whitespace.", nameof(sourceFolder));
+            }
+
+            if (string.IsNullOrWhiteSpace(destFolder))
+            {
+                throw new ArgumentException($"'{nameof(destFolder)}' cannot be null or whitespace.", nameof(destFolder));
+            }
+
+            if (!Directory.Exists(sourceFolder))
+            {
+                throw new InvalidOperationException("Given source folder not exists.");
+            }
+
+            if (!Directory.Exists(destFolder))
+            {
+                Directory.CreateDirectory(destFolder);
+            }
+
+            sourceFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceFolder));
+            destFolder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(destFolder));
+
+            var dirInfo = new DirectoryInfo(sourceFolder);
+            var dirNames = dirInfo.GetDirectories().Select(dir => dir.Name);
+            var fileNames = dirInfo.GetFiles().Select(file => file.Name);
+
+            if (!dirNames.Any() && !fileNames.Any())
+            {
+                return Task.CompletedTask;
+            }
+
+            var dirTasks = dirNames.Select(dirName =>
+            {
+                var sourceDir = Path.Combine(sourceFolder, dirName);
+                var destDir = Path.Combine(destFolder, dirName);
+
+                // No need for a ThrowIfCancellationRequested() here, since Task.Run() cancels on its own (if the
+                // task has not already started) and since the sync method one-liner can not be cancelled anyway.
+
+                return Task.Run(() => Directory.Move(sourceDir, destDir), cancellationToken);
+            });
+
+            var fileTasks = fileNames.Select(fileName =>
+            {
+                var sourceFile = Path.Combine(sourceFolder, fileName);
+                var destFile = Path.Combine(destFolder, fileName);
+
+                // No need for a ThrowIfCancellationRequested() here, since Task.Run() cancels on its own (if the
+                // task has not already started) and since the sync method one-liner can not be cancelled anyway.
+
+                return Task.Run(() => File.Move(sourceFile, destFile), cancellationToken);
+            });
+
+            var allTasks = dirTasks.Concat(fileTasks);
+
+            return Task.WhenAll(allTasks);
         }
     }
 }

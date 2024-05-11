@@ -1,6 +1,6 @@
 ﻿namespace WOWCAM.Core
 {
-    public sealed record ModelCurseHelperJson(
+    public sealed record ModelAddonPageJson(
         bool IsValid,
         ulong ProjectId,
         string ProjectName,

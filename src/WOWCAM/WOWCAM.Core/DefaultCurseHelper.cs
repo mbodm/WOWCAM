@@ -35,7 +35,7 @@ namespace WOWCAM.Core
             return IsAddonPageUrl(url) ? url.Split("https://www.curseforge.com/wow/addons/").Last().ToLower() : string.Empty;
         }
 
-        public ModelCurseHelperJson SerializeAddonPageJson(string json)
+        public ModelAddonPageJson SerializeAddonPageJson(string json)
         {
             // Curse addon page JSON format:
             // props
@@ -49,7 +49,7 @@ namespace WOWCAM.Core
             //       name           --> Useful name of the addon            Example --> "Deadly Boss Mods (DBM)"
             //       slug           --> Slug name of the addon              Example --> "deadly-boss-mods"
 
-            var invalid = new ModelCurseHelperJson(false, 0, string.Empty, string.Empty, 0, string.Empty, 0);
+            var invalid = new ModelAddonPageJson(false, 0, string.Empty, string.Empty, 0, string.Empty, 0);
 
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -69,7 +69,7 @@ namespace WOWCAM.Core
                 var fileName = mainFile.GetProperty("fileName").GetString() ?? string.Empty;
                 var fileSize = mainFile.GetProperty("fileLength").GetUInt64();
 
-                return new ModelCurseHelperJson(true, projectId, projectName, projectSlug, fileId, fileName, fileSize);
+                return new ModelAddonPageJson(true, projectId, projectName, projectSlug, fileId, fileName, fileSize);
             }
             catch
             {

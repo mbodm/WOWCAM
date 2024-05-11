@@ -3,9 +3,10 @@
 namespace WOWCAM.Core
 {
     public sealed class DefaultAddonProcessing(
-        ILogger logger, IWebViewHelper webViewHelper, IDownloadHelper downloadHelper, IZipFileHelper zipFileHelper, IFileSystemHelper fileSystemHelper) : IAddonProcessing
+        ILogger logger, ICurseHelper curseHelper, IWebViewHelper webViewHelper, IDownloadHelper downloadHelper, IZipFileHelper zipFileHelper, IFileSystemHelper fileSystemHelper) : IAddonProcessing
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly ICurseHelper curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
         private readonly IWebViewHelper webViewHelper = webViewHelper ?? throw new ArgumentNullException(nameof(webViewHelper));
         private readonly IDownloadHelper downloadHelper = downloadHelper ?? throw new ArgumentNullException(nameof(downloadHelper));
         private readonly IZipFileHelper zipFileHelper = zipFileHelper ?? throw new ArgumentNullException(nameof(zipFileHelper));
@@ -13,9 +14,10 @@ namespace WOWCAM.Core
 
         public async Task ProcessAddonsAsync(
             CoreWebView2 coreWebView, IEnumerable<string> addonUrls, string tempFolder, string targetFolder,
-            IProgress<bool>? progress = default, CancellationToken cancellationToken = default)
+            IProgress<ModelAddonProcessingProgress>? progress = default, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(coreWebView);
+            ArgumentNullException.ThrowIfNull(addonUrls);
 
             if (string.IsNullOrWhiteSpace(tempFolder))
             {
@@ -27,6 +29,8 @@ namespace WOWCAM.Core
                 throw new ArgumentException($"'{nameof(targetFolder)}' cannot be null or whitespace.", nameof(targetFolder));
             }
 
+            // Fetch JSON data
+
             var downloadUrlDataList = new List<ModelDownloadUrlData>();
 
             // This needs to happen sequential, cause of WebView2 behavior!
@@ -36,11 +40,13 @@ namespace WOWCAM.Core
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var downloadUrlData = await webViewHelper.GetDownloadUrlDataAsync(coreWebView, addonUrl);
+                var slugName = curseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl);
+                progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingFetch, slugName));
 
+                var downloadUrlData = await webViewHelper.GetDownloadUrlDataAsync(coreWebView, addonUrl);
                 downloadUrlDataList.Add(downloadUrlData);
 
-                progress?.Report(true);
+                progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedFetch, slugName));
             }
 
             var downloadFolder = Path.Combine(tempFolder, "MBODM-WOWCAM-Download");
@@ -55,35 +61,66 @@ namespace WOWCAM.Core
                 Directory.CreateDirectory(downloadFolder);
             }
 
+            // Download and Unzip
+
             var tasks = downloadUrlDataList.Select(downloadUrlData => ProcessAddonAsync(downloadUrlData, downloadFolder, unzipFolder, progress, cancellationToken));
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
+            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
+
+            await Task.Delay(200, cancellationToken);
+
+            // Clear target folder
 
             try
             {
                 await fileSystemHelper.DeleteFolderContentAsync(targetFolder, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                logger.Log(ex);
+                logger.Log(e);
                 throw new InvalidOperationException("An error occurred while deleting the content of target folder (see log file for details).");
             }
 
-            // Todo: Move all content from download folder to target folder
+            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
+            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
 
-            var dirInfo = new DirectoryInfo(unzipFolder);
-            var dirNames = dirInfo.GetDirectories().Select(dir => dir.Name);
+            await Task.Delay(200, cancellationToken);
 
-            dirNames.ToList().ForEach(dirName =>
+            // Move to target folder
+
+            try
             {
-                var sourceDir = Path.Combine(unzipFolder, dirName);
-                var destDir = Path.Combine(targetFolder, dirName);
-                
-                Directory.Move(sourceDir, destDir);
-            });
+                await fileSystemHelper.MoveFolderContentAsync(unzipFolder, targetFolder, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                throw new InvalidOperationException("An error occurred while moving the unzipped addons to target folder (see log file for details).");
+            }
+
+            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
+            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
+
+            await Task.Delay(200, cancellationToken);
+
+            // Clean up temp folder
+
+            try
+            {
+                await fileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken).ConfigureAwait(false);
+                await fileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                throw new InvalidOperationException("An error occurred while deleting the content of temp folder (see log file for details).");
+            }
         }
 
         private async Task ProcessAddonAsync(ModelDownloadUrlData downloadUrlData, string downloadFolder, string unzipFolder,
-            IProgress<bool>? progress, CancellationToken cancellationToken)
+            IProgress<ModelAddonProcessingProgress>? progress, CancellationToken cancellationToken)
         {
             var downloadUrl = downloadUrlData.DownloadUrl;
             var zipFilePath = Path.Combine(downloadFolder, downloadUrlData.FileName);
@@ -92,9 +129,11 @@ namespace WOWCAM.Core
 
             cancellationToken.ThrowIfCancellationRequested();
 
+            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingDownload, downloadUrlData.FileName));
+
             try
             {
-                await downloadHelper.DownloadAddonAsync(downloadUrl, zipFilePath, cancellationToken);
+                await downloadHelper.DownloadAddonAsync(downloadUrl, zipFilePath, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -102,28 +141,26 @@ namespace WOWCAM.Core
                 throw new InvalidOperationException("An error occurred while downloading zip file (see log file for details).");
             }
 
-            progress?.Report(true);
+            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedDownload, downloadUrlData.FileName));
 
-            // Validate zip file
+            // Validdate & Extract zip file
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!await zipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken))
+            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingUnzip, downloadUrlData.FileName));
+
+            if (!await zipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken).ConfigureAwait(false))
             {
-                var message = "Detected corrupt zip file (see log file for details).";
+                var message = "Downloaded zip file is corrupted (see log file for details).";
                 logger.Log(message);
                 throw new InvalidOperationException(message);
             }
-
-            progress?.Report(true);
-
-            // Extract zip file
 
             cancellationToken.ThrowIfCancellationRequested();
 
             try
             {
-                await zipFileHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken);
+                await zipFileHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -131,7 +168,7 @@ namespace WOWCAM.Core
                 throw new InvalidOperationException("An error occurred while extracting zip file (see log file for details).");
             }
 
-            progress?.Report(true);
+            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedUnzip, downloadUrlData.FileName));
         }
     }
 }

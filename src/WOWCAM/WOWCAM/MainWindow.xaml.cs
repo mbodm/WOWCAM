@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Windows;
+using System.Windows.Input;
 using WOWCAM.Core;
 
 namespace WOWCAM
@@ -26,12 +28,8 @@ namespace WOWCAM
 
             InitializeComponent();
 
-            // 16:10 format (1440x900 fits Curse site better than 1280x800)
-            // In XAML it's 480x300 (for a better XAML editor preview size)
-            Width = 1440;
-            Height = 900;
-            MinWidth = Width / 2;
-            MinHeight = Height / 2;
+            MinWidth = Width;
+            MinHeight = Height;
 
             Title = $"WOWCAM {AppHelper.GetApplicationVersion()}";
 
@@ -74,10 +72,13 @@ namespace WOWCAM
                 return;
             }
 
-
             await ConfigureWebViewAsync();
 
             SetControls(true);
+
+            button.MouseRightButtonUp += Button_MouseRightButtonUp;
+            button.TabIndex = 0;
+            button.Focus();
         }
 
         private void HyperlinkConfigFolder_Click(object sender, RoutedEventArgs e)
@@ -92,11 +93,11 @@ namespace WOWCAM
             }
         }
 
-        private void HyperlinkTargetFolder_Click(object sender, RoutedEventArgs e)
+        private void HyperlinkCheckUpdates_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                processHelper.OpenFolderInExplorer(config.TargetFolder);
+                processHelper.StartUpdater(AppHelper.GetApplicationExecutableFolder());
             }
             catch (Exception ex)
             {
@@ -106,19 +107,90 @@ namespace WOWCAM
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
+            labelProgressBar.Content = string.Empty;
             progressBar.Value = 0;
-            progressBar.Maximum = config.AddonUrls.Count() * 4;
-            var progress = new Progress<bool>(p => progressBar.Value++);
+            progressBar.Maximum = config.AddonUrls.Count() * 3;
+            button.IsEnabled = false;
+
+            var progress = new Progress<ModelAddonProcessingProgress>(p =>
+            {
+                if (p.State == EnumAddonProcessingState.StartingFetch) labelProgressBar.Content = $"Fetch {p.Addon}";
+                if (p.State == EnumAddonProcessingState.StartingDownload) labelProgressBar.Content = $"Download {p.Addon}";
+                if (p.State == EnumAddonProcessingState.StartingUnzip) labelProgressBar.Content = $"Unzip {p.Addon}";
+                if (p.State == EnumAddonProcessingState.FinishedFetch || p.State == EnumAddonProcessingState.FinishedDownload || p.State == EnumAddonProcessingState.FinishedUnzip)
+                {
+                    progressBar.Value++;
+                    if (progressBar.Value == progressBar.Maximum) labelProgressBar.Content = "Clean up";
+                }
+            });
+
             var sw = Stopwatch.StartNew();
-            await addonProcessing.ProcessAddonsAsync(webView.CoreWebView2, config.AddonUrls, config.TempFolder, config.TargetFolder, progress);
+
+            try
+            {
+                await addonProcessing.ProcessAddonsAsync(webView.CoreWebView2, config.AddonUrls, config.TempFolder, config.TargetFolder, progress);
+            }
+            catch (Exception ex)
+            {
+                WpfHelper.ShowError(ex.Message);
+                button.IsEnabled = true;
+                return;
+            }
+
             sw.Stop();
-            WpfHelper.ShowInfo("Time: " + sw.ElapsedMilliseconds.ToString() + "ms");
+
+            // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a Windows.Forms
+            // ProgressBar control from reaching its maximum shortly after the last async progress happened.
+            // The control is painted natively by the WinApi/OS itself. Therefore also no event-based tricks
+            // will solve the problem. I just added a short async wait delay instead, to keep things simple.
+            // *(TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
+            // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
+
+            await Task.Delay(1250);
+
+            var seconds = (double)(sw.ElapsedMilliseconds + 1250) / 1000;
+            var s = seconds.ToString("0.00", CultureInfo.InvariantCulture);
+            labelProgressBar.Content = $"Successfully finished {config.AddonUrls.Count()} addons in {s} seconds";
+            button.IsEnabled = true;
+        }
+
+        private void Button_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift))
+            {
+                // All sizes are based on 16:10 format relations (in example 1280x800)
+
+                if (!webView.IsEnabled)
+                {
+                    Width = 1440;
+                    Height = 900;
+                    Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
+                    Top = (SystemParameters.PrimaryScreenHeight / 2) - (Height / 2);
+
+                    webView.Width = double.NaN;
+                    webView.Height = double.NaN;
+                    border.Visibility = Visibility.Visible;
+                    webView.IsEnabled = true;
+                }
+                else
+                {
+                    webView.IsEnabled = false;
+                    border.Visibility = Visibility.Hidden;
+                    webView.Width = 0;
+                    webView.Height = 0;
+
+                    Width = 512;
+                    Height = 160;
+                    Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
+                    Top = (SystemParameters.PrimaryScreenHeight / 2) - (Height / 2);
+                }
+            }
         }
 
         private void SetControls(bool enabled)
         {
             textBlockConfigFolder.IsEnabled = enabled;
-            textBlockTargetFolder.IsEnabled = enabled;
+            textBlockCheckUpdates.IsEnabled = enabled;
             labelProgressBar.IsEnabled = enabled;
             progressBar.IsEnabled = enabled;
             button.IsEnabled = enabled;
@@ -126,7 +198,7 @@ namespace WOWCAM
             if (enabled)
             {
                 WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
-                WpfHelper.DisableHyperlinkHoverEffect(hyperlinkTargetFolder);
+                WpfHelper.DisableHyperlinkHoverEffect(hyperlinkCheckUpdates);
             }
         }
 
@@ -137,13 +209,11 @@ namespace WOWCAM
                 if (!e.IsSuccess)
                 {
                     logger.Log($"WebView2 initialization failed (the event's exception message was \"{e.InitializationException.Message}\").");
-
                     WpfHelper.ShowError("WebView2 initialization failed (see log file for details).");
                 }
             };
 
             var environment = await webViewHelper.CreateEnvironmentAsync(config.TempFolder);
-
             await webView.EnsureCoreWebView2Async(environment);
         }
     }

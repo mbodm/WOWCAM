@@ -18,7 +18,7 @@ namespace WOWCAM.Update
             label.Content = string.Empty;
             progressBar.Maximum = 1;
             progressBar.Value = 0;
-            
+
             using var httpClient = new HttpClient();
 
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));

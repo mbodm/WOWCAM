@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using WOWCAM.Core;
+using WOWCAM.Helpers;
 
 namespace WOWCAM
 {
@@ -15,23 +16,33 @@ namespace WOWCAM
         private readonly IWebViewHelper webViewHelper;
         private readonly IProcessHelper processHelper;
         private readonly IAddonProcessing addonProcessing;
+        private readonly IUpdateManager updateManager;
 
         public MainWindow(
-            ILogger logger, IConfig config, IConfigValidator configValidator, IWebViewHelper webViewHelper, IProcessHelper processHelper, IAddonProcessing addonProcessing)
+            ILogger logger,
+            IAppHelper appHelper,
+            IConfig config,
+            IConfigValidator configValidator,
+            IWebViewHelper webViewHelper,
+            IProcessHelper processHelper,
+            IAddonProcessing addonProcessing,
+            IUpdateManager updateManager)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            ArgumentNullException.ThrowIfNull(appHelper);
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.configValidator = configValidator ?? throw new ArgumentNullException(nameof(configValidator));
             this.webViewHelper = webViewHelper ?? throw new ArgumentNullException(nameof(webViewHelper));
             this.processHelper = processHelper ?? throw new ArgumentNullException(nameof(processHelper));
             this.addonProcessing = addonProcessing ?? throw new ArgumentNullException(nameof(addonProcessing));
+            this.updateManager = updateManager ?? throw new ArgumentNullException(nameof(updateManager));
 
             InitializeComponent();
 
             MinWidth = Width;
             MinHeight = Height;
 
-            Title = $"WOWCAM {AppHelper.GetApplicationVersion()}";
+            Title = $"WOWCAM {appHelper.GetApplicationVersion()}";
 
             SetControls(false);
         }
@@ -93,11 +104,20 @@ namespace WOWCAM
             }
         }
 
-        private void HyperlinkCheckUpdates_Click(object sender, RoutedEventArgs e)
+        private async void HyperlinkCheckUpdates_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                processHelper.StartUpdater(AppHelper.GetApplicationExecutableFolder());
+                var b = await updateManager.CheckForUpdates();
+
+                if (b)
+                {
+                    WpfHelper.ShowInfo("Gibt Update.");
+                }
+                else
+                {
+                    WpfHelper.ShowInfo("Ist neueste Version.");
+                }
             }
             catch (Exception ex)
             {

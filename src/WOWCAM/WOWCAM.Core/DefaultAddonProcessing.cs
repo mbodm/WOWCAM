@@ -44,8 +44,16 @@ namespace WOWCAM.Core
                 var slugName = curseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl);
                 progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingFetch, slugName));
 
-                var addonDownloadUrlData = await webViewHelper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl);
-                addonDownloadUrlDataList.Add(addonDownloadUrlData);
+                try
+                {
+                    var addonDownloadUrlData = await webViewHelper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl);
+                    addonDownloadUrlDataList.Add(addonDownloadUrlData);
+                }
+                catch (Exception e)
+                {
+                    logger.Log(e);
+                    throw new InvalidOperationException("An error occurred while fetching JSON from the addon pages (see log file for details).");
+                }
 
                 progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedFetch, slugName));
             }
@@ -64,8 +72,16 @@ namespace WOWCAM.Core
 
             // Download and Unzip
 
-            var tasks = addonDownloadUrlDataList.Select(addonDownloadUrlData => ProcessAddonAsync(addonDownloadUrlData, downloadFolder, unzipFolder, progress, cancellationToken));
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+            try
+            {
+                var tasks = addonDownloadUrlDataList.Select(addonDownloadUrlData => ProcessAddonAsync(addonDownloadUrlData, downloadFolder, unzipFolder, progress, cancellationToken));
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                throw new InvalidOperationException("An error occurred while downloading and unzipping the addons (see log file for details).");
+            }
 
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.

@@ -49,34 +49,18 @@ namespace WOWCAM.Helpers
             //       name           --> Useful name of the addon            Example --> "Deadly Boss Mods (DBM)"
             //       slug           --> Slug name of the addon              Example --> "deadly-boss-mods"
 
-            var invalid = new ModelAddonPageJson(false, 0, string.Empty, string.Empty, 0, string.Empty, 0);
+            using var doc = JsonDocument.Parse(json);
 
-            if (string.IsNullOrWhiteSpace(json))
-            {
-                return invalid;
-            }
+            var project = doc.RootElement.GetProperty("props").GetProperty("pageProps").GetProperty("project");
+            var projectId = project.GetProperty("id").GetUInt64();
+            var projectName = project.GetProperty("name").GetString() ?? throw new InvalidOperationException("The 'name' entry was null, in fetched addon page JSON.");
+            var projectSlug = project.GetProperty("slug").GetString() ?? throw new InvalidOperationException("The 'slug' entry was null, in fetched addon page JSON.");
+            var mainFile = project.GetProperty("mainFile");
+            var fileId = mainFile.GetProperty("id").GetUInt64();
+            var fileName = mainFile.GetProperty("fileName").GetString() ?? throw new InvalidOperationException("The 'fileName' entry was null, in fetched addon page JSON.");
+            var fileSize = mainFile.GetProperty("fileLength").GetUInt64();
 
-            try
-            {
-                using var doc = JsonDocument.Parse(json);
-
-                // Todo: string.empty is invalid. Also add better "helper-concept" here.
-
-                var project = doc.RootElement.GetProperty("props").GetProperty("pageProps").GetProperty("project");
-                var projectId = project.GetProperty("id").GetUInt64();
-                var projectName = project.GetProperty("name").GetString() ?? string.Empty;
-                var projectSlug = project.GetProperty("slug").GetString() ?? string.Empty;
-                var mainFile = project.GetProperty("mainFile");
-                var fileId = mainFile.GetProperty("id").GetUInt64();
-                var fileName = mainFile.GetProperty("fileName").GetString() ?? string.Empty;
-                var fileSize = mainFile.GetProperty("fileLength").GetUInt64();
-
-                return new ModelAddonPageJson(true, projectId, projectName, projectSlug, fileId, fileName, fileSize);
-            }
-            catch
-            {
-                return invalid;
-            }
+            return new ModelAddonPageJson(projectId, projectName, projectSlug, fileId, fileName, fileSize);
         }
 
         public string BuildInitialDownloadUrl(ulong projectId, ulong fileId)

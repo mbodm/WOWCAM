@@ -1,4 +1,4 @@
-﻿namespace WOWCAM.Core
+﻿namespace WOWCAM.Helpers
 {
     public sealed record ModelAddonPageJson(
         bool IsValid,

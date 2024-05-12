@@ -1,4 +1,4 @@
-﻿namespace WOWCAM.Core
+﻿namespace WOWCAM.Helpers
 {
     public sealed class DefaultFileSystemHelper : IFileSystemHelper
     {

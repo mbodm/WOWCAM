@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace WOWCAM.Core
+namespace WOWCAM.Helpers
 {
     public sealed class DefaultCurseHelper : ICurseHelper
     {
@@ -58,7 +58,9 @@ namespace WOWCAM.Core
 
             try
             {
-                var doc = JsonDocument.Parse(json);
+                using var doc = JsonDocument.Parse(json);
+
+                // Todo: string.empty is invalid. Also add better "helper-concept" here.
 
                 var project = doc.RootElement.GetProperty("props").GetProperty("pageProps").GetProperty("project");
                 var projectId = project.GetProperty("id").GetUInt64();

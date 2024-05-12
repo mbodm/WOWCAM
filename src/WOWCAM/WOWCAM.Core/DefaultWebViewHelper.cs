@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Microsoft.Web.WebView2.Core;
+using WOWCAM.Helpers;
 
 namespace WOWCAM.Core
 {
@@ -20,7 +21,7 @@ namespace WOWCAM.Core
             return CoreWebView2Environment.CreateAsync(userDataFolder: Path.Combine(tempFolder, "MBODM-WOWCAM-WebView2-UDF"));
         }
 
-        public async Task<ModelDownloadUrlData> GetDownloadUrlDataAsync(CoreWebView2 coreWebView, string addonUrl)
+        public async Task<ModelAddonDownloadUrlData> GetAddonDownloadUrlDataAsync(CoreWebView2 coreWebView, string addonUrl)
         {
             // No cancellation support here, since there is no load progression for WebView2 and the only thing i could use is e.Cancel in the NavigationStarting event.
             // And to me it makes no sense to support cancellation just to stop before the data transfer even has started. Therefore i decided against cancellation here.
@@ -33,7 +34,7 @@ namespace WOWCAM.Core
             var jsonModel = curseHelper.SerializeAddonPageJson(json);
             var downloadUrl = curseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
 
-            return new ModelDownloadUrlData(downloadUrl, jsonModel.FileName);
+            return new ModelAddonDownloadUrlData(downloadUrl, jsonModel.FileName);
         }
 
         private Task<string> FetchJsonAsync(CoreWebView2 coreWebView, string addonUrl)

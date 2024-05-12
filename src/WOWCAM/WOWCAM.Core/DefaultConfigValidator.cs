@@ -1,4 +1,6 @@
-﻿namespace WOWCAM.Core
+﻿using WOWCAM.Helpers;
+
+namespace WOWCAM.Core
 {
     public sealed class DefaultConfigValidator(ILogger logger, IConfig config, IFileSystemHelper fileSystemHelper, ICurseHelper curseHelper) : IConfigValidator
     {

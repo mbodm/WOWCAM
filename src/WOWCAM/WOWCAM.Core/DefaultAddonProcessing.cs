@@ -1,4 +1,5 @@
 ﻿using Microsoft.Web.WebView2.Core;
+using WOWCAM.Helpers;
 
 namespace WOWCAM.Core
 {
@@ -31,7 +32,7 @@ namespace WOWCAM.Core
 
             // Fetch JSON data
 
-            var downloadUrlDataList = new List<ModelDownloadUrlData>();
+            var addonDownloadUrlDataList = new List<ModelAddonDownloadUrlData>();
 
             // This needs to happen sequential, cause of WebView2 behavior!
             // Therefore do not use concurrency, like Task.WhenAll(), here!
@@ -43,8 +44,8 @@ namespace WOWCAM.Core
                 var slugName = curseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl);
                 progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingFetch, slugName));
 
-                var downloadUrlData = await webViewHelper.GetDownloadUrlDataAsync(coreWebView, addonUrl);
-                downloadUrlDataList.Add(downloadUrlData);
+                var addonDownloadUrlData = await webViewHelper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl);
+                addonDownloadUrlDataList.Add(addonDownloadUrlData);
 
                 progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedFetch, slugName));
             }
@@ -63,7 +64,7 @@ namespace WOWCAM.Core
 
             // Download and Unzip
 
-            var tasks = downloadUrlDataList.Select(downloadUrlData => ProcessAddonAsync(downloadUrlData, downloadFolder, unzipFolder, progress, cancellationToken));
+            var tasks = addonDownloadUrlDataList.Select(addonDownloadUrlData => ProcessAddonAsync(addonDownloadUrlData, downloadFolder, unzipFolder, progress, cancellationToken));
             await Task.WhenAll(tasks).ConfigureAwait(false);
 
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
@@ -119,21 +120,21 @@ namespace WOWCAM.Core
             }
         }
 
-        private async Task ProcessAddonAsync(ModelDownloadUrlData downloadUrlData, string downloadFolder, string unzipFolder,
+        private async Task ProcessAddonAsync(ModelAddonDownloadUrlData addonDownloadUrlData, string downloadFolder, string unzipFolder,
             IProgress<ModelAddonProcessingProgress>? progress, CancellationToken cancellationToken)
         {
-            var downloadUrl = downloadUrlData.DownloadUrl;
-            var zipFilePath = Path.Combine(downloadFolder, downloadUrlData.FileName);
+            var downloadUrl = addonDownloadUrlData.DownloadUrl;
+            var zipFilePath = Path.Combine(downloadFolder, addonDownloadUrlData.FileName);
 
             // Download zip file
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingDownload, downloadUrlData.FileName));
+            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingDownload, addonDownloadUrlData.FileName));
 
             try
             {
-                await downloadHelper.DownloadAddonAsync(downloadUrl, zipFilePath, cancellationToken).ConfigureAwait(false);
+                await downloadHelper.DownloadFileAsync(downloadUrl, zipFilePath, null, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -141,13 +142,13 @@ namespace WOWCAM.Core
                 throw new InvalidOperationException("An error occurred while downloading zip file (see log file for details).");
             }
 
-            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedDownload, downloadUrlData.FileName));
+            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedDownload, addonDownloadUrlData.FileName));
 
             // Validdate & Extract zip file
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingUnzip, downloadUrlData.FileName));
+            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingUnzip, addonDownloadUrlData.FileName));
 
             if (!await zipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken).ConfigureAwait(false))
             {
@@ -168,7 +169,7 @@ namespace WOWCAM.Core
                 throw new InvalidOperationException("An error occurred while extracting zip file (see log file for details).");
             }
 
-            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedUnzip, downloadUrlData.FileName));
+            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedUnzip, addonDownloadUrlData.FileName));
         }
     }
 }

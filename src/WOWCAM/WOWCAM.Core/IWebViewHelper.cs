@@ -5,6 +5,6 @@ namespace WOWCAM.Core
     public interface IWebViewHelper
     {
         Task<CoreWebView2Environment> CreateEnvironmentAsync(string tempFolder);
-        Task<ModelDownloadUrlData> GetDownloadUrlDataAsync(CoreWebView2 coreWebView, string addonUrl);
+        Task<ModelAddonDownloadUrlData> GetAddonDownloadUrlDataAsync(CoreWebView2 coreWebView, string addonUrl);
     }
 }

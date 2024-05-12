@@ -1,6 +1,6 @@
 ﻿namespace WOWCAM.Core
 {
-    public sealed record ModelDownloadUrlData(
+    public sealed record ModelAddonDownloadUrlData(
         string DownloadUrl,
         string FileName);
 }

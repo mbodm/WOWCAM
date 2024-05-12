@@ -208,7 +208,7 @@ namespace WOWCAM
             {
                 if (!e.IsSuccess)
                 {
-                    logger.Log($"WebView2 initialization failed (the event's exception message was \"{e.InitializationException.Message}\").");
+                    logger.Log($"WebView2 initialization failed (the event's exception message was '{e.InitializationException.Message}').");
                     WpfHelper.ShowError("WebView2 initialization failed (see log file for details).");
                 }
             };

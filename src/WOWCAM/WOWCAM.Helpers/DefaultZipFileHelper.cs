@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
 
-namespace WOWCAM.Core
+namespace WOWCAM.Helpers
 {
     public sealed class DefaultZipFileHelper : IZipFileHelper
     {

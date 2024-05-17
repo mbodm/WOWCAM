@@ -41,11 +41,11 @@ namespace WOWCAM.Helpers
             // props
             //   pageProps
             //     project
-            //       id             --> Short number for download url       Example --> 3358
+            //       id             --> Short number for download URL       Example --> 3358
             //       mainFile
             //         fileName     --> The name of the zip file            Example --> "DBM-10.0.35.zip"
             //         fileSize     --> The size of the zip file            Example --> 123456789
-            //         id           --> Long number for download url        Example --> 4485146
+            //         id           --> Long number for download URL        Example --> 4485146
             //       name           --> Useful name of the addon            Example --> "Deadly Boss Mods (DBM)"
             //       slug           --> Slug name of the addon              Example --> "deadly-boss-mods"
 

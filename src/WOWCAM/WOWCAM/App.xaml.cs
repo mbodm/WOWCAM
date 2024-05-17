@@ -26,7 +26,7 @@ namespace WOWCAM
                 webViewHelper,
                 new DefaultProcessHelper(logger),
                 new DefaultAddonProcessing(logger, curseHelper, webViewHelper, downloadHelper, new DefaultZipFileHelper(), fileSystemHelper),
-                new DefaultUpdateManager(logger, appHelper, new DefaultGitHubHelper(httpClient), downloadHelper));
+                new DefaultUpdateManager(logger, appHelper, new DefaultGitHubHelper(httpClient), fileSystemHelper, downloadHelper));
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

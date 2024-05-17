@@ -1,4 +1,6 @@
-﻿namespace WOWCAM.Helpers
+﻿using System.Diagnostics;
+
+namespace WOWCAM.Helpers
 {
     public sealed class DefaultFileSystemHelper : IFileSystemHelper
     {
@@ -181,6 +183,26 @@
             var allTasks = dirTasks.Concat(fileTasks);
 
             return Task.WhenAll(allTasks);
+        }
+
+        public Version GetExeFileVersion(string exeFilePath)
+        {
+            if (string.IsNullOrWhiteSpace(exeFilePath))
+            {
+                throw new ArgumentException($"'{nameof(exeFilePath)}' cannot be null or whitespace.", nameof(exeFilePath));
+            }
+
+            exeFilePath = Path.GetFullPath(exeFilePath);
+
+            if (Path.GetExtension(exeFilePath) != ".exe")
+            {
+                throw new InvalidOperationException("The given exe file path is not a file which has the \".exe\" file extension.");
+            }
+
+            var fileVersionInfo = FileVersionInfo.GetVersionInfo(exeFilePath);
+            var productVersion = fileVersionInfo.ProductVersion ?? throw new InvalidOperationException("Could not determine product version of given exe file.");
+
+            return new Version(productVersion);
         }
     }
 }

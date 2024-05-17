@@ -20,7 +20,7 @@ namespace WOWCAM.Helpers
                 throw new InvalidOperationException("Could not found 'browser_download_url' in GitHub's JSON response.");
 
             if (!downloadUrl.EndsWith(".zip") || !Uri.TryCreate(downloadUrl, UriKind.Absolute, out Uri? uri) || uri == null)
-                throw new InvalidOperationException("Download url in GitHub's JSON response was not a valid WOWCAM release url.");
+                throw new InvalidOperationException("Download url in GitHub's JSON response was not a valid WOWCAM release URL.");
 
             return new ModelGitHubLatestReleaseData(new Version(tagName), downloadUrl, uri.Segments.Last());
         }

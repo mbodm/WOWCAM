@@ -1,9 +1,11 @@
-﻿namespace WOWCAM.Core
+﻿using WOWCAM.Helpers;
+
+namespace WOWCAM.Core
 {
     public interface IUpdateManager
     {
-        public Version GetInstalledVersion();
+        Version GetInstalledVersion();
         Task<bool> CheckForUpdates(CancellationToken cancellationToken = default);
-        Task<bool> DownloadAndApplyUpdate(CancellationToken cancellationToken = default);
+        Task<bool> DownloadAndApplyUpdate(IProgress<ModelDownloadHelperProgress>? downloadProgress = default, CancellationToken cancellationToken = default);
     }
 }

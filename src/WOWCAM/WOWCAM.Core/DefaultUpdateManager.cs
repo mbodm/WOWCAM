@@ -1,25 +1,24 @@
-﻿using System.Diagnostics;
-using WOWCAM.Helpers;
+﻿using WOWCAM.Helpers;
 
 namespace WOWCAM.Core
 {
-    public sealed class DefaultUpdateManager(ILogger logger, IAppHelper appHelper, IGitHubHelper gitHubHelper, IDownloadHelper downloadHelper) : IUpdateManager
+    public sealed class DefaultUpdateManager(
+        ILogger logger, IAppHelper appHelper, IGitHubHelper gitHubHelper, IFileSystemHelper fileSystemHelper, IDownloadHelper downloadHelper) : IUpdateManager
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly IAppHelper appHelper = appHelper ?? throw new ArgumentNullException(nameof(appHelper));
         private readonly IGitHubHelper gitHubHelper = gitHubHelper ?? throw new ArgumentNullException(nameof(gitHubHelper));
+        private readonly IFileSystemHelper fileSystemHelper = fileSystemHelper ?? throw new ArgumentNullException(nameof(fileSystemHelper));
         private readonly IDownloadHelper downloadHelper = downloadHelper ?? throw new ArgumentNullException(nameof(downloadHelper));
 
         public Version GetInstalledVersion()
         {
             try
             {
-                var exeFolder = appHelper.GetApplicationExecutableFolder();
-                var exePath = Path.Combine(exeFolder, "WOWCAM.exe");
-                var fileVersionInfo = FileVersionInfo.GetVersionInfo(exePath);
-                var productVersion = fileVersionInfo.ProductVersion ?? throw new InvalidOperationException("Could not determine product version of exe file.");
+                var installedExeFile = Path.Combine(appHelper.GetApplicationExecutableFolder(), "WOWCAM.exe");
+                var installedVersion = fileSystemHelper.GetExeFileVersion(installedExeFile);
 
-                return new Version(productVersion);
+                return installedVersion;
             }
             catch (Exception e)
             {
@@ -30,35 +29,19 @@ namespace WOWCAM.Core
 
         public async Task<bool> CheckForUpdates(CancellationToken cancellationToken = default)
         {
+            var latestReleaseData = await GetLatestReleaseDataAsync(cancellationToken).ConfigureAwait(false);
             var installedVersion = GetInstalledVersion();
 
-            try
-            {
-                var latestReleaseData = await gitHubHelper.GetLatestReleaseData(cancellationToken).ConfigureAwait(false);
-
-                return installedVersion < latestReleaseData.Version;
-            }
-            catch (Exception e)
-            {
-                logger.Log(e);
-                throw new InvalidOperationException("Could not determine the latest WOWCAM version on GitHub (see log file for details).", e);
-            }
+            return installedVersion < latestReleaseData.Version;
         }
 
-        public async Task<bool> DownloadAndApplyUpdate(CancellationToken cancellationToken = default)
+        public async Task<bool> DownloadAndApplyUpdate(IProgress<ModelDownloadHelperProgress>? downloadProgress = default, CancellationToken cancellationToken = default)
         {
-            var installedVersion = GetInstalledVersion();
-
             ModelGitHubLatestReleaseData? latestReleaseData;
 
             try
             {
                 latestReleaseData = await gitHubHelper.GetLatestReleaseData(cancellationToken).ConfigureAwait(false);
-
-                if (installedVersion < latestReleaseData.Version)
-                {
-                    return false;
-                }
             }
             catch (Exception e)
             {
@@ -66,13 +49,16 @@ namespace WOWCAM.Core
                 throw new InvalidOperationException("Could not determine the latest WOWCAM version on GitHub (see log file for details).", e);
             }
 
+            var installedVersion = GetInstalledVersion();
+            if (installedVersion < latestReleaseData.Version)
+            {
+                return false;
+            }
+
             var downloadUrl = latestReleaseData.DownloadUrl;
-
-            // Todo: Add progress.
-
             if (!Uri.TryCreate(downloadUrl, UriKind.Absolute, out Uri? uri))
             {
-                throw new InvalidOperationException("Todo");
+                throw new InvalidOperationException("Could not create URI from GitHub download URL.");
             }
 
             var fileName = uri.Segments.Last();
@@ -80,7 +66,7 @@ namespace WOWCAM.Core
 
             try
             {
-                await downloadHelper.DownloadFileAsync(downloadUrl, filePath, null, cancellationToken).ConfigureAwait(false);
+                await downloadHelper.DownloadFileAsync(downloadUrl, filePath, downloadProgress, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -89,6 +75,19 @@ namespace WOWCAM.Core
             }
 
             return true;
+        }
+
+        private async Task<ModelGitHubLatestReleaseData> GetLatestReleaseDataAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                return await gitHubHelper.GetLatestReleaseData(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                throw new InvalidOperationException("Could not determine the latest WOWCAM version on GitHub (see log file for details).", e);
+            }
         }
     }
 }

@@ -34,12 +34,12 @@ namespace WOWCAM.Core
 
                 if (!config.AddonUrls.Any())
                 {
-                    throw new InvalidOperationException("Config file contains 0 addon url entries and so there is nothing to download.");
+                    throw new InvalidOperationException("Config file contains 0 addon URL entries and so there is nothing to download.");
                 }
 
                 if (config.AddonUrls.Any(url => !curseHelper.IsAddonPageUrl(url)))
                 {
-                    throw new InvalidOperationException("Config file contains at least 1 addon url entry which is not a valid Curse addon url.");
+                    throw new InvalidOperationException("Config file contains at least 1 addon URL entry which is not a valid Curse addon URL.");
                 }
             }
             catch (Exception e)
@@ -52,16 +52,22 @@ namespace WOWCAM.Core
 
         private void ValidateFolder(string folderValue, string folderName, int maxChars)
         {
-            if (!fileSystemHelper.IsValidAbsolutePath(folderValue) || !Directory.Exists(folderValue))
+            if (!fileSystemHelper.IsValidAbsolutePath(folderValue))
             {
                 throw new InvalidOperationException(
-                    $"Config file contains a {folderName} folder which is not a valid folder path (given path must be a valid absolute path to an existing folder).");
+                    $"Config file contains a {folderName} folder which is not a valid folder path (given path must be a valid absolute path to a folder).");
             }
 
             if (folderValue.Length > maxChars)
             {
                 throw new InvalidOperationException(
                     $"Config file contains a {folderName} folder path which is too long (make sure given path is smaller than {maxChars} characters).");
+            }
+
+            if (!Directory.Exists(folderValue))
+            {
+                throw new InvalidOperationException(
+                    $"Config file contains a {folderName} folder which not exists (the app not creates configured folders automatically, on purpose).");
             }
         }
     }

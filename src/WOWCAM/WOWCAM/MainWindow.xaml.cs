@@ -65,7 +65,7 @@ namespace WOWCAM
             catch (Exception ex)
             {
                 WpfHelper.ShowError(ex.Message);
-
+                EnableConfigFolderHyperlink();
                 return;
             }
 
@@ -108,9 +108,9 @@ namespace WOWCAM
         {
             try
             {
-                var b = await updateManager.CheckForUpdates();
+                var updateAvailable = await updateManager.CheckForUpdates();
 
-                if (b)
+                if (updateAvailable)
                 {
                     WpfHelper.ShowInfo("Gibt Update.");
                 }
@@ -220,6 +220,12 @@ namespace WOWCAM
                 WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
                 WpfHelper.DisableHyperlinkHoverEffect(hyperlinkCheckUpdates);
             }
+        }
+
+        private void EnableConfigFolderHyperlink()
+        {
+            textBlockConfigFolder.IsEnabled = true;
+            WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
         }
 
         private async Task ConfigureWebViewAsync()

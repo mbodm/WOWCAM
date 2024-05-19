@@ -83,6 +83,8 @@ namespace WOWCAM
                 return;
             }
 
+            await updateManager.SelfUpdateIfRequestedAsync(Application.Current.Shutdown);
+            
             await ConfigureWebViewAsync();
 
             SetControls(true);
@@ -108,15 +110,43 @@ namespace WOWCAM
         {
             try
             {
-                var updateAvailable = await updateManager.CheckForUpdates();
+                var updateData = await updateManager.CheckForUpdateAsync();
 
-                if (updateAvailable)
+                if (updateData.UpdateAvailable)
                 {
-                    WpfHelper.ShowInfo("Gibt Update.");
+                    WpfHelper.ShowInfo("Todo: Update available. Show old and new version. Ask question: Download and install?");
+
+
+                    labelProgressBar.Content = "Downloading application update";
+                    progressBar.Value = 0;
+                    progressBar.Maximum = 0;
+                    button.IsEnabled = false;
+                    
+                    await updateManager.DownloadUpdateAsync(updateData, new Progress<ModelDownloadHelperProgress>(p =>
+                    {
+                        if (p.IsPreDownloadSizeDetermination) progressBar.Maximum = p.TotalBytes;
+
+                        var totalKB = ((double)p.TotalBytes / 1024).ToString("0.00", CultureInfo.InvariantCulture);
+                        var receivedKB = ((double)p.ReceivedBytes / 1024).ToString("0.00", CultureInfo.InvariantCulture);
+                        labelProgressBar.Content = $"Downloading application update ({receivedKB} / {totalKB} KB)";
+                    }));
+
+                    // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
+                    // ProgressBar control from reaching its maximum shortly after the last async progress happened.
+                    // The control is painted natively by the WinApi/OS itself. Therefore also no event-based tricks
+                    // will solve the problem. I just added a short async wait delay instead, to keep things simple.
+                    // *(TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
+                    // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
+
+                    await Task.Delay(1250);
+
+                    WpfHelper.ShowInfo("Todo: Ask question: Apply update and restart app?");
+
+                    await updateManager.AskForAdminAndRestartAsync(Application.Current.Shutdown);
                 }
                 else
                 {
-                    WpfHelper.ShowInfo("Ist neueste Version.");
+                    WpfHelper.ShowInfo("Todo: You already have the latest version.");
                 }
             }
             catch (Exception ex)
@@ -159,7 +189,7 @@ namespace WOWCAM
 
             sw.Stop();
 
-            // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a Windows.Forms
+            // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
             // ProgressBar control from reaching its maximum shortly after the last async progress happened.
             // The control is painted natively by the WinApi/OS itself. Therefore also no event-based tricks
             // will solve the problem. I just added a short async wait delay instead, to keep things simple.

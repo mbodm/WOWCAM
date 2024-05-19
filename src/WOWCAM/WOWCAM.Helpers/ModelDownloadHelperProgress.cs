@@ -2,6 +2,7 @@
 {
     public sealed record ModelDownloadHelperProgress(
         string Url,
-        long ReceivedBytes,
-        long TotalBytes);
+        bool IsPreDownloadSizeDetermination,
+        long TotalBytes,
+        long ReceivedBytes);
 }

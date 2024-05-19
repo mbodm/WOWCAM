@@ -19,6 +19,11 @@ namespace WOWCAM.Core
         {
             try
             {
+                if (config.TempFolder == string.Empty)
+                {
+                    throw new InvalidOperationException("Config file contains no temp folder and also the application's own default fallback value (%TEMP%) is not active.");
+                }
+
                 ValidateFolder(config.TempFolder, "temp", MaxPathLength);
 
                 if (config.TargetFolder == string.Empty)

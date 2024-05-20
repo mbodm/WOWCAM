@@ -4,6 +4,5 @@
     {
         string GetApplicationVersion();
         string GetApplicationExecutableFolder();
-        bool ApplicationHasAdminRights();
     }
 }

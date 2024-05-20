@@ -2,6 +2,8 @@
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Security.Principal;
 
 namespace WCUPDATE
 {
@@ -40,17 +42,33 @@ namespace WCUPDATE
                 var fileVersionInfo = FileVersionInfo.GetVersionInfo(exeFile);
                 var productVersion = fileVersionInfo.ProductVersion;
 
-                if (productVersion == null)
-                {
-                    return errorResult;
-                }
-
-                return new Version(productVersion);
+                return productVersion != null ? new Version(productVersion) : errorResult;
             }
             catch
             {
                 return errorResult;
             }
+        }
+
+        public static bool ApplicationHasAdminRights()
+        {
+            // Taken from StackOverflow:
+            // https://stackoverflow.com/questions/5953240/check-for-administrator-privileges-in-c-sharp
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                using (var identity = WindowsIdentity.GetCurrent())
+                {
+                    if (identity != null)
+                    {
+                        var principal = new WindowsPrincipal(identity);
+
+                        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }

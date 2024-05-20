@@ -4,31 +4,26 @@ using System.IO;
 
 namespace WCUPDATE
 {
-    internal static class Logic
+    internal static class Core
     {
-        public static string AppFileName => $"{Helper.GetAssemblyName()}.exe";
-        public static string AppVersion => Helper.GetApplicationVersion();
-        public static string AppTitle => $"{AppFileName} {AppVersion} (by MBODM 2024)";
-        public static string AppDescription => $"A tiny Windows command-line tool, used by {TargetFileName} to replace it's own executable.";
-        public static string AppUsage => $"Usage: {AppFileName} <path to {TargetFileName} update folder> <current {TargetFileName} process ID>";
-        public static string AppUrl => "Have a look at https://github.com/mbodm/wowcam for more information";
-
-        public static string TargetFolder = Helper.GetApplicationFolder();
-        public static string TargetFileName = "WOWCAM.exe";
-        public static string TargetFilePath = Path.Combine(TargetFolder, TargetFileName);
+        public static string TargetFolder => Helper.GetApplicationFolder();
+        public static string TargetFileName => "WOWCAM.exe";
+        public static string TargetFilePath => Path.Combine(TargetFolder, TargetFileName);
 
         public static void ShowError(string errorMessage)
         {
             Console.WriteLine($"Error: {errorMessage}");
             Console.WriteLine();
-            Console.WriteLine(AppUrl);
+            Console.WriteLine(App.Link);
         }
 
         public static string EvalUpdateFolderArg(string updateFolder)
         {
             try
             {
-                return Path.GetFullPath(updateFolder);
+                var expanded = Environment.ExpandEnvironmentVariables(updateFolder);
+
+                return Path.GetFullPath(expanded);
             }
             catch
             {
@@ -41,7 +36,7 @@ namespace WCUPDATE
             return int.TryParse(processId, out int result) ? result : 0;
         }
 
-        public static bool TargetApplicationRunning(int processId)
+        public static bool TargetApplicationIsRunning(int processId)
         {
             try
             {

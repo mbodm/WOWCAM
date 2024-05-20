@@ -89,7 +89,7 @@ namespace WOWCAM.Core
             {
                 throw new InvalidOperationException("cowa");
             }
-            
+
             var processStartInfo = new ProcessStartInfo
             {
                 FileName = updaterExe,
@@ -131,6 +131,7 @@ namespace WOWCAM.Core
                 var exeFile = Path.Combine(exeFolder, "WOWCAM.exe");
                 var exeFileRenamed = Path.Combine(exeFolder, "WOWCAM_exe_old.tmp");
 
+                /*
                 if (appHelper.ApplicationHasAdminRights() && updateFile != null)
                 {
                     File.Move(exeFile, exeFileRenamed, true);
@@ -156,13 +157,16 @@ namespace WOWCAM.Core
                     await Task.Delay(500);
                     restartApplicationAction?.Invoke();
                     await Task.Delay(500);
+                
                 }
+                */
             }
             catch (Exception e)
             {
                 logger.Log(e);
                 throw new InvalidOperationException("Found application update, but could not apply update (see log file for details).", e);
             }
+
         }
 
         private string GetUpdateFolder()

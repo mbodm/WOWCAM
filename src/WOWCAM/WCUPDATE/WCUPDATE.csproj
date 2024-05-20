@@ -1,25 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2478.35" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\WOWCAM.Core\WOWCAM.Core.csproj" />
-  </ItemGroup>
-
   <PropertyGroup Label="MBODM-Custom">
-    <PlatformTarget>x64</PlatformTarget>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <Version>1.0.0</Version>
+    <AssemblyName>wcupdate</AssemblyName>
+    <Version>1.0.55</Version>
     <!-- The following tag is required nowadays to prevent Version from additionally containing the SourceRevisionId. -->
     <!-- For some background information about Version and SourceRevisionId in newer projects, please have a look at: -->
     <!-- https://stackoverflow.com/questions/77514501/visual-studio-2022-v17-8-appends-string-to-dll-product-version-and-assemblyinfor -->
@@ -28,8 +16,8 @@
   </PropertyGroup>
 
   <Target Label="MBODM-Custom" Name="CopyExe" AfterTargets="AfterBuild">
-    <Copy SourceFiles="$(TargetDir)$(TargetName).exe" DestinationFolder="$(SolutionDir)WCUPDATE\bin\Debug\net48" />
-    <Message Text="MBODM -> Copied '$(TargetDir)$(TargetName).exe' into '$(SolutionDir)WCUPDATE\bin\Debug\net48' folder" Importance="high" />
+    <Copy SourceFiles="$(TargetDir)$(TargetName).exe" DestinationFolder="$(SolutionDir)WOWCAM\bin\Debug\net8.0-windows" />
+    <Message Text="MBODM -> Copied '$(TargetDir)$(TargetName).exe' into '$(SolutionDir)WOWCAM\bin\Debug\net8.0-windows' folder" Importance="high" />
   </Target>
 
 </Project>

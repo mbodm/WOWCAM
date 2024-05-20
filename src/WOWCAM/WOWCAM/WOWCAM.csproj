@@ -28,9 +28,9 @@
   </PropertyGroup>
 
   <Target Name="CopyExe" AfterTargets="AfterBuild">
-    <Copy SourceFiles="$(TargetDir)$(TargetName).exe" DestinationFolder="$(SolutionDir)WOWCAM.Update\bin\Debug\net8.0" />
+    <Copy SourceFiles="$(TargetDir)$(TargetName).exe" DestinationFolder="$(SolutionDir)WCUPDATE\bin\Debug" />
     <Message Text="======================================================================" Importance="high" />
-    <Message Text="[MBODM] Copied '$(TargetDir)$(TargetName).exe' into '$(SolutionDir)WOWCAM.Update\bin\Debug\net8.0' folder" Importance="high" />
+    <Message Text="[MBODM] Copied '$(TargetDir)$(TargetName).exe' into '$(SolutionDir)WCUPDATE\bin\Debug' folder" Importance="high" />
     <Message Text="======================================================================" Importance="high" />
   </Target>
 

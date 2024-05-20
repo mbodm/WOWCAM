@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WOWCAM.Core", "WOWCAM.Core\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WOWCAM.Helpers", "WOWCAM.Helpers\WOWCAM.Helpers.csproj", "{C874C4A3-6B8E-4214-9720-3EF1C1F1E3DF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WOWCAM.Update", "WOWCAM.Update\WOWCAM.Update.csproj", "{C0B5A6D4-8FF3-4E53-924A-E95B30FDE3B7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{C874C4A3-6B8E-4214-9720-3EF1C1F1E3DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C874C4A3-6B8E-4214-9720-3EF1C1F1E3DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C874C4A3-6B8E-4214-9720-3EF1C1F1E3DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C0B5A6D4-8FF3-4E53-924A-E95B30FDE3B7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C0B5A6D4-8FF3-4E53-924A-E95B30FDE3B7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C0B5A6D4-8FF3-4E53-924A-E95B30FDE3B7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C0B5A6D4-8FF3-4E53-924A-E95B30FDE3B7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

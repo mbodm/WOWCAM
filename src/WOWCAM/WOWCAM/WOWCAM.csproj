@@ -27,4 +27,11 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
+  <Target Name="CopyExe" AfterTargets="AfterBuild">
+    <Copy SourceFiles="$(TargetDir)$(TargetName).exe" DestinationFolder="$(SolutionDir)WOWCAM.Update\bin\Debug\net8.0" />
+    <Message Text="----------------------------------------------------------------------" Importance="high" />
+    <Message Text="[MBODM] Copied '$(TargetDir)$(TargetName).exe' into '$(SolutionDir)WOWCAM.Update\bin\Debug\net8.0' folder" Importance="high" />
+    <Message Text="----------------------------------------------------------------------" Importance="high" />
+  </Target>
+
 </Project>

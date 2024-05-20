@@ -142,7 +142,7 @@ namespace WOWCAM
 
                     WpfHelper.ShowInfo("Todo: Ask question: Apply update and restart app?");
 
-                    await updateManager.AskForAdminAndRestartAsync(Application.Current.Shutdown);
+                    await updateManager.StartUpdaterWithAdminRightsAsync(Application.Current.Shutdown);
                 }
                 else
                 {

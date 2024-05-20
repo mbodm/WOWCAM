@@ -81,12 +81,19 @@ namespace WOWCAM.Core
             }
         }
 
-        public async Task AskForAdminAndRestartAsync(Action restartApplicationAction)
+        public async Task StartUpdaterWithAdminRightsAsync(Action restartApplicationAction)
         {
+            var updaterExe = Path.Combine(appHelper.GetApplicationExecutableFolder(), "WOWCAM.Update.exe");
+
+            if (!File.Exists(updaterExe))
+            {
+                throw new InvalidOperationException("cowa");
+            }
+            
             var processStartInfo = new ProcessStartInfo
             {
-                FileName = Path.Combine(appHelper.GetApplicationExecutableFolder(), "WOWCAM.exe"),
-                //UseShellExecute = true,
+                FileName = updaterExe,
+                UseShellExecute = true,
                 Verb = "runas"
             };
 

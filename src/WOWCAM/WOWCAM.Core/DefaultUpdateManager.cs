@@ -119,6 +119,7 @@ namespace WOWCAM.Core
         {
             // See StackOverflow:
             // https://stackoverflow.com/questions/16926232/run-process-as-administrator-from-a-non-admin-application
+            // https://stackoverflow.com/questions/3925065/correct-way-to-deal-with-uac-in-c-sharp
 
             try
             {

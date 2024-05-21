@@ -27,7 +27,7 @@ namespace WOWCAM.Helpers
 
         private async Task<string> FetchLatestReleaseJson(CancellationToken cancellationToken = default)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/repos/mbodm/wauz/releases/latest");
+            using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/repos/mbodm/wowcam/releases/latest");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
             request.Headers.UserAgent.ParseAdd("mbodm");
 

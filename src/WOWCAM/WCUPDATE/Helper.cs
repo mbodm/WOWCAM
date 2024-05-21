@@ -11,7 +11,7 @@ namespace WCUPDATE
     {
         public static string GetAssemblyName()
         {
-            return Assembly.GetExecutingAssembly()?.GetName()?.Name ?? "UNKNOWN";
+            return Assembly.GetEntryAssembly()?.GetName()?.Name ?? "UNKNOWN";
         }
 
         public static string GetApplicationVersion()
@@ -52,8 +52,9 @@ namespace WCUPDATE
 
         public static bool ApplicationHasAdminRights()
         {
-            // Taken from StackOverflow:
+            // See StackOverflow:
             // https://stackoverflow.com/questions/5953240/check-for-administrator-privileges-in-c-sharp
+            // https://stackoverflow.com/questions/11660184/c-sharp-check-if-run-as-administrator/11660205
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

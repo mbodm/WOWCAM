@@ -4,7 +4,7 @@ namespace WOWCAM.Helpers
 {
     public sealed class DefaultCurseHelper : ICurseHelper
     {
-        // Taken from https://stackoverflow.com/questions/7134837/how-do-i-decode-a-base64-encoded-string
+        // See StackOverflow -> https://stackoverflow.com/questions/7134837/how-do-i-decode-a-base64-encoded-string
         public string FetchJsonScript => "btoa(unescape(encodeURIComponent(document.querySelector('script#__NEXT_DATA__')?.innerHTML ?? '')))";
 
         public bool IsAddonPageUrl(string url)

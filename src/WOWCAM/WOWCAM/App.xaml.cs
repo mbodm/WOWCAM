@@ -26,7 +26,7 @@ namespace WOWCAM
             var addonProcessing = new DefaultAddonProcessing(logger, curseHelper, webViewHelper, downloadHelper, zipFileHelper, fileSystemHelper);
 
             var gitHubHelper = new DefaultGitHubHelper(httpClient);
-            var updateManager = new DefaultUpdateManager(logger, config, appHelper, gitHubHelper, fileSystemHelper, downloadHelper, zipFileHelper);
+            var updateManager = new DefaultUpdateManager(logger, appHelper, fileSystemHelper, gitHubHelper, config, downloadHelper, zipFileHelper);
 
             MainWindow = new MainWindow(logger, appHelper, config, configValidator, webViewHelper, processHelper, addonProcessing, updateManager);
         }

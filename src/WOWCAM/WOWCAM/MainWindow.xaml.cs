@@ -83,8 +83,6 @@ namespace WOWCAM
                 return;
             }
 
-            await updateManager.SelfUpdateIfRequestedAsync(Application.Current.Shutdown);
-            
             await ConfigureWebViewAsync();
 
             SetControls(true);
@@ -116,18 +114,20 @@ namespace WOWCAM
                 {
                     WpfHelper.ShowInfo("Todo: Update available. Show old and new version. Ask question: Download and install?");
 
+                    updateManager.PrepareForDownload();
 
                     labelProgressBar.Content = "Downloading application update";
                     progressBar.Value = 0;
                     progressBar.Maximum = 0;
                     button.IsEnabled = false;
-                    
+
                     await updateManager.DownloadUpdateAsync(updateData, new Progress<ModelDownloadHelperProgress>(p =>
                     {
                         if (p.IsPreDownloadSizeDetermination) progressBar.Maximum = p.TotalBytes;
 
                         var totalKB = ((double)p.TotalBytes / 1024).ToString("0.00", CultureInfo.InvariantCulture);
                         var receivedKB = ((double)p.ReceivedBytes / 1024).ToString("0.00", CultureInfo.InvariantCulture);
+
                         labelProgressBar.Content = $"Downloading application update ({receivedKB} / {totalKB} KB)";
                     }));
 
@@ -142,7 +142,9 @@ namespace WOWCAM
 
                     WpfHelper.ShowInfo("Todo: Ask question: Apply update and restart app?");
 
-                    await updateManager.StartUpdaterWithAdminRightsAsync(Application.Current.Shutdown);
+                    await updateManager.PrepareForUpdateAsync();
+
+                    updateManager.StartUpdateAppWithAdminRights();
                 }
                 else
                 {

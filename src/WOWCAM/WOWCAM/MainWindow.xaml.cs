@@ -108,8 +108,15 @@ namespace WOWCAM
         {
             try
             {
-                var updateData = await updateManager.CheckForUpdateAsync();
+                labelProgressBar.Content = "Check for updates";
+                progressBar.Maximum = 1;
+                progressBar.Value = 0;
+                
+                SetControls(false);
+                labelProgressBar.IsEnabled = true;
+                progressBar.IsEnabled = true;
 
+                var updateData = await updateManager.CheckForUpdateAsync();
                 if (updateData.UpdateAvailable)
                 {
                     WpfHelper.ShowInfo("Todo: Update available. Show old and new version. Ask question: Download and install?");
@@ -117,18 +124,16 @@ namespace WOWCAM
                     updateManager.PrepareForDownload();
 
                     labelProgressBar.Content = "Downloading application update";
-                    progressBar.Value = 0;
-                    progressBar.Maximum = 0;
-                    button.IsEnabled = false;
 
                     await updateManager.DownloadUpdateAsync(updateData, new Progress<ModelDownloadHelperProgress>(p =>
                     {
                         if (p.IsPreDownloadSizeDetermination) progressBar.Maximum = p.TotalBytes;
 
-                        var totalKB = ((double)p.TotalBytes / 1024).ToString("0.00", CultureInfo.InvariantCulture);
-                        var receivedKB = ((double)p.ReceivedBytes / 1024).ToString("0.00", CultureInfo.InvariantCulture);
+                        var totalMB = ((double)p.TotalBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
+                        var receivedMB = ((double)p.ReceivedBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
 
-                        labelProgressBar.Content = $"Downloading application update ({receivedKB} / {totalKB} KB)";
+                        labelProgressBar.Content = $"Downloading application update ({receivedMB} / {totalMB} MB)";
+                        progressBar.Value = p.ReceivedBytes;
                     }));
 
                     // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
@@ -144,16 +149,28 @@ namespace WOWCAM
 
                     await updateManager.PrepareForUpdateAsync();
 
-                    updateManager.StartUpdateAppWithAdminRights();
+                    if (!updateManager.StartUpdateAppWithAdminRights())
+                    {
+                        WpfHelper.ShowInfo("Update cancelled by user.");
+                        return;
+                    }
                 }
                 else
                 {
-                    WpfHelper.ShowInfo("Todo: You already have the latest version.");
+                    WpfHelper.ShowInfo("You already have the latest version.");
                 }
             }
             catch (Exception ex)
             {
                 WpfHelper.ShowError(ex.Message);
+            }
+            finally
+            {
+                SetControls(true);
+                
+                labelProgressBar.Content = string.Empty;
+                progressBar.Maximum = 1;
+                progressBar.Value = 0;
             }
         }
 

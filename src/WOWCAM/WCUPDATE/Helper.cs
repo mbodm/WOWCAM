@@ -28,7 +28,7 @@ namespace WCUPDATE
 
         public static Version GetExeFileVersion(string pathToExeFile)
         {
-            var errorResult = new Version(0, 0, 0);
+            var errorResult = new Version(-1, 0, 0);
 
             try
             {

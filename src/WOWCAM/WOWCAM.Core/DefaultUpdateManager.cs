@@ -115,7 +115,7 @@ namespace WOWCAM.Core
             }
         }
 
-        public void StartUpdateAppWithAdminRights()
+        public bool StartUpdateAppWithAdminRights()
         {
             // See StackOverflow:
             // https://stackoverflow.com/questions/16926232/run-process-as-administrator-from-a-non-admin-application
@@ -143,13 +143,15 @@ namespace WOWCAM.Core
                 {
                     throw new InvalidOperationException("The 'Process.Start()' call returned null.");
                 }
+
+                return true;
             }
             catch (Exception e)
             {
                 if (e is Win32Exception win32Exception && win32Exception.NativeErrorCode == 1223)
                 {
                     logger.Log("User cancelled Windows UAC popup while application update process.");
-                    return;
+                    return false;
                 }
 
                 logger.Log(e);

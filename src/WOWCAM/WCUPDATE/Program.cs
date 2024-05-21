@@ -66,14 +66,14 @@ namespace WCUPDATE
             }
 
             var updateVersion = Helper.GetExeFileVersion(updateFile);
-            if (updateVersion.Major < 1)
+            if (updateVersion.Major == -1)
             {
                 Core.ShowError("Could not determine update file version.");
                 Environment.Exit(507);
             }
 
             var targetVersion = Helper.GetExeFileVersion(Core.TargetFileName);
-            if (targetVersion.Major < 1)
+            if (targetVersion.Major == -1)
             {
                 Core.ShowError("Could not determine target file version.");
                 Environment.Exit(508);

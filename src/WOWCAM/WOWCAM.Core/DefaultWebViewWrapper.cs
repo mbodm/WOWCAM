@@ -4,7 +4,7 @@ using WOWCAM.Helper;
 
 namespace WOWCAM.Core
 {
-    public sealed class DefaultWebViewHelper(ILogger logger, ICurseHelper curseHelper) : IWebViewHelper
+    public sealed class DefaultWebViewWrapper(ILogger logger, ICurseHelper curseHelper) : IWebViewWrapper
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly ICurseHelper curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
@@ -44,26 +44,13 @@ namespace WOWCAM.Core
             // NavigationStarting
             void NavigationStartingEventHandler(object? sender, CoreWebView2NavigationStartingEventArgs e)
             {
-                logger.Log(CreateLogLines(nameof(coreWebView.NavigationStarting), sender, e,
-                [
-                    $"{nameof(e.IsRedirected)} = {e.IsRedirected}",
-                    $"{nameof(e.IsUserInitiated)} = {e.IsUserInitiated}",
-                    $"{nameof(e.NavigationId)} = {e.NavigationId}",
-                    $"{nameof(e.NavigationKind)} = {e.NavigationKind}",
-                    $"{nameof(e.Uri)} = \"{e.Uri}\"",
-                ]));
+                logger.Log(CreateLogLinesStarting(sender, e));
             }
 
             // NavigationCompleted
             async void NavigationCompletedEventHandler(object? sender, CoreWebView2NavigationCompletedEventArgs e)
             {
-                logger.Log(CreateLogLines(nameof(coreWebView.NavigationCompleted), sender, e,
-                [
-                    $"{nameof(e.HttpStatusCode)} = {e.HttpStatusCode}",
-                    $"{nameof(e.IsSuccess)} = {e.IsSuccess}",
-                    $"{nameof(e.NavigationId)} = {e.NavigationId}",
-                    $"{nameof(e.WebErrorStatus)} = {e.WebErrorStatus}"
-                ]));
+                logger.Log(CreateLogLinesCompleted(sender, e));
 
                 if (sender is CoreWebView2 coreWebViewSender)
                 {
@@ -102,6 +89,29 @@ namespace WOWCAM.Core
             }
 
             return tcs.Task;
+        }
+
+        private static IEnumerable<string> CreateLogLinesStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
+        {
+            return CreateLogLines("NavigationStarting", sender, e,
+            [
+                $"{nameof(e.IsRedirected)} = {e.IsRedirected}",
+                $"{nameof(e.IsUserInitiated)} = {e.IsUserInitiated}",
+                $"{nameof(e.NavigationId)} = {e.NavigationId}",
+                $"{nameof(e.NavigationKind)} = {e.NavigationKind}",
+                $"{nameof(e.Uri)} = \"{e.Uri}\""
+            ]);
+        }
+
+        private static IEnumerable<string> CreateLogLinesCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+        {
+            return CreateLogLines("NavigationCompleted", sender, e,
+            [
+                $"{nameof(e.HttpStatusCode)} = {e.HttpStatusCode}",
+                $"{nameof(e.IsSuccess)} = {e.IsSuccess}",
+                $"{nameof(e.NavigationId)} = {e.NavigationId}",
+                $"{nameof(e.WebErrorStatus)} = {e.WebErrorStatus}"
+            ]);
         }
 
         private static IEnumerable<string> CreateLogLines(string name, object? sender, object? e, IEnumerable<string> details)

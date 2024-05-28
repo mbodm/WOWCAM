@@ -19,29 +19,54 @@ namespace WOWCAM
 
             webView.Width = double.NaN;
             webView.Height = double.NaN;
-            border.Visibility = Visibility.Visible;
             webView.IsEnabled = true;
+            border.Visibility = Visibility.Visible;
         }
 
         private void SetControls(bool enabled)
         {
-            textBlockConfigFolder.IsEnabled = enabled;
-            textBlockCheckUpdates.IsEnabled = enabled;
-            labelProgressBar.IsEnabled = enabled;
-            progressBar.IsEnabled = enabled;
+            Setlinks(enabled);
+            SetProgress(enabled);
             button.IsEnabled = enabled;
+        }
 
-            if (enabled)
+        private void Setlinks(bool enabled, uint target = 2)
+        {
+            // target == 0 -> config folder link
+            // target == 1 -> check updates link
+            // target == 2 -> both links
+
+            if (target == 0 || target == 2)
             {
+                textBlockConfigFolder.IsEnabled = enabled;
+                hyperlinkConfigFolder.IsEnabled = enabled;
                 DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
+            }
+
+            if (target == 1 || target == 2)
+            {
+                textBlockCheckUpdates.IsEnabled = enabled;
+                hyperlinkCheckUpdates.IsEnabled = enabled;
                 DisableHyperlinkHoverEffect(hyperlinkCheckUpdates);
             }
         }
 
-        private void EnableConfigFolderHyperlink()
+        private void SetProgress(bool enabled, bool reset = false, string status = "")
         {
-            textBlockConfigFolder.IsEnabled = true;
-            DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
+            if (reset)
+            {
+                labelProgressBar.Content = string.Empty;
+                progressBar.Maximum = 1;
+                progressBar.Value = 0;
+            }
+
+            if (status != string.Empty)
+            {
+                labelProgressBar.Content = status;
+            }
+
+            labelProgressBar.IsEnabled = enabled;
+            progressBar.IsEnabled = enabled;
         }
 
         private async Task ConfigureWebViewAsync()
@@ -55,61 +80,21 @@ namespace WOWCAM
                 }
             };
 
-            var environment = await webViewHelper.CreateEnvironmentAsync(config.TempFolder);
+            var environment = await webViewWrapper.CreateEnvironmentAsync(config.TempFolder);
             await webView.EnsureCoreWebView2Async(environment);
         }
 
-        private static void DisableHyperlinkHoverEffect(Hyperlink hyperlink)
-        {
-            // By default a Hyperlink has a hover effect: The foreground color is changed on mouse hover.
-            // Since i don´t want that behaviour and since Hyperlink is somewhat "special" in WPF and a
-            // bit painful to style, i use a little trick here: I just set the Foreground property. This
-            // prevents the Hyperlink from using the default hover color (red). Result: Effect disabled.
+        // Hyperlink control in WPF has some default hover effect which sets foreground color to red.
+        // Since i don´t want that behaviour and since Hyperlink is somewhat painful to style in WPF,
+        // i just set the correct default system colors manually, when Hyperlink is enabled/disabled.
+        // Note: This is just some temporary fix anyway, cause of the upcoming theme-support changes.
+        private static void DisableHyperlinkHoverEffect(Hyperlink hyperlink) =>
+            hyperlink.Foreground = hyperlink.IsEnabled ? SystemColors.HotTrackBrush : SystemColors.GrayTextBrush;
 
-            hyperlink.Foreground = hyperlink.Foreground;
-        }
-
-        private void PreUpdateCheck()
-        {
-            SetControls(false);
-
-            labelProgressBar.IsEnabled = true;
-            progressBar.IsEnabled = true;
-
-            labelProgressBar.Content = "Check for updates";
-            progressBar.Maximum = 1;
-            progressBar.Value = 0;
-        }
-
-        private void PostUpdateCheck()
-        {
-            SetControls(true);
-
-            labelProgressBar.Content = string.Empty;
-            progressBar.Maximum = 1;
-            progressBar.Value = 0;
-        }
-
-        private void PreAddonProcessing()
-        {
-            SetControls(false);
-
-            labelProgressBar.IsEnabled = true;
-            progressBar.IsEnabled = true;
-
-            labelProgressBar.Content = string.Empty;
-            progressBar.Value = 0;
-            progressBar.Maximum = config.AddonUrls.Count() * 3;
-        }
-
-        private static void ShowInfo(string message)
-        {
+        private static void ShowInfo(string message) =>
             MessageBox.Show(message, "Information", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
 
-        private static void ShowError(string message)
-        {
+        private static void ShowError(string message) =>
             MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
     }
 }

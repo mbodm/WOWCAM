@@ -9,26 +9,26 @@ namespace WOWCAM
     {
         public App()
         {
-            var logger = new DefaultLogger();
             var appHelper = new DefaultAppHelper();
+            var logger = new DefaultLogger();
             var config = new DefaultConfig(logger);
 
             var fileSystemHelper = new DefaultFileSystemHelper();
             var curseHelper = new DefaultCurseHelper();
             var configValidator = new DefaultConfigValidator(logger, config, fileSystemHelper, curseHelper);
 
-            var webViewHelper = new DefaultWebViewHelper(logger, curseHelper);
-            var processHelper = new DefaultProcessHelper(logger);
+            var webViewWrapper = new DefaultWebViewWrapper(logger, curseHelper);
+            var processStarter = new DefaultProcessStarter(logger);
 
             var httpClient = new HttpClient();
             var downloadHelper = new DefaultDownloadHelper(httpClient);
             var zipFileHelper = new DefaultZipFileHelper();
-            var addonProcessing = new DefaultAddonProcessing(logger, curseHelper, webViewHelper, downloadHelper, zipFileHelper, fileSystemHelper);
+            var addonProcessing = new DefaultAddonProcessing(logger, curseHelper, webViewWrapper, downloadHelper, zipFileHelper, fileSystemHelper);
 
             var gitHubHelper = new DefaultGitHubHelper(httpClient);
             var updateManager = new DefaultUpdateManager(logger, appHelper, fileSystemHelper, gitHubHelper, config, downloadHelper, zipFileHelper);
 
-            MainWindow = new MainWindow(logger, appHelper, config, configValidator, webViewHelper, processHelper, addonProcessing, updateManager);
+            MainWindow = new MainWindow(appHelper, logger, config, configValidator, webViewWrapper, processStarter, addonProcessing, updateManager);
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

@@ -6,14 +6,14 @@ namespace WOWCAM.Core
     public sealed class DefaultAddonProcessing(
         ILogger logger,
         ICurseHelper curseHelper,
-        IWebViewHelper webViewHelper,
+        IWebViewWrapper webViewWrapper,
         IDownloadHelper downloadHelper,
         IZipFileHelper zipFileHelper,
         IFileSystemHelper fileSystemHelper) : IAddonProcessing
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly ICurseHelper curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
-        private readonly IWebViewHelper webViewHelper = webViewHelper ?? throw new ArgumentNullException(nameof(webViewHelper));
+        private readonly IWebViewWrapper webViewWrapper = webViewWrapper ?? throw new ArgumentNullException(nameof(webViewWrapper));
         private readonly IDownloadHelper downloadHelper = downloadHelper ?? throw new ArgumentNullException(nameof(downloadHelper));
         private readonly IZipFileHelper zipFileHelper = zipFileHelper ?? throw new ArgumentNullException(nameof(zipFileHelper));
         private readonly IFileSystemHelper fileSystemHelper = fileSystemHelper ?? throw new ArgumentNullException(nameof(fileSystemHelper));
@@ -51,7 +51,7 @@ namespace WOWCAM.Core
 
                 try
                 {
-                    var addonDownloadUrlData = await webViewHelper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl);
+                    var addonDownloadUrlData = await webViewWrapper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl);
                     addonDownloadDataList.Add(addonDownloadUrlData);
                 }
                 catch (Exception e)

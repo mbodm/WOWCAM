@@ -1,8 +1,7 @@
 ﻿namespace WOWCAM.Core
 {
-    public interface IProcessHelper
+    public interface IProcessStarter
     {
         void OpenFolderInExplorer(string folder);
-        void StartUpdater(string applicationFolder);
     }
 }

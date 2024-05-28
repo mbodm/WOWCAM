@@ -22,8 +22,6 @@ namespace WOWCAM.Core
         private readonly IZipFileHelper zipFileHelper = zipFileHelper ?? throw new ArgumentNullException(nameof(zipFileHelper));
 
         private readonly string appName = appHelper.GetApplicationName();
-        private readonly string appFolder = appHelper.GetApplicationExecutableFolder();
-        private readonly string appFileName = appHelper.GetApplicationExecutableFileName();
 
         private string updateFolder = string.Empty;
 
@@ -45,8 +43,11 @@ namespace WOWCAM.Core
             }
         }
 
-        public void PrepareForDownload()
+        public async Task DownloadUpdateAsync(ModelApplicationUpdateData updateData,
+            IProgress<ModelDownloadHelperProgress>? downloadProgress = null, CancellationToken cancellationToken = default)
         {
+            // Prepare
+
             try
             {
                 // Trust application and config validator (since this is business logic and not a helper) and therefore do no temp folder check here
@@ -65,11 +66,9 @@ namespace WOWCAM.Core
                 logger.Log(e);
                 throw new InvalidOperationException("Error while application prepares for download (see log file for details).", e);
             }
-        }
 
-        public async Task DownloadUpdateAsync(ModelApplicationUpdateData updateData,
-            IProgress<ModelDownloadHelperProgress>? downloadProgress = null, CancellationToken cancellationToken = default)
-        {
+            // Download
+
             try
             {
                 var downloadUrl = updateData.UpdateDownloadUrl;
@@ -85,12 +84,14 @@ namespace WOWCAM.Core
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException($"Error while downloading latest {appName} release zip file from GitHub (see log file for details).", e);
+                throw new InvalidOperationException($"Error while downloading latest {appName} release zip file (see log file for details).", e);
             }
         }
 
-        public async Task PrepareForUpdateAsync(CancellationToken cancellationToken = default)
+        public async Task<bool> ApplyUpdateAsync(CancellationToken cancellationToken = default)
         {
+            // Prepare for update
+
             var installedVersion = GetInstalledVersion();
 
             try
@@ -99,6 +100,8 @@ namespace WOWCAM.Core
                     throw new InvalidOperationException("Update folder not contains zip file.");
 
                 await zipFileHelper.ExtractZipFileAsync(updateZipFile, updateFolder, cancellationToken).ConfigureAwait(false);
+
+                var appFileName = appHelper.GetApplicationExecutableFileName();
 
                 var updateExeFile = Path.Combine(updateFolder, appFileName);
                 if (!File.Exists(updateExeFile))
@@ -113,23 +116,20 @@ namespace WOWCAM.Core
                 logger.Log(e);
                 throw new InvalidOperationException("Error while application prepares for update (see log file for details).", e);
             }
-        }
 
-        public bool StartUpdateAppWithAdminRights()
-        {
-            // See StackOverflow:
-            // https://stackoverflow.com/questions/16926232/run-process-as-administrator-from-a-non-admin-application
-            // https://stackoverflow.com/questions/3925065/correct-way-to-deal-with-uac-in-c-sharp
+            // Start external update app with admin rights
 
             try
             {
                 var updateAppFileName = "wcupdate.exe";
-                var updateAppFilePath = Path.Combine(appFolder, updateAppFileName);
+                var updateAppFilePath = Path.Combine(appHelper.GetApplicationExecutableFolder(), updateAppFileName);
 
                 if (!File.Exists(updateAppFilePath))
-                {
                     throw new InvalidOperationException($"Could not found {updateAppFileName} in application folder.");
-                }
+
+                // See StackOverflow:
+                // https://stackoverflow.com/questions/16926232/run-process-as-administrator-from-a-non-admin-application
+                // https://stackoverflow.com/questions/3925065/correct-way-to-deal-with-uac-in-c-sharp
 
                 var processStartInfo = new ProcessStartInfo
                 {
@@ -140,9 +140,7 @@ namespace WOWCAM.Core
                 };
 
                 if (Process.Start(processStartInfo) == null)
-                {
                     throw new InvalidOperationException("The 'Process.Start()' call returned null.");
-                }
 
                 return true;
             }
@@ -155,7 +153,7 @@ namespace WOWCAM.Core
                 }
 
                 logger.Log(e);
-                throw new InvalidOperationException("Error while starting the update app (see log file for details).", e);
+                throw new InvalidOperationException("Error while starting update app (see log file for details).", e);
             }
         }
 
@@ -171,7 +169,7 @@ namespace WOWCAM.Core
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException($"Could not determine the installed {appName} version (see log file for details).", e);
+                throw new InvalidOperationException($"Could not determine installed {appName} version (see log file for details).", e);
             }
         }
     }

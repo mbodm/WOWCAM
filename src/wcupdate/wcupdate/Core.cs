@@ -83,7 +83,13 @@ namespace wcupdate
 
             try
             {
-                return Process.Start(new ProcessStartInfo(TargetFilePath) { UseShellExecute = true }) != null;
+                var psi = new ProcessStartInfo
+                {
+                    FileName = TargetFilePath,
+                    UseShellExecute = true
+                };
+
+                return Process.Start(psi) != null;
             }
             catch
             {

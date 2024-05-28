@@ -13,6 +13,7 @@ namespace WOWCAM.Core
         public bool SmartUpdate { get; private set; } = false;
         public bool SilentMode { get; private set; } = false;
         public bool UnzipOnly { get; private set; } = false;
+        public bool WebDebug { get; private set; } = false;
         public string TargetFolder { get; private set; } = string.Empty;
         public IEnumerable<string> AddonUrls { get; private set; } = [];
 
@@ -82,6 +83,7 @@ namespace WOWCAM.Core
                 SmartUpdate = GetSmartUpdate(doc);
                 SilentMode = GetSilentMode(doc);
                 UnzipOnly = GetUnzipOnly(doc);
+                WebDebug = GetWebDebug(doc);
 
                 TargetFolder = GetTargetFolder(doc, ActiveProfile);
                 AddonUrls = GetAddonUrls(doc, ActiveProfile);
@@ -154,6 +156,14 @@ namespace WOWCAM.Core
         {
             // No <unziponly> not means error since it's not a must-have setting (if not existing a fallback value is used)
             var s = doc.Root?.Element("options")?.Element("unziponly")?.Value?.Trim() ?? "false";
+
+            return bool.TryParse(s, out bool b) && b;
+        }
+
+        private static bool GetWebDebug(XDocument doc)
+        {
+            // No <silentmode> not means error since it's not a must-have setting (if not existing a fallback value is used)
+            var s = doc.Root?.Element("options")?.Element("webdebug")?.Value?.Trim() ?? "false";
 
             return bool.TryParse(s, out bool b) && b;
         }

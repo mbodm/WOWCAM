@@ -2,8 +2,6 @@
 using System.Globalization;
 using System.IO;
 using System.Windows;
-using System.Windows.Documents;
-using System.Windows.Input;
 using WOWCAM.Core;
 using WOWCAM.Helper;
 
@@ -86,9 +84,13 @@ namespace WOWCAM
 
             await ConfigureWebViewAsync();
 
+            if (config.WebDebug)
+            {
+                ShowWebView();
+            }
+
             SetControls(true);
 
-            button.MouseRightButtonUp += Button_MouseRightButtonUp;
             button.TabIndex = 0;
             button.Focus();
         }
@@ -109,13 +111,7 @@ namespace WOWCAM
         {
             try
             {
-                labelProgressBar.Content = "Check for updates";
-                progressBar.Maximum = 1;
-                progressBar.Value = 0;
-
-                SetControls(false);
-                labelProgressBar.IsEnabled = true;
-                progressBar.IsEnabled = true;
+                PreUpdateCheck();
 
                 var updateData = await updateManager.CheckForUpdateAsync();
                 if (updateData.UpdateAvailable)
@@ -167,20 +163,13 @@ namespace WOWCAM
             }
             finally
             {
-                SetControls(true);
-
-                labelProgressBar.Content = string.Empty;
-                progressBar.Maximum = 1;
-                progressBar.Value = 0;
+                PostUpdateCheck();
             }
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            labelProgressBar.Content = string.Empty;
-            progressBar.Value = 0;
-            progressBar.Maximum = config.AddonUrls.Count() * 3;
-            button.IsEnabled = false;
+            PreAddonProcessing();
 
             var progress = new Progress<ModelAddonProcessingProgress>(p =>
             {
@@ -203,8 +192,11 @@ namespace WOWCAM
             catch (Exception ex)
             {
                 ShowError(ex.Message);
-                button.IsEnabled = true;
                 return;
+            }
+            finally
+            {
+                SetControls(true);
             }
 
             sw.Stop();
@@ -218,99 +210,9 @@ namespace WOWCAM
 
             await Task.Delay(1250);
 
-            var seconds = (double)(sw.ElapsedMilliseconds + 1250) / 1000;
-            var s = seconds.ToString("0.00", CultureInfo.InvariantCulture);
-            labelProgressBar.Content = $"Successfully finished {config.AddonUrls.Count()} addons in {s} seconds";
-            button.IsEnabled = true;
-        }
-
-        private void Button_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift))
-            {
-                // All sizes are based on 16:10 format relations (in example 1280x800)
-
-                if (!webView.IsEnabled)
-                {
-                    Width = 1440;
-                    Height = 900;
-                    Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
-                    Top = (SystemParameters.PrimaryScreenHeight / 2) - (Height / 2);
-
-                    webView.Width = double.NaN;
-                    webView.Height = double.NaN;
-                    border.Visibility = Visibility.Visible;
-                    webView.IsEnabled = true;
-                }
-                else
-                {
-                    webView.IsEnabled = false;
-                    border.Visibility = Visibility.Hidden;
-                    webView.Width = 0;
-                    webView.Height = 0;
-
-                    Width = 512;
-                    Height = 160;
-                    Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
-                    Top = (SystemParameters.PrimaryScreenHeight / 2) - (Height / 2);
-                }
-            }
-        }
-
-        private void SetControls(bool enabled)
-        {
-            textBlockConfigFolder.IsEnabled = enabled;
-            textBlockCheckUpdates.IsEnabled = enabled;
-            labelProgressBar.IsEnabled = enabled;
-            progressBar.IsEnabled = enabled;
-            button.IsEnabled = enabled;
-
-            if (enabled)
-            {
-                DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
-                DisableHyperlinkHoverEffect(hyperlinkCheckUpdates);
-            }
-        }
-
-        private void EnableConfigFolderHyperlink()
-        {
-            textBlockConfigFolder.IsEnabled = true;
-            DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
-        }
-
-        private async Task ConfigureWebViewAsync()
-        {
-            webView.CoreWebView2InitializationCompleted += (sender, e) =>
-            {
-                if (!e.IsSuccess)
-                {
-                    logger.Log($"WebView2 initialization failed (the event's exception message was '{e.InitializationException.Message}').");
-                    ShowError("WebView2 initialization failed (see log file for details).");
-                }
-            };
-
-            var environment = await webViewHelper.CreateEnvironmentAsync(config.TempFolder);
-            await webView.EnsureCoreWebView2Async(environment);
-        }
-
-        private static void DisableHyperlinkHoverEffect(Hyperlink hyperlink)
-        {
-            // By default a Hyperlink has a hover effect: The foreground color is changed on mouse hover.
-            // Since i don´t want that behaviour and since Hyperlink is somewhat "special" in WPF and a
-            // bit painful to style, i use a little trick here: I just set the Foreground property. This
-            // prevents the Hyperlink from using the default hover color (red). Result: Effect disabled.
-
-            hyperlink.Foreground = hyperlink.Foreground;
-        }
-
-        private static void ShowInfo(string message)
-        {
-            MessageBox.Show(message, "Information", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private static void ShowError(string message)
-        {
-            MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var seconds = Math.Round((double)(sw.ElapsedMilliseconds + 1250) / 1000);
+            var rounded = Convert.ToUInt32(seconds);
+            labelProgressBar.Content = $"Successfully finished {config.AddonUrls.Count()} addons in {rounded} seconds";
         }
     }
 }

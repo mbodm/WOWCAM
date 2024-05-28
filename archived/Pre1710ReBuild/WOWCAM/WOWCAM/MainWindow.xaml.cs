@@ -2,10 +2,9 @@
 using System.Globalization;
 using System.IO;
 using System.Windows;
-using System.Windows.Documents;
 using System.Windows.Input;
 using WOWCAM.Core;
-using WOWCAM.Helper;
+using WOWCAM.Helpers;
 
 namespace WOWCAM
 {
@@ -65,7 +64,7 @@ namespace WOWCAM
             }
             catch (Exception ex)
             {
-                ShowError(ex.Message);
+                WpfHelper.ShowError(ex.Message);
                 EnableConfigFolderHyperlink();
                 return;
             }
@@ -74,13 +73,13 @@ namespace WOWCAM
 
             if (!Directory.Exists(config.TempFolder))
             {
-                ShowError("The configured temp folder not exists. Please make sure the folder exists.");
+                WpfHelper.ShowError("The configured temp folder not exists. Please make sure the folder exists.");
                 return;
             }
 
             if (!Directory.Exists(config.TargetFolder))
             {
-                ShowError("The configured target folder not exists. Please make sure the folder exists.");
+                WpfHelper.ShowError("The configured target folder not exists. Please make sure the folder exists.");
                 return;
             }
 
@@ -101,7 +100,7 @@ namespace WOWCAM
             }
             catch (Exception ex)
             {
-                ShowError(ex.Message);
+                WpfHelper.ShowError(ex.Message);
             }
         }
 
@@ -112,7 +111,7 @@ namespace WOWCAM
                 labelProgressBar.Content = "Check for updates";
                 progressBar.Maximum = 1;
                 progressBar.Value = 0;
-
+                
                 SetControls(false);
                 labelProgressBar.IsEnabled = true;
                 progressBar.IsEnabled = true;
@@ -120,7 +119,7 @@ namespace WOWCAM
                 var updateData = await updateManager.CheckForUpdateAsync();
                 if (updateData.UpdateAvailable)
                 {
-                    ShowInfo("Todo: Update available. Show old and new version. Ask question: Download and install?");
+                    WpfHelper.ShowInfo("Todo: Update available. Show old and new version. Ask question: Download and install?");
 
                     updateManager.PrepareForDownload();
 
@@ -146,29 +145,29 @@ namespace WOWCAM
 
                     await Task.Delay(1250);
 
-                    ShowInfo("Todo: Ask question: Apply update and restart app?");
+                    WpfHelper.ShowInfo("Todo: Ask question: Apply update and restart app?");
 
                     await updateManager.PrepareForUpdateAsync();
 
                     if (!updateManager.StartUpdateAppWithAdminRights())
                     {
-                        ShowInfo("Update cancelled by user.");
+                        WpfHelper.ShowInfo("Update cancelled by user.");
                         return;
                     }
                 }
                 else
                 {
-                    ShowInfo("You already have the latest version.");
+                    WpfHelper.ShowInfo("You already have the latest version.");
                 }
             }
             catch (Exception ex)
             {
-                ShowError(ex.Message);
+                WpfHelper.ShowError(ex.Message);
             }
             finally
             {
                 SetControls(true);
-
+                
                 labelProgressBar.Content = string.Empty;
                 progressBar.Maximum = 1;
                 progressBar.Value = 0;
@@ -202,7 +201,7 @@ namespace WOWCAM
             }
             catch (Exception ex)
             {
-                ShowError(ex.Message);
+                WpfHelper.ShowError(ex.Message);
                 button.IsEnabled = true;
                 return;
             }
@@ -267,15 +266,15 @@ namespace WOWCAM
 
             if (enabled)
             {
-                DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
-                DisableHyperlinkHoverEffect(hyperlinkCheckUpdates);
+                WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
+                WpfHelper.DisableHyperlinkHoverEffect(hyperlinkCheckUpdates);
             }
         }
 
         private void EnableConfigFolderHyperlink()
         {
             textBlockConfigFolder.IsEnabled = true;
-            DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
+            WpfHelper.DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
         }
 
         private async Task ConfigureWebViewAsync()
@@ -285,32 +284,12 @@ namespace WOWCAM
                 if (!e.IsSuccess)
                 {
                     logger.Log($"WebView2 initialization failed (the event's exception message was '{e.InitializationException.Message}').");
-                    ShowError("WebView2 initialization failed (see log file for details).");
+                    WpfHelper.ShowError("WebView2 initialization failed (see log file for details).");
                 }
             };
 
             var environment = await webViewHelper.CreateEnvironmentAsync(config.TempFolder);
             await webView.EnsureCoreWebView2Async(environment);
-        }
-
-        private static void DisableHyperlinkHoverEffect(Hyperlink hyperlink)
-        {
-            // By default a Hyperlink has a hover effect: The foreground color is changed on mouse hover.
-            // Since i don´t want that behaviour and since Hyperlink is somewhat "special" in WPF and a
-            // bit painful to style, i use a little trick here: I just set the Foreground property. This
-            // prevents the Hyperlink from using the default hover color (red). Result: Effect disabled.
-
-            hyperlink.Foreground = hyperlink.Foreground;
-        }
-
-        private static void ShowInfo(string message)
-        {
-            MessageBox.Show(message, "Information", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private static void ShowError(string message)
-        {
-            MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

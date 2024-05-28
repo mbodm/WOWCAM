@@ -15,9 +15,4 @@
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
-  <Target Label="MBODM-Custom" Name="CopyExe" AfterTargets="AfterBuild">
-    <Copy SourceFiles="$(TargetDir)$(TargetName).exe" DestinationFolder="$(SolutionDir)WOWCAM\bin\Debug\net8.0-windows" />
-    <Message Text="MBODM -> Copied '$(TargetDir)$(TargetName).exe' into '$(SolutionDir)WOWCAM\bin\Debug\net8.0-windows' folder" Importance="high" />
-  </Target>
-
 </Project>

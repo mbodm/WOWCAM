@@ -1,4 +1,4 @@
-﻿using WOWCAM.Helper;
+﻿using WOWCAM.Helpers;
 
 namespace WOWCAM.Core
 {

@@ -1,7 +1,7 @@
 ﻿using System.Net.Http;
 using System.Windows;
 using WOWCAM.Core;
-using WOWCAM.Helper;
+using WOWCAM.Helpers;
 
 namespace WOWCAM
 {

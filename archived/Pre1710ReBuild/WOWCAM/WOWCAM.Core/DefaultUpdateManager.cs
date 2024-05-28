@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
-using WOWCAM.Helper;
+using WOWCAM.Helpers;
 
 namespace WOWCAM.Core
 {

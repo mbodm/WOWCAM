@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WOWCAM.Helper\WOWCAM.Helper.csproj" />
+    <ProjectReference Include="..\WOWCAM.Helpers\WOWCAM.Helpers.csproj" />
   </ItemGroup>
 
 </Project>

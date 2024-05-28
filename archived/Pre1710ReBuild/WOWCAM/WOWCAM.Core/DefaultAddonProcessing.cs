@@ -1,15 +1,10 @@
 ﻿using Microsoft.Web.WebView2.Core;
-using WOWCAM.Helper;
+using WOWCAM.Helpers;
 
 namespace WOWCAM.Core
 {
     public sealed class DefaultAddonProcessing(
-        ILogger logger,
-        ICurseHelper curseHelper,
-        IWebViewHelper webViewHelper,
-        IDownloadHelper downloadHelper,
-        IZipFileHelper zipFileHelper,
-        IFileSystemHelper fileSystemHelper) : IAddonProcessing
+        ILogger logger, ICurseHelper curseHelper, IWebViewHelper webViewHelper, IDownloadHelper downloadHelper, IZipFileHelper zipFileHelper, IFileSystemHelper fileSystemHelper) : IAddonProcessing
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly ICurseHelper curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
@@ -37,7 +32,7 @@ namespace WOWCAM.Core
 
             // Fetch JSON data
 
-            var addonDownloadDataList = new List<ModelAddonDownloadData>();
+            var addonDownloadUrlDataList = new List<ModelAddonDownloadUrlData>();
 
             // This needs to happen sequential, cause of WebView2 behavior!
             // Therefore do not use concurrency, like Task.WhenAll(), here!
@@ -52,7 +47,7 @@ namespace WOWCAM.Core
                 try
                 {
                     var addonDownloadUrlData = await webViewHelper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl);
-                    addonDownloadDataList.Add(addonDownloadUrlData);
+                    addonDownloadUrlDataList.Add(addonDownloadUrlData);
                 }
                 catch (Exception e)
                 {
@@ -79,7 +74,7 @@ namespace WOWCAM.Core
 
             try
             {
-                var tasks = addonDownloadDataList.Select(addonDownloadUrlData => ProcessAddonAsync(addonDownloadUrlData, downloadFolder, unzipFolder, progress, cancellationToken));
+                var tasks = addonDownloadUrlDataList.Select(addonDownloadUrlData => ProcessAddonAsync(addonDownloadUrlData, downloadFolder, unzipFolder, progress, cancellationToken));
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -141,7 +136,7 @@ namespace WOWCAM.Core
             }
         }
 
-        private async Task ProcessAddonAsync(ModelAddonDownloadData addonDownloadUrlData, string downloadFolder, string unzipFolder,
+        private async Task ProcessAddonAsync(ModelAddonDownloadUrlData addonDownloadUrlData, string downloadFolder, string unzipFolder,
             IProgress<ModelAddonProcessingProgress>? progress, CancellationToken cancellationToken)
         {
             var downloadUrl = addonDownloadUrlData.DownloadUrl;

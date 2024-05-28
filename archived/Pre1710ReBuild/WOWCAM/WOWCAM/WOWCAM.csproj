@@ -16,12 +16,19 @@
     <ProjectReference Include="..\WOWCAM.Core\WOWCAM.Core.csproj" />
   </ItemGroup>
 
-  <PropertyGroup Label="MBODM">
+  <PropertyGroup Label="MBODM-Custom">
     <PlatformTarget>x64</PlatformTarget>
+
+
+
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    
+    
+    
+    
     <Version>0.0.1</Version>
     <!-- The following tag is required nowadays to prevent Version from additionally containing the SourceRevisionId. -->
     <!-- For some background information about Version and SourceRevisionId in newer projects, please have a look at: -->

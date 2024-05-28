@@ -10,5 +10,7 @@
         FinishedUnzip,
     }
 
-    public sealed record ModelAddonProcessingProgress(EnumAddonProcessingState State, string Addon);
+    public sealed record ModelAddonProcessingProgress(
+        EnumAddonProcessingState State,
+        string Addon);
 }

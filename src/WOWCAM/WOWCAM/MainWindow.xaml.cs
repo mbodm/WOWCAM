@@ -86,13 +86,15 @@ namespace WOWCAM
 
         private async void HyperlinkCheckUpdates_Click(object sender, RoutedEventArgs e)
         {
+            var waitingForUpdateTool = false;
+
             try
             {
                 SetControls(false);
                 SetProgress(true, "Check for updates", 0, 1);
 
                 var updateData = await updateManager.CheckForUpdateAsync();
-                SetProgress(true, null, 1, 1);
+                SetProgress(null, null, 1, null);
                 if (!updateData.UpdateAvailable)
                 {
                     ShowInfo("You already have the latest version.");
@@ -100,17 +102,19 @@ namespace WOWCAM
                 }
 
                 var text = "A new version is available. Download and install now?";
-                if (MessageBox.Show(text, "Question", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+                if (MessageBox.Show(text, "Question", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                {
+                    return;
+                }
 
-                SetProgress(true, "Downloading application update", 0, 1);
+                SetProgress(null, "Downloading application update", 0, null);
                 await updateManager.DownloadUpdateAsync(updateData, new Progress<ModelDownloadHelperProgress>(p =>
                 {
-                    if (p.IsPreDownloadSizeDetermination) SetProgress(true, null, null, p.TotalBytes);
-
-                    var totalMB = ((double)p.TotalBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
                     var receivedMB = ((double)p.ReceivedBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
-
-                    SetProgress(true, $"Downloading application update ({receivedMB} / {totalMB} MB)", p.ReceivedBytes);
+                    var totalMB = ((double)p.TotalBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
+                    
+                    double? maximum = p.PreTransfer ? p.TotalBytes : null;
+                    SetProgress(true, $"Downloading application update ({receivedMB} / {totalMB} MB)", p.ReceivedBytes, maximum);
                 }));
 
                 // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
@@ -121,24 +125,31 @@ namespace WOWCAM
                 // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
                 await Task.Delay(1250);
 
-                SetProgress(true, "Download finished");
+                SetProgress(true, "Download finished", 1, 1);
                 ShowInfo("Application will restart now and apply update.");
                 SetProgress(true, "Apply update", 0, 1);
                 updateManager.ApplyUpdate();
+                SetProgress(true, "Wainting for external update tool...", 1, 1);
+                waitingForUpdateTool = true;
             }
             catch (Exception ex)
             {
                 ShowError(ex.Message);
-                SetControls(true);
-                SetProgress(true, string.Empty, 0, 1);
+            }
+            finally
+            {
+                if (!waitingForUpdateTool)
+                {
+                    SetProgress(true, string.Empty, 0, 1);
+                    SetControls(true);
+                }
             }
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
             SetControls(false);
-            SetProgress(true, true);
-            progressBar.Maximum = config.AddonUrls.Count() * 3;
+            SetProgress(true, string.Empty, 0, config.AddonUrls.Count() * 3);
 
             var sw = Stopwatch.StartNew();
 

@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace wcupdate
+﻿namespace wcupdate
 {
     internal static class Core
     {
@@ -15,11 +13,11 @@ namespace wcupdate
             Console.WriteLine(App.Link);
         }
 
-        public static string EvalUpdateFolderArg(string updateFolder)
+        public static string EvalUpdateFolderArg(string updateFolderArg)
         {
             try
             {
-                var expanded = Environment.ExpandEnvironmentVariables(updateFolder);
+                var expanded = Environment.ExpandEnvironmentVariables(updateFolderArg);
 
                 return Path.GetFullPath(expanded);
             }
@@ -29,70 +27,9 @@ namespace wcupdate
             }
         }
 
-        public static int EvalProcessIdArg(string processId)
+        public static int EvalProcessIdArg(string processIdArg)
         {
-            return int.TryParse(processId, out int result) ? result : 0;
-        }
-
-        public static bool TargetApplicationIsRunning(int processId)
-        {
-            try
-            {
-                Process.GetProcessById(processId);
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public static bool CloseTargetApplication(int processId)
-        {
-            try
-            {
-                var process = Process.GetProcessById(processId);
-
-                return process.CloseMainWindow();
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public static bool ReplaceTargetFile(string updateFilePath)
-        {
-            try
-            {
-                File.Copy(updateFilePath, TargetFilePath, true);
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public static bool StartTargetApplication()
-        {
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = $"/c start {TargetFilePath}",
-                    UseShellExecute = true
-                };
-
-                return Process.Start(psi) != null;
-            }
-            catch
-            {
-                return false;
-            }
+            return int.TryParse(processIdArg, out int result) ? result : 0;
         }
     }
 }

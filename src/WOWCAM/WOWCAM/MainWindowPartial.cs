@@ -1,7 +1,5 @@
 ﻿using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Documents;
-using System.Windows.Input;
 using WOWCAM.Core;
 
 namespace WOWCAM
@@ -69,14 +67,17 @@ namespace WOWCAM
             }
         }
 
-        private void SetProgress(bool enabled, string? text = null, double? value = null, double? maximum = null)
+        private void SetProgress(bool? enabled, string? text, double? value, double? maximum)
         {
             if (text != null) labelProgressBar.Content = text;
             if (value != null) progressBar.Value = value.Value;
             if (maximum != null) progressBar.Maximum = maximum.Value;
 
-            labelProgressBar.IsEnabled = enabled;
-            progressBar.IsEnabled = enabled;
+            if (enabled != null)
+            {
+                labelProgressBar.IsEnabled = enabled.Value;
+                progressBar.IsEnabled = enabled.Value;
+            }
         }
 
         // Hyperlink control in WPF has some default hover effect which sets foreground color to red.

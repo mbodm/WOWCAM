@@ -67,5 +67,66 @@ namespace wcupdate
 
             return false;
         }
+
+        public static bool ProcessIsRunning(int processId)
+        {
+            try
+            {
+                Process.GetProcessById(processId);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool CloseProcess(int processId)
+        {
+            try
+            {
+                var process = Process.GetProcessById(processId);
+
+                return process.CloseMainWindow();
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool OverwriteFile(string source, string dest)
+        {
+            try
+            {
+                File.Copy(source, dest, true);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool StartProcess(string filePath)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = filePath,
+                    //Arguments = $"/c start {TargetFilePath}",
+                    UseShellExecute = true
+                };
+
+                return Process.Start(psi) != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

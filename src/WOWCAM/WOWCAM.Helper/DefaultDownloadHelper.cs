@@ -32,7 +32,7 @@
                 response.EnsureSuccessStatusCode();
 
                 var totalBytes = response.Content.Headers.ContentLength ?? throw new InvalidOperationException("Could not determine response content length.");
-                progress.Report(new ModelDownloadHelperProgress(downloadUrl, true, totalBytes, 0));
+                progress.Report(new ModelDownloadHelperProgress(downloadUrl, true, 0, totalBytes, false));
 
                 using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                 using var fileStream = File.Create(filePath);
@@ -45,12 +45,14 @@
                 {
                     await fileStream.WriteAsync(buffer.AsMemory(0, readBytesNow), cancellationToken).ConfigureAwait(false);
                     readBytesAll += readBytesNow;
-                    progress.Report(new ModelDownloadHelperProgress(downloadUrl, false, totalBytes, readBytesAll));
+
+                    var transferFinished = readBytesAll >= totalBytes;
+                    progress.Report(new ModelDownloadHelperProgress(downloadUrl, false, readBytesAll, totalBytes, transferFinished));
                 }
 
                 if (readBytesAll != totalBytes)
                 {
-                    throw new InvalidOperationException("Stream not contained as much bytes as predicted by content length.");
+                    throw new InvalidOperationException("Could not read exact same amount of bytes as predicted by content length.");
                 }
 
                 await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);

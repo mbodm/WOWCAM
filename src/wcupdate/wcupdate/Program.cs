@@ -50,14 +50,14 @@ if (!Directory.Exists(updateFolder))
     Environment.Exit(505);
 }
 
-var updateFile = Path.Combine(updateFolder, Core.TargetFileName);
-if (!File.Exists(updateFile))
+var updateFilePath = Path.Combine(updateFolder, Core.TargetFileName);
+if (!File.Exists(updateFilePath))
 {
     Core.ShowError("Given update folder not contains an update file.");
     Environment.Exit(506);
 }
 
-var updateVersion = Helper.GetExeFileVersion(updateFile);
+var updateVersion = Helper.GetExeFileVersion(updateFilePath);
 if (updateVersion == null)
 {
     Core.ShowError("Could not determine update file version.");
@@ -77,7 +77,7 @@ if (updateVersion < targetVersion)
     Environment.Exit(509);
 }
 
-if (!Core.TargetApplicationIsRunning(processId))
+if (!Helper.ProcessIsRunning(processId))
 {
     Core.ShowError("Target application not running.");
     Environment.Exit(510);
@@ -95,7 +95,7 @@ Console.WriteLine($"Update version: {updateVersion.Major}.{updateVersion.Minor}.
 Console.WriteLine($"Target version: {targetVersion.Major}.{targetVersion.Minor}.{targetVersion.Build}");
 Console.WriteLine();
 
-if (!Core.CloseTargetApplication(processId))
+if (!Helper.CloseProcess(processId))
 {
     Core.ShowError("Could not close target application.");
     Environment.Exit(512);
@@ -103,7 +103,7 @@ if (!Core.CloseTargetApplication(processId))
 
 await Task.Delay(1000);
 
-if (!Core.ReplaceTargetFile(updateFile))
+if (!Helper.OverwriteFile(updateFilePath, Core.TargetFilePath))
 {
     Core.ShowError("Could not replace target file with update file.");
     Environment.Exit(513);
@@ -118,7 +118,7 @@ if (Directory.Exists(updateFolder))
 
 // Restart app
 
-if (!Core.StartTargetApplication())
+if (!Helper.StartProcess(Core.TargetFilePath))
 {
     Core.ShowError("Could not start target application.");
     Environment.Exit(514);

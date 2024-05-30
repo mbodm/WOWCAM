@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using WOWCAM.Helper;
 
 namespace WOWCAM.Core
@@ -7,23 +6,22 @@ namespace WOWCAM.Core
     public sealed class DefaultUpdateManager(
         ILogger logger,
         IAppHelper appHelper,
-        IFileSystemHelper fileSystemHelper,
         IGitHubHelper gitHubHelper,
         IConfig config,
+        IFileSystemHelper fileSystemHelper,
         IDownloadHelper downloadHelper,
         IZipFileHelper zipFileHelper) : IUpdateManager
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly IAppHelper appHelper = appHelper ?? throw new ArgumentNullException(nameof(appHelper));
-        private readonly IFileSystemHelper fileSystemHelper = fileSystemHelper ?? throw new ArgumentNullException(nameof(fileSystemHelper));
         private readonly IGitHubHelper gitHubHelper = gitHubHelper ?? throw new ArgumentNullException(nameof(gitHubHelper));
         private readonly IConfig config = config ?? throw new ArgumentNullException(nameof(config));
+        private readonly IFileSystemHelper fileSystemHelper = fileSystemHelper ?? throw new ArgumentNullException(nameof(fileSystemHelper));
         private readonly IDownloadHelper downloadHelper = downloadHelper ?? throw new ArgumentNullException(nameof(downloadHelper));
         private readonly IZipFileHelper zipFileHelper = zipFileHelper ?? throw new ArgumentNullException(nameof(zipFileHelper));
 
         private readonly string appName = appHelper.GetApplicationName();
-
-        private string updateFolder = string.Empty;
+        private readonly string appFileName = appHelper.GetApplicationExecutableFileName();
 
         public async Task<ModelApplicationUpdateData> CheckForUpdateAsync(CancellationToken cancellationToken = default)
         {
@@ -39,76 +37,62 @@ namespace WOWCAM.Core
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException($"Could not determine the latest {appName} version on GitHub (see log file for details).", e);
+                throw new InvalidOperationException($"Could not determine the latest {appName} version (see log file for details).", e);
             }
         }
 
         public async Task DownloadUpdateAsync(ModelApplicationUpdateData updateData,
             IProgress<ModelDownloadHelperProgress>? downloadProgress = null, CancellationToken cancellationToken = default)
         {
-            // Prepare
-
             try
             {
-                // Trust application and config validator (since this is business logic and not a helper) and therefore do no temp folder check here
+                var updateFolder = GetUpdateFolder();
+                var releaseZipFilePath = Path.Combine(updateFolder, updateData.UpdateFileName);
 
-                updateFolder = Path.Combine(config.TempFolder, "MBODM-WOWCAM-Update");
-
-                if (Directory.Exists(updateFolder))
+                if (!Directory.Exists(updateFolder))
                 {
-                    Directory.Delete(updateFolder, true);
+                    Directory.CreateDirectory(updateFolder);
+                }
+                else
+                {
+                    await fileSystemHelper.DeleteFolderContentAsync(updateFolder, cancellationToken).ConfigureAwait(false);
                 }
 
-                Directory.CreateDirectory(updateFolder);
+                await downloadHelper.DownloadFileAsync(updateData.UpdateDownloadUrl, releaseZipFilePath, downloadProgress, cancellationToken).ConfigureAwait(false);
+
+                if (!File.Exists(releaseZipFilePath))
+                    throw new InvalidOperationException("Downloaded latest release, but update folder not contains zip file.");
+
+                await zipFileHelper.ExtractZipFileAsync(releaseZipFilePath, updateFolder, cancellationToken).ConfigureAwait(false);
+
+                if (!File.Exists(Path.Combine(updateFolder, appFileName)))
+                    throw new InvalidOperationException($"Extracted zip file, but update folder not contains {appFileName} file.");
             }
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException("Error while application prepares for download (see log file for details).", e);
-            }
-
-            // Download
-
-            try
-            {
-                var downloadUrl = updateData.UpdateDownloadUrl;
-                var downloadFilePath = Path.Combine(updateFolder, updateData.UpdateFileName);
-
-                if (File.Exists(downloadFilePath))
-                {
-                    File.Delete(downloadFilePath);
-                }
-
-                await downloadHelper.DownloadFileAsync(downloadUrl, downloadFilePath, downloadProgress, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                logger.Log(e);
-                throw new InvalidOperationException($"Error while downloading latest {appName} release zip file (see log file for details).", e);
+                throw new InvalidOperationException($"Error while downloading {appName} release (see log file for details).", e);
             }
         }
 
-        public async Task<bool> ApplyUpdateAsync(CancellationToken cancellationToken = default)
+        public void ApplyUpdate()
         {
             // Prepare for update
 
             var installedVersion = GetInstalledVersion();
+            var updateFolder = GetUpdateFolder();
 
             try
             {
-                var updateZipFile = Directory.EnumerateFiles(updateFolder, "*.zip").FirstOrDefault() ??
-                    throw new InvalidOperationException("Update folder not contains zip file.");
+                if (!Directory.Exists(updateFolder))
+                    throw new InvalidOperationException("Update folder not exists.");
 
-                await zipFileHelper.ExtractZipFileAsync(updateZipFile, updateFolder, cancellationToken).ConfigureAwait(false);
+                var newExeFilePath = Path.Combine(updateFolder, appFileName);
+                if (!File.Exists(newExeFilePath))
+                    throw new InvalidOperationException($"Update folder not contains {appFileName} file.");
 
-                var appFileName = appHelper.GetApplicationExecutableFileName();
-
-                var updateExeFile = Path.Combine(updateFolder, appFileName);
-                if (!File.Exists(updateExeFile))
-                    throw new InvalidOperationException($"Extracted zip file, but update folder not contains {appFileName} file.");
-
-                var updateVersion = fileSystemHelper.GetExeFileVersion(updateExeFile);
-                if (updateVersion < installedVersion)
+                var newExeVersion = fileSystemHelper.GetExeFileVersion(newExeFilePath);
+                if (newExeVersion < installedVersion)
                     throw new InvalidOperationException($"{appFileName} in update folder is older than existing {appFileName} in application folder.");
             }
             catch (Exception e)
@@ -117,43 +101,30 @@ namespace WOWCAM.Core
                 throw new InvalidOperationException("Error while application prepares for update (see log file for details).", e);
             }
 
-            // Start external update app with admin rights
+            // Start update tool
 
             try
             {
-                var updateAppFileName = "wcupdate.exe";
-                var updateAppFilePath = Path.Combine(appHelper.GetApplicationExecutableFolder(), updateAppFileName);
+                var updateToolFileName = "wcupdate.exe";
+                var updateToolFilePath = Path.Combine(appHelper.GetApplicationExecutableFolder(), updateToolFileName);
 
-                if (!File.Exists(updateAppFilePath))
-                    throw new InvalidOperationException($"Could not found {updateAppFileName} in application folder.");
-
-                // See StackOverflow:
-                // https://stackoverflow.com/questions/16926232/run-process-as-administrator-from-a-non-admin-application
-                // https://stackoverflow.com/questions/3925065/correct-way-to-deal-with-uac-in-c-sharp
+                if (!File.Exists(updateToolFilePath))
+                    throw new InvalidOperationException($"Could not found {updateToolFileName} in application folder.");
 
                 var processStartInfo = new ProcessStartInfo
                 {
-                    FileName = updateAppFilePath,
+                    FileName = updateToolFilePath,
                     Arguments = $"{updateFolder} {Environment.ProcessId}",
                     UseShellExecute = true,
-                    Verb = "runas"
                 };
 
                 if (Process.Start(processStartInfo) == null)
                     throw new InvalidOperationException("The 'Process.Start()' call returned null.");
-
-                return true;
             }
             catch (Exception e)
             {
-                if (e is Win32Exception win32Exception && win32Exception.NativeErrorCode == 1223)
-                {
-                    logger.Log("User cancelled Windows UAC popup while application update process.");
-                    return false;
-                }
-
                 logger.Log(e);
-                throw new InvalidOperationException("Error while starting update app (see log file for details).", e);
+                throw new InvalidOperationException("Error while starting update tool (see log file for details).", e);
             }
         }
 
@@ -171,6 +142,13 @@ namespace WOWCAM.Core
                 logger.Log(e);
                 throw new InvalidOperationException($"Could not determine installed {appName} version (see log file for details).", e);
             }
+        }
+
+        private string GetUpdateFolder()
+        {
+            // Trust application and config validator (since this is business logic and not a helper) and therefore do no temp folder check here
+
+            return Path.Combine(config.TempFolder, "MBODM-WOWCAM-Update");
         }
     }
 }

@@ -78,14 +78,12 @@ namespace wcupdate
 
         public static bool StartTargetApplication()
         {
-            // Starting target application by using "UseShellExecute = true" is very important here!
-            // Otherwise the new process is a child process and dies with parent process (this exe).
-
             try
             {
                 var psi = new ProcessStartInfo
                 {
-                    FileName = TargetFilePath,
+                    FileName = "cmd.exe",
+                    Arguments = $"/c start {TargetFilePath}",
                     UseShellExecute = true
                 };
 

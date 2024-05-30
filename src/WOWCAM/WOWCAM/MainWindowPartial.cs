@@ -1,10 +1,35 @@
 ﻿using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
+using WOWCAM.Core;
 
 namespace WOWCAM
 {
     public partial class MainWindow : Window
     {
+        private async Task ConfigureWebViewAsync(IWebViewWrapper webViewWrapper)
+        {
+            webView.CoreWebView2InitializationCompleted += (sender, e) =>
+            {
+                if (!e.IsSuccess)
+                {
+                    logger.Log($"WebView2 initialization failed (the event's exception message was '{e.InitializationException.Message}').");
+                    ShowError("WebView2 initialization failed (see log file for details).");
+                }
+            };
+
+            var environment = await webViewWrapper.CreateEnvironmentAsync(config.TempFolder);
+            await webView.EnsureCoreWebView2Async(environment);
+        }
+
+        private void SetControls(bool enabled)
+        {
+            Setlinks(enabled);
+            SetProgress(enabled);
+            button.IsEnabled = enabled;
+        }
+
         private void ShowWebView()
         {
             // All sizes are based on 16:10 format relations (in example 1440x900)
@@ -23,13 +48,6 @@ namespace WOWCAM
             border.Visibility = Visibility.Visible;
         }
 
-        private void SetControls(bool enabled)
-        {
-            Setlinks(enabled);
-            SetProgress(enabled);
-            button.IsEnabled = enabled;
-        }
-
         private void Setlinks(bool enabled, uint target = 2)
         {
             // target == 0 -> config folder link
@@ -38,50 +56,27 @@ namespace WOWCAM
 
             if (target == 0 || target == 2)
             {
-                textBlockConfigFolder.IsEnabled = enabled;
+                //textBlockConfigFolder.IsEnabled = enabled;
                 hyperlinkConfigFolder.IsEnabled = enabled;
                 DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
             }
 
             if (target == 1 || target == 2)
             {
-                textBlockCheckUpdates.IsEnabled = enabled;
+                //textBlockCheckUpdates.IsEnabled = enabled;
                 hyperlinkCheckUpdates.IsEnabled = enabled;
                 DisableHyperlinkHoverEffect(hyperlinkCheckUpdates);
             }
         }
 
-        private void SetProgress(bool enabled, bool reset = false, string status = "")
+        private void SetProgress(bool enabled, string? text = null, double? value = null, double? maximum = null)
         {
-            if (reset)
-            {
-                labelProgressBar.Content = string.Empty;
-                progressBar.Maximum = 1;
-                progressBar.Value = 0;
-            }
-
-            if (status != string.Empty)
-            {
-                labelProgressBar.Content = status;
-            }
+            if (text != null) labelProgressBar.Content = text;
+            if (value != null) progressBar.Value = value.Value;
+            if (maximum != null) progressBar.Maximum = maximum.Value;
 
             labelProgressBar.IsEnabled = enabled;
             progressBar.IsEnabled = enabled;
-        }
-
-        private async Task ConfigureWebViewAsync()
-        {
-            webView.CoreWebView2InitializationCompleted += (sender, e) =>
-            {
-                if (!e.IsSuccess)
-                {
-                    logger.Log($"WebView2 initialization failed (the event's exception message was '{e.InitializationException.Message}').");
-                    ShowError("WebView2 initialization failed (see log file for details).");
-                }
-            };
-
-            var environment = await webViewWrapper.CreateEnvironmentAsync(config.TempFolder);
-            await webView.EnsureCoreWebView2Async(environment);
         }
 
         // Hyperlink control in WPF has some default hover effect which sets foreground color to red.

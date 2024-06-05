@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Windows;
+using System.Windows.Interop;
 using WOWCAM.Core;
 using WOWCAM.Helper;
 
@@ -86,7 +87,7 @@ namespace WOWCAM
 
         private async void HyperlinkCheckUpdates_Click(object sender, RoutedEventArgs e)
         {
-            var waitingForUpdateTool = false;
+            var finishedAndWaitingForUpdateTool = false;
 
             try
             {
@@ -112,9 +113,9 @@ namespace WOWCAM
                 {
                     var receivedMB = ((double)p.ReceivedBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
                     var totalMB = ((double)p.TotalBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
-                    
+
                     double? maximum = p.PreTransfer ? p.TotalBytes : null;
-                    SetProgress(true, $"Downloading application update ({receivedMB} / {totalMB} MB)", p.ReceivedBytes, maximum);
+                    SetProgress(null, $"Downloading application update ({receivedMB} / {totalMB} MB)", p.ReceivedBytes, maximum);
                 }));
 
                 // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
@@ -125,12 +126,12 @@ namespace WOWCAM
                 // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
                 await Task.Delay(1250);
 
-                SetProgress(true, "Download finished", 1, 1);
+                SetProgress(null, "Download finished", 1, 1);
                 ShowInfo("Application will restart now and apply update.");
-                SetProgress(true, "Apply update", 0, 1);
+                SetProgress(null, "Apply update", 0, null);
                 updateManager.ApplyUpdate();
-                SetProgress(true, "Wainting for external update tool...", 1, 1);
-                waitingForUpdateTool = true;
+                SetProgress(null, "Wainting for external update tool...", 1, null);
+                finishedAndWaitingForUpdateTool = true;
             }
             catch (Exception ex)
             {
@@ -138,10 +139,10 @@ namespace WOWCAM
             }
             finally
             {
-                if (!waitingForUpdateTool)
+                if (!finishedAndWaitingForUpdateTool)
                 {
-                    SetProgress(true, string.Empty, 0, 1);
                     SetControls(true);
+                    SetProgress(null, string.Empty, 0, 1);
                 }
             }
         }
@@ -189,7 +190,30 @@ namespace WOWCAM
 
             var seconds = Math.Round((double)(sw.ElapsedMilliseconds + 1250) / 1000);
             var rounded = Convert.ToUInt32(seconds);
-            labelProgressBar.Content = $"Successfully finished {config.AddonUrls.Count()} addons in {rounded} seconds";
+            SetProgress(null, $"Successfully finished {config.AddonUrls.Count()} addons in {rounded} seconds", null, null);
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            // Bring main window to front if application receives the WM_MBODM_WOWCAM_SHOW window message
+
+            base.OnSourceInitialized(e);
+
+            var hwnd = new WindowInteropHelper(this).Handle;
+            var hwndSource = HwndSource.FromHwnd(hwnd); // Do not dispose this (or the app will close immediately)
+
+            hwndSource.AddHook(new HwndSourceHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+            {
+                if (msg == SingleInstanceManager.WM_MBODM_WOWCAM_SHOW)
+                {
+                    handled = true;
+
+                    if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+                    Activate();
+                }
+
+                return IntPtr.Zero;
+            }));
         }
     }
 }

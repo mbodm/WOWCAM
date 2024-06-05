@@ -9,6 +9,14 @@ namespace WOWCAM
     {
         public App()
         {
+            if (SingleInstanceManager.InstanceAlreadyRunning)
+            {
+                SingleInstanceManager.PostMessageToBringRunningInstanceToFront();
+                MessageBox.Show("close myself now");
+                Shutdown();
+                return;
+            }
+
             var appHelper = new DefaultAppHelper();
             var logger = new DefaultLogger();
             var config = new DefaultConfig(logger);

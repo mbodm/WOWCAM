@@ -24,7 +24,7 @@ namespace WOWCAM
         private void SetControls(bool enabled)
         {
             Setlinks(enabled);
-            SetProgress(enabled);
+            SetProgress(enabled, null, null, null);
             button.IsEnabled = enabled;
         }
 

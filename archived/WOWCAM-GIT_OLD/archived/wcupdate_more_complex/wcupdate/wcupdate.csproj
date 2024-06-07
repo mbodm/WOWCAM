@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup Label="MBODM">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishTrimmed>true</PublishTrimmed>
+    <Version>1.0.1</Version>
+    <!-- The following tag is required nowadays to prevent Version from additionally containing the SourceRevisionId. -->
+    <!-- For some background information about Version and SourceRevisionId in newer projects, please have a look at: -->
+    <!-- https://stackoverflow.com/questions/77514501/visual-studio-2022-v17-8-appends-string-to-dll-product-version-and-assemblyinfor -->
+    <!-- https://learn.microsoft.com/en-us/dotnet/core/compatibility/sdk/8.0/source-link#new-behavior -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,29 @@
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WOWCAM"
+        xmlns:Wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" x:Class="WOWCAM.MainWindow"
+        mc:Ignorable="d"
+        Title="WOWCAM" Width="512" Height="160" WindowStartupLocation="CenterScreen" Loaded="Window_Loaded">
+    <DockPanel LastChildFill="True" Margin="10">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Right">
+            <TextBlock Name="textBlockConfigFolder">
+                <Hyperlink TextDecorations="None" Name="hyperlinkConfigFolder" Click="HyperlinkConfigFolder_Click">Show config folder</Hyperlink>
+            </TextBlock>
+            <TextBlock Margin="20 0 0 0" Name="textBlockCheckUpdates">
+                <Hyperlink TextDecorations="None" Name="hyperlinkCheckUpdates" Click="HyperlinkCheckUpdates_Click">Check for updates</Hyperlink>
+            </TextBlock>
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Bottom" Margin="0 10 0 0">
+            <Label Padding="0" Name="labelProgressBar">Status</Label>
+            <DockPanel LastChildFill="True" Margin="0 3 0 0">
+                <Button DockPanel.Dock="Right" Width="75" Height="25" Margin="10 0 0 0" Name="button" Click="Button_Click">_Download</Button>
+                <ProgressBar DockPanel.Dock="Left" Height="25" Name="progressBar" />
+            </DockPanel>
+        </StackPanel>
+        <Border DockPanel.Dock="Top" Margin="0 10 0 0" BorderBrush="{Binding ElementName=progressBar, Path=BorderBrush}" BorderThickness="1" Visibility="Hidden" Name="border">
+            <Wpf:WebView2 Width="0" Height="0" IsEnabled="False" Name="webView"></Wpf:WebView2>
+        </Border>
+    </DockPanel>
+</Window>

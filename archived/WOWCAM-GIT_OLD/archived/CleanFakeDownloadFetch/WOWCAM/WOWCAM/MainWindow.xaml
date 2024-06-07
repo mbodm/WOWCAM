@@ -1,0 +1,29 @@
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WOWCAM"
+        xmlns:Wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" x:Class="WOWCAM.MainWindow"
+        mc:Ignorable="d"
+        Title="WOWCAM" Width="480" Height="300" WindowStartupLocation="CenterScreen" Loaded="Window_Loaded">
+    <DockPanel Margin="10">
+        <StackPanel DockPanel.Dock="Bottom">
+            <DockPanel LastChildFill="False">
+                <TextBlock DockPanel.Dock="Right" Margin="0 5 1 0" Name="textBlockTargetFolder">
+                    <Hyperlink TextDecorations="None" Name="hyperlinkTargetFolder" Click="HyperlinkTargetFolder_Click">Target-Folder</Hyperlink>
+                </TextBlock>
+                <TextBlock DockPanel.Dock="Right" Margin="0 5 15 0" Name="textBlockConfigFolder">
+                    <Hyperlink TextDecorations="None" Name="hyperlinkConfigFolder" Click="HyperlinkConfigFolder_Click">Config-Folder</Hyperlink>
+                </TextBlock>
+            </DockPanel>
+            <Label Margin="0 20 0 5" Padding="0" Name="labelProgressBar">Status</Label>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Width="75" Height="25" Name="button" Click="Button_Click">_Update</Button>
+                <ProgressBar DockPanel.Dock="Left" Height="25" Margin="0 0 10 0" Name="progressBar" />
+            </DockPanel>
+        </StackPanel>
+        <Border DockPanel.Dock="Top" BorderBrush="{Binding ElementName=progressBar, Path=BorderBrush}" BorderThickness="1">
+            <Wpf:WebView2 Name="webView"></Wpf:WebView2>
+        </Border>
+    </DockPanel>
+</Window>

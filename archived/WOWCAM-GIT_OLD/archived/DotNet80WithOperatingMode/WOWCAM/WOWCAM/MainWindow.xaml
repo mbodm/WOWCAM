@@ -1,0 +1,33 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WOWCAM"
+        xmlns:Wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" x:Class="WOWCAM.MainWindow"
+        mc:Ignorable="d"
+        Title="WOWCAM" Width="480" Height="300" WindowStartupLocation="CenterScreen" Loaded="Window_Loaded">
+    <DockPanel Margin="10">
+        <StackPanel DockPanel.Dock="Bottom">
+            <DockPanel LastChildFill="False" Margin="1 5 1 0">
+                <TextBlock DockPanel.Dock="Left">
+                    <Hyperlink TextDecorations="None" x:Name="hyperlinkConfigFolder" Click="HyperlinkConfigFolder_Click">Config-Folder</Hyperlink>
+                </TextBlock>
+                <TextBlock DockPanel.Dock="Right" Margin="20 0 0 0" x:Name="textBlockHyperlink2">
+                    <Hyperlink TextDecorations="None" x:Name="hyperlink2" Click="Hyperlink_Click">Hyperlink2</Hyperlink>
+                </TextBlock>
+                <TextBlock DockPanel.Dock="Right" x:Name="textBlockHyperlink1">
+                    <Hyperlink TextDecorations="None" x:Name="hyperlink1" Click="Hyperlink_Click">Hyperlink1</Hyperlink>
+                </TextBlock>
+            </DockPanel>
+            <TextBlock Margin="0 20 0 0" x:Name="textBlockProgressBar" Text="Status:" />
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Width="75" Height="25" Margin="10 0 0 0" x:Name="button" Click="Button_Click" Content="Button" />
+                <ProgressBar DockPanel.Dock="Left" Height="25" x:Name="progressBar" />
+            </DockPanel>
+        </StackPanel>
+        <Border DockPanel.Dock="Top" BorderBrush="{Binding ElementName=progressBar, Path=BorderBrush}" BorderThickness="1">
+            <Wpf:WebView2 x:Name="webView"></Wpf:WebView2>
+        </Border>
+    </DockPanel>
+</Window>

@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.IO;
 using System.Windows;
-using System.Windows.Interop;
 using WOWCAM.Core;
 using WOWCAM.Helper;
 
@@ -45,6 +44,15 @@ namespace WOWCAM
             Title = $"WOWCAM {appHelper.GetApplicationVersion()}";
 
             SetControls(false);
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            // Register a hook which reacts to a specific custom window message
+
+            base.OnSourceInitialized(e);
+
+            AppSingleInstance.RegisterHook(this);
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -98,11 +106,20 @@ namespace WOWCAM
                 SetProgress(null, null, 1, null);
                 if (!updateData.UpdateAvailable)
                 {
-                    ShowInfo("You already have the latest version.");
+                    ShowInfo("You already have the latest WOWCAM version.");
                     return;
                 }
 
-                var text = "A new version is available. Download and install now?";
+                // Not sure how a MessageBox handles raw string literals (introduced in C# 11)
+                // Therefore i decided to place the safe bet here and do it somewhat oldschool
+                var text = string.Empty;
+                text += $"A new WOWCAM version is available.{Environment.NewLine}";
+                text += Environment.NewLine;
+                text += $"This version: {updateData.InstalledVersion}{Environment.NewLine}";
+                text += $"Latest version: {updateData.AvailableVersion}{Environment.NewLine}";
+                text += Environment.NewLine;
+                text += $"Download and apply latest version now?{Environment.NewLine}";
+
                 if (MessageBox.Show(text, "Question", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 {
                     return;
@@ -191,29 +208,6 @@ namespace WOWCAM
             var seconds = Math.Round((double)(sw.ElapsedMilliseconds + 1250) / 1000);
             var rounded = Convert.ToUInt32(seconds);
             SetProgress(null, $"Successfully finished {config.AddonUrls.Count()} addons in {rounded} seconds", null, null);
-        }
-
-        protected override void OnSourceInitialized(EventArgs e)
-        {
-            // Bring main window to front if application receives the WM_MBODM_WOWCAM_SHOW window message
-
-            base.OnSourceInitialized(e);
-
-            var hwnd = new WindowInteropHelper(this).Handle;
-            var hwndSource = HwndSource.FromHwnd(hwnd); // Do not dispose this (or the app will close immediately)
-
-            hwndSource.AddHook(new HwndSourceHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
-            {
-                if (msg == SingleInstanceManager.WM_MBODM_WOWCAM_SHOW)
-                {
-                    handled = true;
-
-                    if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
-                    Activate();
-                }
-
-                return IntPtr.Zero;
-            }));
         }
     }
 }

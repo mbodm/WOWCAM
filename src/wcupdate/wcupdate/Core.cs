@@ -2,24 +2,24 @@
 {
     internal static class Core
     {
-        public static string TargetFolder => Helper.GetApplicationFolder();
+        public static string TargetAppName => "WOWCAM";
         public static string TargetFileName => "WOWCAM.exe";
-        public static string TargetFilePath => Path.Combine(TargetFolder, TargetFileName);
 
         public static void ShowError(string errorMessage)
         {
             Console.WriteLine($"Error: {errorMessage}");
             Console.WriteLine();
-            Console.WriteLine(App.Link);
+            Console.WriteLine(App.Help);
         }
 
-        public static string EvalUpdateFolderArg(string updateFolderArg)
+        public static string EvalFilePathArg(string filePath)
         {
             try
             {
-                var expanded = Environment.ExpandEnvironmentVariables(updateFolderArg);
+                var expandedPath = Environment.ExpandEnvironmentVariables(filePath);
+                var absolutePath = Path.GetFullPath(expandedPath);
 
-                return Path.GetFullPath(expanded);
+                return absolutePath.EndsWith(TargetFileName) ? absolutePath : string.Empty;
             }
             catch
             {
@@ -27,9 +27,9 @@
             }
         }
 
-        public static int EvalProcessIdArg(string processIdArg)
+        public static int EvalProcessIdArg(string processId)
         {
-            return int.TryParse(processIdArg, out int result) ? result : 0;
+            return int.TryParse(processId, out int result) ? result : -1;
         }
     }
 }

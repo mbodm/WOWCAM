@@ -9,10 +9,9 @@ namespace WOWCAM
     {
         public App()
         {
-            if (SingleInstanceManager.InstanceAlreadyRunning)
+            if (AppSingleInstance.AnotherInstanceIsAlreadyRunning)
             {
-                SingleInstanceManager.PostMessageToBringRunningInstanceToFront();
-                MessageBox.Show("close myself now");
+                AppSingleInstance.BroadcastMessage();
                 Shutdown();
                 return;
             }

@@ -80,10 +80,13 @@ namespace WOWCAM.Core
             // Prepare for update
 
             var installedVersion = GetInstalledVersion();
-            var updateFolder = GetUpdateFolder();
+
+            string sourceFilePath;
+            string destFilePath;
 
             try
             {
+                var updateFolder = GetUpdateFolder();
                 if (!Directory.Exists(updateFolder))
                     throw new InvalidOperationException("Update folder not exists.");
 
@@ -94,6 +97,9 @@ namespace WOWCAM.Core
                 var newExeVersion = fileSystemHelper.GetExeFileVersion(newExeFilePath);
                 if (newExeVersion < installedVersion)
                     throw new InvalidOperationException($"{appFileName} in update folder is older than existing {appFileName} in application folder.");
+
+                sourceFilePath = newExeFilePath;
+                destFilePath = appHelper.GetApplicationExecutableFilePath();
             }
             catch (Exception e)
             {
@@ -113,10 +119,13 @@ namespace WOWCAM.Core
 
                 var processStartInfo = new ProcessStartInfo
                 {
-                    FileName = updateToolFilePath,
-                    Arguments = $"{updateFolder} {Environment.ProcessId}",
+                    FileName = "powershell",
+                    Arguments = $"-Command Start-Process {sourceFilePath} -ArgumentList '{destFilePath} {Environment.ProcessId}'",
                     UseShellExecute = true,
+                    //Verb = "runas"
                 };
+
+                logger.Log($"Todo: Calling now {processStartInfo.FileName} {processStartInfo.Arguments}");
 
                 if (Process.Start(processStartInfo) == null)
                     throw new InvalidOperationException("The 'Process.Start()' call returned null.");

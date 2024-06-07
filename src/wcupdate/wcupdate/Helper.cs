@@ -14,6 +14,9 @@ namespace wcupdate
         public static string GetApplicationVersion() =>
             Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
 
+        public static string GetApplicationExecutableFolder() =>
+            Path.GetFullPath(AppContext.BaseDirectory);
+
         public static bool ApplicationHasAdminRights()
         {
             // See StackOverflow:

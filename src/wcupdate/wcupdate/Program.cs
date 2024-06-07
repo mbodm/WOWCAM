@@ -4,7 +4,7 @@ Console.WriteLine();
 Console.WriteLine(App.Title);
 Console.WriteLine();
 
-if (args.Length == 0)
+if (args.Length < 1)
 {
     Console.WriteLine(App.Description);
     Console.WriteLine();
@@ -14,75 +14,55 @@ if (args.Length == 0)
     Environment.Exit(1);
 }
 
-if (args.Length > 0 && args.Length < 3)
-{
-    Core.ShowError("Too few arguments.");
-    Environment.Exit(301);
-}
-
-if (args.Length > 3)
+if (args.Length > 1)
 {
     Core.ShowError("Too many arguments.");
-    Environment.Exit(302);
+    Environment.Exit(502);
 }
 
-var sourceFile = Core.EvalFilePathArg(args[0]);
-if (string.IsNullOrEmpty(sourceFile))
-{
-    Core.ShowError("Given argument is not a valid source file path.");
-    Environment.Exit(303);
-}
-
-var destFile = Core.EvalFilePathArg(args[1]);
-if (string.IsNullOrEmpty(sourceFile))
-{
-    Core.ShowError("Given argument is not a valid destination file path.");
-    Environment.Exit(304);
-}
-
-var processId = Core.EvalProcessIdArg(args[2]);
-if (processId == -1)
+if (!int.TryParse(args[0], out int processId))
 {
     Core.ShowError("Given argument is not a valid process ID.");
-    Environment.Exit(305);
+    Environment.Exit(503);
 }
 
 if (!Helper.ApplicationHasAdminRights())
 {
     Core.ShowError("This application was started with insufficient (non-administrative) rights.");
-    Environment.Exit(306);
+    Environment.Exit(504);
 }
 
+var updateFolder = await Core.GetUpdateFolderAsync().ConfigureAwait(false);
+if (string.IsNullOrEmpty(updateFolder))
+{
+    Core.ShowError("Could not determine update folder.");
+    Environment.Exit(505);
+}
 
-
-await File.AppendAllTextAsync("fuzz.txt", sourceFile).ConfigureAwait(false);
-await File.AppendAllTextAsync("fuzz.txt", destFile).ConfigureAwait(false);
-await File.AppendAllTextAsync("fuzz.txt", processId.ToString()).ConfigureAwait(false);
-
-
-
+var sourceFile = Path.Combine(updateFolder, Core.TargetFileName);
 if (!File.Exists(sourceFile))
 {
-    Core.ShowError("Given source file not exists.");
-    Environment.Exit(307);
+    Core.ShowError("Source file not exists.");
+    Environment.Exit(506);
 }
 
+var destFile = Path.Combine(Helper.GetApplicationExecutableFolder(), Core.TargetFileName);
 if (!File.Exists(destFile))
 {
-    Core.ShowError("Given destination file not exists.");
-    Environment.Exit(308);
+    Core.ShowError("Destination file not exists.");
+    Environment.Exit(507);
 }
 
 if (!Helper.ProcessIsRunning(processId))
 {
     Core.ShowError("Could not found running process with given process ID.");
-    Environment.Exit(309);
+    Environment.Exit(508);
 }
 
 if (!Helper.CloseProcess(processId))
 {
     Core.ShowError($"Could not close running process with given process ID.");
-    Environment.Exit(310);
+    Environment.Exit(509);
 }
 
 await Task.Delay(1000);
@@ -90,13 +70,13 @@ await Task.Delay(1000);
 if (!Helper.OverwriteFile(sourceFile, destFile))
 {
     Core.ShowError($"Could not replace destination file.");
-    Environment.Exit(311);
+    Environment.Exit(510);
 }
 
 if (!Helper.StartProcess(destFile))
 {
     Core.ShowError("Could not start destination file.");
-    Environment.Exit(312);
+    Environment.Exit(511);
 }
 
 Console.WriteLine("Successfully replaced destination file.");

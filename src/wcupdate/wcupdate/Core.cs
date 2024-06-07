@@ -1,4 +1,6 @@
-﻿namespace wcupdate
+﻿using System.Xml.Linq;
+
+namespace wcupdate
 {
     internal static class Core
     {
@@ -12,24 +14,23 @@
             Console.WriteLine(App.Help);
         }
 
-        public static string EvalFilePathArg(string filePath)
+        public static async Task<string> GetUpdateFolderAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                var expandedPath = Environment.ExpandEnvironmentVariables(filePath);
-                var absolutePath = Path.GetFullPath(expandedPath);
+                var xmlFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM.xml");
+                using var fileStream = new FileStream(xmlFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var doc = await XDocument.LoadAsync(fileStream, LoadOptions.None, cancellationToken).ConfigureAwait(false);
+                var temp = doc.Root?.Element("general")?.Element("temp")?.Value?.Trim() ?? "%TEMP%";
+                var tempFolder = Environment.ExpandEnvironmentVariables(temp);
+                var updateFolder = Path.Combine(tempFolder, "MBODM-WOWCAM-Update");
 
-                return absolutePath.EndsWith(TargetFileName) ? absolutePath : string.Empty;
+                return updateFolder;
             }
             catch
             {
                 return string.Empty;
             }
-        }
-
-        public static int EvalProcessIdArg(string processId)
-        {
-            return int.TryParse(processId, out int result) ? result : -1;
         }
     }
 }

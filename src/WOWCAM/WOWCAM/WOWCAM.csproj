@@ -28,6 +28,7 @@
     <!-- https://stackoverflow.com/questions/77514501/visual-studio-2022-v17-8-appends-string-to-dll-product-version-and-assemblyinfor -->
     <!-- https://learn.microsoft.com/en-us/dotnet/core/compatibility/sdk/8.0/source-link#new-behavior -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <!-- The following tag was automatically added by Visual Studio, cause of [LibraryImport] attribute in AppSingleInstance. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 

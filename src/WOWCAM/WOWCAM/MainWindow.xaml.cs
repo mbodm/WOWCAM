@@ -52,7 +52,7 @@ namespace WOWCAM
 
             base.OnSourceInitialized(e);
 
-            AppSingleInstance.RegisterHook(this);
+            SingleInstance.RegisterHook(this);
         }
 
         private async void Window_Loaded(object sender, RoutedEventArgs e)

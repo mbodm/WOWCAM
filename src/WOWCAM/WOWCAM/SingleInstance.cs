@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Interop;
 
 namespace WOWCAM
@@ -8,22 +7,13 @@ namespace WOWCAM
     // http://sanity-free.org/143/csharp_dotnet_single_instance_application.html
     // https://stackoverflow.com/questions/19147/what-is-the-correct-way-to-create-a-single-instance-wpf-application/2932076#2932076
 
-    public static partial class AppSingleInstance
+    public static class SingleInstance
     {
-        // Import Windows API function
-        [LibraryImport("user32", EntryPoint = "PostMessageA")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static partial bool PostMessageA(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam);
-
-        // Import Windows API function
-        [LibraryImport("user32", EntryPoint = "RegisterWindowMessageW", StringMarshalling = StringMarshalling.Utf16)]
-        private static partial int RegisterWindowMessageW(string message);
-
         // Mutex name was created by manually using the Guid.NewGuid() method once
         private static readonly Mutex mutex = new(true, "{0b2db15f-f1b9-47d4-b265-20b19ddf79cd}");
 
         // Register a specific custom window message
-        private static readonly int WM_MBODM_WOWCAM_SHOW = RegisterWindowMessageW("WM_MBODM_WOWCAM_SHOW");
+        private static readonly uint WM_MBODM_WOWCAM_SHOW = WinApi.RegisterWindowMessageW("WM_MBODM_WOWCAM_SHOW");
 
         public static bool AnotherInstanceIsAlreadyRunning
         {
@@ -74,7 +64,7 @@ namespace WOWCAM
 
             const int HWND_BROADCAST = 0xFFFF;
 
-            PostMessageA(HWND_BROADCAST, WM_MBODM_WOWCAM_SHOW, IntPtr.Zero, IntPtr.Zero);
+            WinApi.PostMessageW(HWND_BROADCAST, WM_MBODM_WOWCAM_SHOW, IntPtr.Zero, IntPtr.Zero);
         }
     }
 }

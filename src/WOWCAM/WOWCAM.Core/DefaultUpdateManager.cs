@@ -116,10 +116,13 @@ namespace WOWCAM.Core
 
                 if (!File.Exists(updateToolFilePath))
                     throw new InvalidOperationException($"Could not found {updateToolFileName} in application folder.");
-
+                
                 var processStartInfo = new ProcessStartInfo
                 {
-                    FileName = "powershell",
+                    FileName = "cmd.exe",
+                    Verb = "runas", // Run as Administrator
+                    Arguments = "/c yourCommand"
+
                     Arguments = $"-Command Start-Process {sourceFilePath} -ArgumentList '{destFilePath} {Environment.ProcessId}'",
                     UseShellExecute = true,
                     //Verb = "runas"

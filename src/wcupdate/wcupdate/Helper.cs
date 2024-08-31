@@ -7,15 +7,22 @@ namespace wcupdate
 {
     internal static class Helper
     {
-        public static string GetAssemblyName() =>
-            Assembly.GetEntryAssembly()?.GetName()?.Name ?? "UNKNOWN";
+        public static string GetAssemblyName()
+        {
+            return Assembly.GetEntryAssembly()?.GetName()?.Name ?? "UNKNOWN";
+        }
 
-        // It's the counterpart of the "Version" entry, declared in the .csproj file.
-        public static string GetApplicationVersion() =>
-            Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
+        public static string GetApplicationVersion()
+        {
+            // It's the counterpart of the "Version" entry, declared in the .csproj file.
 
-        public static string GetApplicationExecutableFolder() =>
-            Path.GetFullPath(AppContext.BaseDirectory);
+            return Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
+        }
+
+        public static string GetApplicationExecutableFolder()
+        {
+            return Path.GetFullPath(AppContext.BaseDirectory);
+        }
 
         public static bool ApplicationHasAdminRights()
         {
@@ -29,6 +36,7 @@ namespace wcupdate
                 if (identity != null)
                 {
                     var principal = new WindowsPrincipal(identity);
+
                     return principal.IsInRole(WindowsBuiltInRole.Administrator);
                 }
             }
@@ -36,50 +44,49 @@ namespace wcupdate
             return false;
         }
 
-        public static bool ProcessIsRunning(int processId)
+        public static bool ProcessIsRunning(string exeFileName)
         {
             try
             {
-                Process.GetProcessById(processId);
+                return Process.GetProcessesByName(exeFileName).Length != 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool KillProcess(string exeFileName)
+        {
+            try
+            {
+                return Process.Start(new ProcessStartInfo { FileName = "taskkill.exe", Arguments = $"/F /IM {exeFileName}" }) != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool StartProcess(string exeFilePath)
+        {
+            try
+            {
+                return Process.Start(new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/C \"{exeFilePath}\"" }) != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool OverwriteFile(string sourceFilePath, string destFilePath)
+        {
+            try
+            {
+                File.Copy(sourceFilePath, destFilePath, true);
+
                 return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public static bool CloseProcess(int processId)
-        {
-            try
-            {
-                var process = Process.GetProcessById(processId);
-                return process.CloseMainWindow();
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public static bool OverwriteFile(string source, string dest)
-        {
-            try
-            {
-                File.Copy(source, dest, true);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public static bool StartProcess(string filePath)
-        {
-            try
-            {
-                return Process.Start(new ProcessStartInfo { FileName = "powershell.exe", Arguments = $"-Command Start-Process \"{filePath}\"" }) != null;
             }
             catch
             {

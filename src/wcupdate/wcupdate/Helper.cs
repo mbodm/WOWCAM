@@ -48,10 +48,21 @@ namespace wcupdate
         {
             try
             {
-                return Process.GetProcessesByName(exeFileName).Length != 0;
+                var p = Process.GetProcessesByName("wowcam");
+                if (p.Length == 0)
+                {
+                    Console.WriteLine($"Fuzz: Keine Prozess (exeFileName war {exeFileName}");
+                    return false;
+                }
+                else
+                {
+                    Console.WriteLine($"Fuzz: Prozess ID war {p.First().Id}");
+                    return true;
+                }
             }
-            catch
+            catch (Exception e)
             {
+                Console.WriteLine(e.Message);
                 return false;
             }
         }
@@ -60,7 +71,15 @@ namespace wcupdate
         {
             try
             {
-                return Process.Start(new ProcessStartInfo { FileName = "taskkill.exe", Arguments = $"/F /IM {exeFileName}" }) != null;
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "taskkill.exe",
+                    Arguments = $"/F /IM {exeFileName}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                return Process.Start(startInfo) != null;
             }
             catch
             {

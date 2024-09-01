@@ -16,57 +16,47 @@ if (args.Length < 1)
 
 if (args.Length > 1)
 {
-    Core.Process(true, 502, "Too many arguments.", string.Empty);
+    Core.ShowErrorAndExit("Too many arguments", 500);
 }
 
+// Step 01 (check command)
 var command = args[0];
-Core.Process(
-    () => command != "update" && command != "dryrun",
-    503,
-    "Given argument is not a valid command.",
-    $"Given command: {command}");
+Core.Eval(() => command == "update" || command == "dryrun", Status.Step01 + command, Error.Step01, 501);
 
-if (command == "update")
-{
-    Core.Process(
-        Helper.ApplicationHasAdminRights(),
-        504,
-        "This application was started with insufficient (non-administrative) rights.", "Has sufficient rights");
-}
+// Step 02 (check rights)
+if (command == "update") Core.Eval(Helper.ApplicationHasAdminRights, Status.Step02, Error.Step02, 502);
 
-var updateFilePath = await Core.GetUpdateFilePathAsync(command == "dryrun").ConfigureAwait(false);
-Core.Process(
-    () => !string.IsNullOrWhiteSpace(updateFilePath),
-    505,
-    "Could not determine update file location.",
-    $"Determined update file path: {updateFilePath}");
+// Step 03 (determine update file)
+var verbose = command == "dryrun";
+var updateFilePath = await Core.GetUpdateFilePathAsync(verbose).ConfigureAwait(false);
+Core.Eval(() => !string.IsNullOrWhiteSpace(updateFilePath), Status.Step03 + updateFilePath, Error.Step03, 503);
 
-Core.Process(
-    () => File.Exists(updateFilePath),
-    506,
-    "Update file not exists.",
-    "Update file exists");
+// Step 04 (check update file)
+Core.Eval(() => File.Exists(updateFilePath), Status.Step04, Error.Step04, 504);
 
+// Step 05 (determine target file)
 var targetFilePath = Core.GetTargetFilePath();
-Core.Process(
-    () => !string.IsNullOrWhiteSpace(targetFilePath),
-    507,
-    "Target file not exists.",
-    $"Determined target file path: {targetFilePath}");
+Core.Eval(() => !string.IsNullOrWhiteSpace(updateFilePath), Status.Step05 + targetFilePath, Error.Step05, 505);
 
-Core.Process(() => Helper.ProcessIsRunning(Core.TargetFileName), 508, "Could not found running target process.", "Target process is running");
+// Step 06 (check target file)
+Core.Eval(() => File.Exists(targetFilePath), Status.Step06, Error.Step06, 506);
 
-Core.Process(() => Helper.KillProcess(Core.TargetFileName), 509, "Could not kill running target process.", "Target process killed");
+// Step 07 (check process)
+Core.Eval(() => Helper.ProcessIsRunning(Core.TargetFileName), Status.Step07, Error.Step07, 507);
 
+// Step 08 (kill process)
+Core.Eval(() => Helper.KillProcess(Core.TargetFileName), Status.Step08, Error.Step08, 508);
+
+// Wait
 await Task.Delay(1000);
 
-if (command == "update")
-{
-    Core.Process(!Helper.OverwriteFile(updateFilePath, targetFilePath), 510, "Could not replace target file.", "Target file replaced");
-}
+// Step 09 (copy file)
+if (command == "update") Core.Eval(() => Helper.OverwriteFile(updateFilePath, targetFilePath), Status.Step09, Error.Step09, 509);
 
-Core.Process(!Helper.StartProcess(targetFilePath), 511, "Could not start target app.", "Target app started");
+// Step 10 (start app)
+Core.Eval(() => Helper.StartProcess(targetFilePath), Status.Step10, Error.Step10, 510);
 
+// Success
 Console.WriteLine("Successfully updated target app.");
 Console.WriteLine();
 Console.WriteLine("Have a nice day.");

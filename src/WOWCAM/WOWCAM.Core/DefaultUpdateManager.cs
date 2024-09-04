@@ -81,12 +81,11 @@ namespace WOWCAM.Core
 
             var installedVersion = GetInstalledVersion();
 
-            string sourceFilePath;
-            string destFilePath;
+            string updateFolder;
 
             try
             {
-                var updateFolder = GetUpdateFolder();
+                updateFolder = GetUpdateFolder();
                 if (!Directory.Exists(updateFolder))
                     throw new InvalidOperationException("Update folder not exists.");
 
@@ -97,9 +96,6 @@ namespace WOWCAM.Core
                 var newExeVersion = fileSystemHelper.GetExeFileVersion(newExeFilePath);
                 if (newExeVersion < installedVersion)
                     throw new InvalidOperationException($"{appFileName} in update folder is older than existing {appFileName} in application folder.");
-
-                sourceFilePath = newExeFilePath;
-                destFilePath = appHelper.GetApplicationExecutableFilePath();
             }
             catch (Exception e)
             {
@@ -111,21 +107,19 @@ namespace WOWCAM.Core
 
             try
             {
-                var updateToolFileName = "wcupdate.exe";
+                var updateToolFileName = "WOWCAMUPD.exe";
                 var updateToolFilePath = Path.Combine(appHelper.GetApplicationExecutableFolder(), updateToolFileName);
 
                 if (!File.Exists(updateToolFilePath))
                     throw new InvalidOperationException($"Could not found {updateToolFileName} in application folder.");
-                
+
+                // Using "cmd.exe /C" technique to decouple (sub)process from process-tree (see web for more information)
+
                 var processStartInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Verb = "runas", // Run as Administrator
-                    Arguments = "/c yourCommand"
-
-                    Arguments = $"-Command Start-Process {sourceFilePath} -ArgumentList '{destFilePath} {Environment.ProcessId}'",
-                    UseShellExecute = true,
-                    //Verb = "runas"
+                    Arguments = $"/C start /min \"\" {updateToolFilePath} \"{updateFolder}\" /autoclose",
+                    CreateNoWindow = true,
                 };
 
                 logger.Log($"Todo: Calling now {processStartInfo.FileName} {processStartInfo.Arguments}");

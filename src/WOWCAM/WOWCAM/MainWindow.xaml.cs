@@ -43,6 +43,7 @@ namespace WOWCAM
             MinHeight = Height;
             Title = $"WOWCAM {appHelper.GetApplicationVersion()}";
 
+            SetProgress(null, string.Empty, null, null);
             SetControls(false);
         }
 
@@ -100,10 +101,9 @@ namespace WOWCAM
             try
             {
                 SetControls(false);
-                SetProgress(true, "Check for updates", 0, 1);
+                SetProgress(true, null, null, null);
 
                 var updateData = await updateManager.CheckForUpdateAsync();
-                SetProgress(null, null, 1, null);
                 if (!updateData.UpdateAvailable)
                 {
                     ShowInfo("You already have the latest WOWCAM version.");

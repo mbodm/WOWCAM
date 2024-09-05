@@ -33,7 +33,7 @@ namespace WOWCAMUPD
             var process = Process.Start(processStartInfo);
             if (process == null) return false;
 
-            await Task.Delay(1000);
+            await Task.Delay(3000);
             return IsRunningProcess(exeFilePath);
         }
 

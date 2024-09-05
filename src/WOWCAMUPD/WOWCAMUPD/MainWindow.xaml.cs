@@ -20,44 +20,41 @@ namespace WOWCAMUPD
         {
             var args = Environment.GetCommandLineArgs().Skip(1).ToList();
 
-            if (args.Count == 0)
+            if (args.Count > 1)
             {
-                LogError("No command line arguments given");
+                LogError("Too many arguments");
                 return;
             }
-
+            
             args.ForEach(arg => Log($"Found argument: {arg}"));
-
-            if (!FileSystemHelper.IsValidAbsolutePath(args[0]))
-            {
-                LogError("First given command line argument is not a valid absolute path to a file or folder.");
-                return;
-            }
-
-            var updateFilePath = Path.Combine(args[0], TargetFileName);
-            Log("Update file: " + updateFilePath);
-
-            var targetFilePath = Path.Combine(AppHelper.GetApplicationExecutableFolder(), TargetFileName);
-            Log("Target file: " + targetFilePath);
-
+            
             try
             {
                 // Start
                 Log("Starting update");
-                //Step 1
-                if (!Step(() => File.Exists(updateFilePath), StatusMessages.Step1, ErrorMessages.Step1)) return;
+                // Step 1
+                var (success, value) = await ConfigHelper.GetUpdateFilePathFromConfigAsync(TargetFileName);
+                if (!Step(() => success, StatusMessages.Step1, value)) return;
+                var updateFilePath = value;
+                Log("Update file: " + updateFilePath);
                 //Step 2
-                if (!Step(() => File.Exists(targetFilePath), StatusMessages.Step2, ErrorMessages.Step2)) return;
-                //Step 3
-                if (!Step(() => ProcessHelper.IsRunningProcess(targetFilePath), StatusMessages.Step3, ErrorMessages.Step3)) return;
+                if (!Step(() => File.Exists(updateFilePath), StatusMessages.Step2, ErrorMessages.Step2)) return;
+                // Step 3
+                var targetFilePath = Path.Combine(AppHelper.GetApplicationExecutableFolder(), TargetFileName);
+                Log(StatusMessages.Step3);
+                Log("Target file: " + targetFilePath);
                 //Step 4
-                var processKilled = await ProcessHelper.KillProcessAsync(targetFilePath);
-                if (!Step(() => processKilled, StatusMessages.Step4, ErrorMessages.Step4)) return;
+                if (!Step(() => File.Exists(targetFilePath), StatusMessages.Step4, ErrorMessages.Step4)) return;
                 //Step 5
-                if (!Step(() => FileSystemHelper.CopyFile(updateFilePath, targetFilePath), StatusMessages.Step5, ErrorMessages.Step5)) return;
+                if (!Step(() => ProcessHelper.IsRunningProcess(targetFilePath), StatusMessages.Step5, ErrorMessages.Step5)) return;
                 //Step 6
+                var processKilled = await ProcessHelper.KillProcessAsync(targetFilePath);
+                if (!Step(() => processKilled, StatusMessages.Step6, ErrorMessages.Step6)) return;
+                //Step 7
+                if (!Step(() => FileSystemHelper.CopyFile(updateFilePath, targetFilePath), StatusMessages.Step7, ErrorMessages.Step7)) return;
+                //Step 8
                 var appStarted = await ProcessHelper.StartIndependentProcessAsync(targetFilePath);
-                if (!Step(() => appStarted, StatusMessages.Step6, ErrorMessages.Step6)) return;
+                if (!Step(() => appStarted, StatusMessages.Step8, ErrorMessages.Step8)) return;
                 // Finish
                 Log("Finished update successfully");
             }

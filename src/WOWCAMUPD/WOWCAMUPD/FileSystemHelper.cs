@@ -10,13 +10,13 @@ namespace WOWCAMUPD
             try
             {
                 Path.GetFullPath(path);
-
-                return Path.IsPathRooted(path);
             }
             catch
             {
                 return false;
             }
+
+            return Path.IsPathRooted(path);
         }
 
         public static bool CopyFile(string sourceFilePath, string destFilePath)

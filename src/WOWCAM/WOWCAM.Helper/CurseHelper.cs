@@ -2,41 +2,41 @@
 
 namespace WOWCAM.Helper
 {
-    public sealed class DefaultCurseHelper : ICurseHelper
+    public static class CurseHelper
     {
         // See StackOverflow -> https://stackoverflow.com/questions/7134837/how-do-i-decode-a-base64-encoded-string
-        public string FetchJsonScript =>
+        public static string FetchJsonScript =>
             "btoa(unescape(encodeURIComponent(document.querySelector('script#__NEXT_DATA__')?.innerHTML ?? '')))";
 
-        public bool IsAddonPageUrl(string url)
+        public static bool IsAddonPageUrl(string url)
         {
             // Example -> https://www.curseforge.com/wow/addons/deadly-boss-mods
             url = GuardAndNormalize(url);
             return url.StartsWith("https://www.curseforge.com/wow/addons/") && !url.EndsWith("/addons");
         }
 
-        public bool IsInitialDownloadUrl(string url)
+        public static bool IsInitialDownloadUrl(string url)
         {
             // Example -> https://www.curseforge.com/api/v1/mods/3358/files/4485146/download
             url = GuardAndNormalize(url);
             return url.StartsWith("https://www.curseforge.com/api/v1/mods/") && url.Contains("/files/") && url.EndsWith("/download");
         }
 
-        public bool IsRealDownloadUrl(string url)
+        public static bool IsRealDownloadUrl(string url)
         {
             // Example -> https://mediafilez.forgecdn.net/files/4485/146/DBM-10.0.35.zip
             url = GuardAndNormalize(url);
             return url.StartsWith("https://mediafilez.forgecdn.net/files/") && url.EndsWith(".zip");
         }
 
-        public string GetAddonSlugNameFromAddonPageUrl(string url)
+        public static string GetAddonSlugNameFromAddonPageUrl(string url)
         {
             // Example -> https://www.curseforge.com/wow/addons/deadly-boss-mods
             url = GuardAndNormalize(url);
             return IsAddonPageUrl(url) ? url.Split("https://www.curseforge.com/wow/addons/").Last().ToLower() : string.Empty;
         }
 
-        public ModelCurseAddonPageJson SerializeAddonPageJson(string json)
+        public static CurseAddonPageJson SerializeAddonPageJson(string json)
         {
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -66,11 +66,11 @@ namespace WOWCAM.Helper
             var fileName = mainFile.GetProperty("fileName").GetString() ?? throw new InvalidOperationException("The 'fileName' entry was null, in fetched addon page JSON.");
             var fileSize = mainFile.GetProperty("fileLength").GetUInt64();
 
-            return new ModelCurseAddonPageJson(projectId, projectName, projectSlug, fileId, fileName, fileSize);
+            return new CurseAddonPageJson(projectId, projectName, projectSlug, fileId, fileName, fileSize);
         }
 
         // Example -> https://www.curseforge.com/api/v1/mods/3358/files/4485146/download
-        public string BuildInitialDownloadUrl(ulong projectId, ulong fileId) =>
+        public static string BuildInitialDownloadUrl(ulong projectId, ulong fileId) =>
             $"https://www.curseforge.com/api/v1/mods/{projectId}/files/{fileId}/download";
 
         private static string GuardAndNormalize(string url) =>

@@ -18,7 +18,6 @@ namespace WOWCAM
         private readonly IAddonProcessing addonProcessing;
 
         public MainWindow(
-            IAppHelper appHelper,
             ILogger logger,
             IConfig config,
             IConfigValidator configValidator,
@@ -27,8 +26,6 @@ namespace WOWCAM
             IUpdateManager updateManager,
             IAddonProcessing addonProcessing)
         {
-            ArgumentNullException.ThrowIfNull(appHelper);
-
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.configValidator = configValidator ?? throw new ArgumentNullException(nameof(configValidator));
@@ -41,7 +38,7 @@ namespace WOWCAM
 
             MinWidth = Width;
             MinHeight = Height;
-            Title = $"WOWCAM {appHelper.GetApplicationVersion()}";
+            Title = $"WOWCAM {AppHelper.GetApplicationVersion()}";
 
             SetProgress(null, string.Empty, null, null);
             SetControls(false);
@@ -126,7 +123,7 @@ namespace WOWCAM
                 }
 
                 SetProgress(null, "Downloading application update", 0, null);
-                await updateManager.DownloadUpdateAsync(updateData, new Progress<ModelDownloadHelperProgress>(p =>
+                await updateManager.DownloadUpdateAsync(updateData, new Progress<DownloadHelperProgress>(p =>
                 {
                     var receivedMB = ((double)p.ReceivedBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
                     var totalMB = ((double)p.TotalBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);

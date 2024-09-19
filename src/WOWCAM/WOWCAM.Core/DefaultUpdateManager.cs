@@ -3,25 +3,14 @@ using WOWCAM.Helper;
 
 namespace WOWCAM.Core
 {
-    public sealed class DefaultUpdateManager(
-        ILogger logger,
-        IAppHelper appHelper,
-        IGitHubHelper gitHubHelper,
-        IConfig config,
-        IFileSystemHelper fileSystemHelper,
-        IDownloadHelper downloadHelper,
-        IZipFileHelper zipFileHelper) : IUpdateManager
+    public sealed class DefaultUpdateManager(ILogger logger, IConfig config, HttpClient httpClient) : IUpdateManager
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IAppHelper appHelper = appHelper ?? throw new ArgumentNullException(nameof(appHelper));
-        private readonly IGitHubHelper gitHubHelper = gitHubHelper ?? throw new ArgumentNullException(nameof(gitHubHelper));
         private readonly IConfig config = config ?? throw new ArgumentNullException(nameof(config));
-        private readonly IFileSystemHelper fileSystemHelper = fileSystemHelper ?? throw new ArgumentNullException(nameof(fileSystemHelper));
-        private readonly IDownloadHelper downloadHelper = downloadHelper ?? throw new ArgumentNullException(nameof(downloadHelper));
-        private readonly IZipFileHelper zipFileHelper = zipFileHelper ?? throw new ArgumentNullException(nameof(zipFileHelper));
+        private readonly HttpClient httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
-        private readonly string appName = appHelper.GetApplicationName();
-        private readonly string appFileName = appHelper.GetApplicationExecutableFileName();
+        private readonly string appName = AppHelper.GetApplicationName();
+        private readonly string appFileName = AppHelper.GetApplicationExecutableFileName();
 
         public async Task<ModelApplicationUpdateData> CheckForUpdateAsync(CancellationToken cancellationToken = default)
         {
@@ -29,7 +18,7 @@ namespace WOWCAM.Core
 
             try
             {
-                var latestReleaseData = await gitHubHelper.GetLatestReleaseData(cancellationToken).ConfigureAwait(false);
+                var latestReleaseData = await GitHubHelper.GetLatestReleaseData(httpClient, cancellationToken).ConfigureAwait(false);
                 var updateAvailable = installedVersion < latestReleaseData.Version;
 
                 return new ModelApplicationUpdateData(installedVersion, latestReleaseData.Version, updateAvailable, latestReleaseData.DownloadUrl, latestReleaseData.FileName);
@@ -42,7 +31,7 @@ namespace WOWCAM.Core
         }
 
         public async Task DownloadUpdateAsync(ModelApplicationUpdateData updateData,
-            IProgress<ModelDownloadHelperProgress>? downloadProgress = null, CancellationToken cancellationToken = default)
+            IProgress<DownloadHelperProgress>? downloadProgress = null, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -55,15 +44,15 @@ namespace WOWCAM.Core
                 }
                 else
                 {
-                    await fileSystemHelper.DeleteFolderContentAsync(updateFolder, cancellationToken).ConfigureAwait(false);
+                    await FileSystemHelper.DeleteFolderContentAsync(updateFolder, cancellationToken).ConfigureAwait(false);
                 }
 
-                await downloadHelper.DownloadFileAsync(updateData.UpdateDownloadUrl, releaseZipFilePath, downloadProgress, cancellationToken).ConfigureAwait(false);
+                await DownloadHelper.DownloadFileAsync(httpClient, updateData.UpdateDownloadUrl, releaseZipFilePath, downloadProgress, cancellationToken).ConfigureAwait(false);
 
                 if (!File.Exists(releaseZipFilePath))
                     throw new InvalidOperationException("Downloaded latest release, but update folder not contains zip file.");
 
-                await zipFileHelper.ExtractZipFileAsync(releaseZipFilePath, updateFolder, cancellationToken).ConfigureAwait(false);
+                await ZipFileHelper.ExtractZipFileAsync(releaseZipFilePath, updateFolder, cancellationToken).ConfigureAwait(false);
 
                 if (!File.Exists(Path.Combine(updateFolder, appFileName)))
                     throw new InvalidOperationException($"Extracted zip file, but update folder not contains {appFileName} file.");
@@ -93,7 +82,7 @@ namespace WOWCAM.Core
                 if (!File.Exists(newExeFilePath))
                     throw new InvalidOperationException($"Update folder not contains {appFileName} file.");
 
-                var newExeVersion = fileSystemHelper.GetExeFileVersion(newExeFilePath);
+                var newExeVersion = FileSystemHelper.GetExeFileVersion(newExeFilePath);
                 if (newExeVersion < installedVersion)
                     throw new InvalidOperationException($"{appFileName} in update folder is older than existing {appFileName} in application folder.");
             }
@@ -108,7 +97,7 @@ namespace WOWCAM.Core
             try
             {
                 var updateToolFileName = "WOWCAMUPD.exe";
-                var updateToolFilePath = Path.Combine(appHelper.GetApplicationExecutableFolder(), updateToolFileName);
+                var updateToolFilePath = Path.Combine(AppHelper.GetApplicationExecutableFolder(), updateToolFileName);
 
                 if (!File.Exists(updateToolFilePath))
                     throw new InvalidOperationException($"Could not found {updateToolFileName} in application folder.");
@@ -138,8 +127,8 @@ namespace WOWCAM.Core
         {
             try
             {
-                var installedExeFile = appHelper.GetApplicationExecutableFilePath();
-                var installedVersion = fileSystemHelper.GetExeFileVersion(installedExeFile);
+                var installedExeFile = AppHelper.GetApplicationExecutableFilePath();
+                var installedVersion = FileSystemHelper.GetExeFileVersion(installedExeFile);
 
                 return installedVersion;
             }

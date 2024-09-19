@@ -6,7 +6,7 @@ set PUBLISH_FOLDER=bin\Release\net8.0-windows\win-x64\publish
 
 cls
 echo.
-echo WOWCAM release script 1.0.1 (by MBODM 09/2024)
+echo WOWCAM release script 1.0.2 (by MBODM 09/2024)
 if not exist %RELEASE_FOLDER% mkdir %RELEASE_FOLDER%
 
 cd %CURRENT_FOLDER%\src\WOWCAM\WOWCAM
@@ -14,10 +14,10 @@ dotnet build --no-incremental -c Release -v quiet && dotnet publish -c Release -
 echo.
 copy /B /V /Y %PUBLISH_FOLDER%\WOWCAM.exe %RELEASE_FOLDER%
 
-cd %CURRENT_FOLDER%\src\WOWCAMUPD\WOWCAMUPD
+cd %CURRENT_FOLDER%\src\WOWCAM\WOWCAM.Update
 dotnet build --no-incremental -c Release -v quiet && dotnet publish -c Release -v quiet
 echo.
-copy /B /V /Y %PUBLISH_FOLDER%\WOWCAMUPD.exe %RELEASE_FOLDER%
+copy /B /V /Y %PUBLISH_FOLDER%\WOWCAM.Update.exe %RELEASE_FOLDER%
 
 echo.
 cd %CURRENT_FOLDER%

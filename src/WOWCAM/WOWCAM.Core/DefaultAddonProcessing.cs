@@ -3,23 +3,13 @@ using WOWCAM.Helper;
 
 namespace WOWCAM.Core
 {
-    public sealed class DefaultAddonProcessing(
-        ILogger logger,
-        ICurseHelper curseHelper,
-        IWebViewWrapper webViewWrapper,
-        IDownloadHelper downloadHelper,
-        IZipFileHelper zipFileHelper,
-        IFileSystemHelper fileSystemHelper) : IAddonProcessing
+    public sealed class DefaultAddonProcessing(ILogger logger, IWebViewWrapper webViewWrapper, HttpClient httpClient) : IAddonProcessing
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly ICurseHelper curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
         private readonly IWebViewWrapper webViewWrapper = webViewWrapper ?? throw new ArgumentNullException(nameof(webViewWrapper));
-        private readonly IDownloadHelper downloadHelper = downloadHelper ?? throw new ArgumentNullException(nameof(downloadHelper));
-        private readonly IZipFileHelper zipFileHelper = zipFileHelper ?? throw new ArgumentNullException(nameof(zipFileHelper));
-        private readonly IFileSystemHelper fileSystemHelper = fileSystemHelper ?? throw new ArgumentNullException(nameof(fileSystemHelper));
+        private readonly HttpClient httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
-        public async Task ProcessAddonsAsync(
-            CoreWebView2 coreWebView, IEnumerable<string> addonUrls, string tempFolder, string targetFolder,
+        public async Task ProcessAddonsAsync(CoreWebView2 coreWebView, IEnumerable<string> addonUrls, string tempFolder, string targetFolder,
             IProgress<ModelAddonProcessingProgress>? progress = default, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(coreWebView);
@@ -46,7 +36,7 @@ namespace WOWCAM.Core
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var slugName = curseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl);
+                var slugName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl);
                 progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingFetch, slugName));
 
                 try
@@ -97,7 +87,7 @@ namespace WOWCAM.Core
 
             try
             {
-                await fileSystemHelper.DeleteFolderContentAsync(targetFolder, cancellationToken).ConfigureAwait(false);
+                await FileSystemHelper.DeleteFolderContentAsync(targetFolder, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -114,7 +104,7 @@ namespace WOWCAM.Core
 
             try
             {
-                await fileSystemHelper.MoveFolderContentAsync(unzipFolder, targetFolder, cancellationToken).ConfigureAwait(false);
+                await FileSystemHelper.MoveFolderContentAsync(unzipFolder, targetFolder, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -131,8 +121,8 @@ namespace WOWCAM.Core
 
             try
             {
-                await fileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken).ConfigureAwait(false);
-                await fileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken).ConfigureAwait(false);
+                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken).ConfigureAwait(false);
+                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -155,7 +145,7 @@ namespace WOWCAM.Core
 
             try
             {
-                await downloadHelper.DownloadFileAsync(downloadUrl, zipFilePath, null, cancellationToken).ConfigureAwait(false);
+                await DownloadHelper.DownloadFileAsync(httpClient, downloadUrl, zipFilePath, null, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -171,7 +161,7 @@ namespace WOWCAM.Core
 
             progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingUnzip, addonDownloadUrlData.FileName));
 
-            if (!await zipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken).ConfigureAwait(false))
+            if (!await ZipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken).ConfigureAwait(false))
             {
                 var message = "Downloaded zip file is corrupted (see log file for details).";
                 logger.Log(message);
@@ -182,7 +172,7 @@ namespace WOWCAM.Core
 
             try
             {
-                await zipFileHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken).ConfigureAwait(false);
+                await ZipFileHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {

@@ -6,7 +6,7 @@ namespace WOWCAM.Core
     {
         Task<ModelApplicationUpdateData> CheckForUpdateAsync(CancellationToken cancellationToken = default);
         Task DownloadUpdateAsync(ModelApplicationUpdateData updateData,
-            IProgress<ModelDownloadHelperProgress>? downloadProgress = default, CancellationToken cancellationToken = default);
+            IProgress<DownloadHelperProgress>? downloadProgress = default, CancellationToken cancellationToken = default);
         void ApplyUpdate();
     }
 }

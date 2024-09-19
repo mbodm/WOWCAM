@@ -2,9 +2,9 @@
 
 namespace WOWCAM.Helper
 {
-    public sealed class DefaultFileSystemHelper : IFileSystemHelper
+    public static class FileSystemHelper
     {
-        public bool IsValidAbsolutePath(string path)
+        public static bool IsValidAbsolutePath(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
             {
@@ -58,7 +58,7 @@ namespace WOWCAM.Helper
             return false;
         }
 
-        public async Task DeleteFolderContentAsync(string folder, CancellationToken cancellationToken = default)
+        public static async Task DeleteFolderContentAsync(string folder, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(folder))
             {
@@ -124,7 +124,7 @@ namespace WOWCAM.Helper
             }
         }
 
-        public Task MoveFolderContentAsync(string sourceFolder, string destFolder, CancellationToken cancellationToken = default)
+        public static Task MoveFolderContentAsync(string sourceFolder, string destFolder, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(sourceFolder))
             {
@@ -185,7 +185,7 @@ namespace WOWCAM.Helper
             return Task.WhenAll(allTasks);
         }
 
-        public Version GetExeFileVersion(string exeFilePath)
+        public static Version GetExeFileVersion(string exeFilePath)
         {
             if (string.IsNullOrWhiteSpace(exeFilePath))
             {
@@ -203,6 +203,30 @@ namespace WOWCAM.Helper
             var productVersion = fileVersionInfo.ProductVersion ?? throw new InvalidOperationException("Could not determine product version of given exe file.");
 
             return new Version(productVersion);
+        }
+
+        public static bool CopyFile(string sourceFilePath, string destFilePath)
+        {
+            // Try to copy file as user, otherwise ask for admin rights and copy file as admin, if user has no write access to folder.
+
+            try
+            {
+                File.Copy(sourceFilePath, destFilePath, true);
+
+                return true;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/C copy /B /V /Y {sourceFilePath} {destFilePath}",
+                    CreateNoWindow = true,
+                    Verb = "runas" // Ask for admin rights
+                };
+
+                return Process.Start(psi) != null;
+            }
         }
     }
 }

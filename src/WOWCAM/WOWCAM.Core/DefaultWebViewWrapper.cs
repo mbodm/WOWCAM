@@ -4,10 +4,9 @@ using WOWCAM.Helper;
 
 namespace WOWCAM.Core
 {
-    public sealed class DefaultWebViewWrapper(ILogger logger, ICurseHelper curseHelper) : IWebViewWrapper
+    public sealed class DefaultWebViewWrapper(ILogger logger) : IWebViewWrapper
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly ICurseHelper curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
 
         public Task<CoreWebView2Environment> CreateEnvironmentAsync(string tempFolder)
         {
@@ -31,8 +30,8 @@ namespace WOWCAM.Core
             var bytes = Convert.FromBase64String(base64);
             var json = Encoding.UTF8.GetString(bytes);
 
-            var jsonModel = curseHelper.SerializeAddonPageJson(json);
-            var downloadUrl = curseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
+            var jsonModel = CurseHelper.SerializeAddonPageJson(json);
+            var downloadUrl = CurseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
 
             return new ModelAddonDownloadData(downloadUrl, jsonModel.FileName);
         }
@@ -59,7 +58,7 @@ namespace WOWCAM.Core
 
                     if (e.IsSuccess)
                     {
-                        var scriptResult = await coreWebViewSender.ExecuteScriptWithResultAsync(curseHelper.FetchJsonScript);
+                        var scriptResult = await coreWebViewSender.ExecuteScriptWithResultAsync(CurseHelper.FetchJsonScript);
 
                         if (scriptResult.Succeeded)
                         {

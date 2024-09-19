@@ -3,13 +3,11 @@ using System.Text.Json;
 
 namespace WOWCAM.Helper
 {
-    public sealed class DefaultGitHubHelper(HttpClient httpClient) : IGitHubHelper
+    public static class GitHubHelper
     {
-        private readonly HttpClient httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-
-        public async Task<ModelGitHubReleaseData> GetLatestReleaseData(CancellationToken cancellationToken = default)
+        public static async Task<GitHubReleaseData> GetLatestReleaseData(HttpClient httpClient, CancellationToken cancellationToken = default)
         {
-            var json = await FetchLatestReleaseJson(cancellationToken).ConfigureAwait(false);
+            var json = await FetchLatestReleaseJson(httpClient, cancellationToken).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
 
             var tagName = doc.RootElement.GetProperty("tag_name").GetString() ??
@@ -22,10 +20,10 @@ namespace WOWCAM.Helper
             if (!downloadUrl.EndsWith(".zip") || !Uri.TryCreate(downloadUrl, UriKind.Absolute, out Uri? uri) || uri == null)
                 throw new InvalidOperationException("Download url in GitHub's JSON response was not a valid WOWCAM release URL.");
 
-            return new ModelGitHubReleaseData(new Version(tagName), downloadUrl, uri.Segments.Last());
+            return new GitHubReleaseData(new Version(tagName), downloadUrl, uri.Segments.Last());
         }
 
-        private async Task<string> FetchLatestReleaseJson(CancellationToken cancellationToken = default)
+        private static async Task<string> FetchLatestReleaseJson(HttpClient httpClient, CancellationToken cancellationToken = default)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/repos/mbodm/wowcam/releases/latest");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));

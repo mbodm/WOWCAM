@@ -2,9 +2,9 @@
 
 namespace WOWCAM.Helper
 {
-    public sealed class DefaultZipFileHelper : IZipFileHelper
+    public static class ZipFileHelper
     {
-        public Task<bool> ValidateZipFileAsync(string zipFile, CancellationToken cancellationToken = default)
+        public static Task<bool> ValidateZipFileAsync(string zipFile, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(zipFile))
             {
@@ -35,7 +35,7 @@ namespace WOWCAM.Helper
             cancellationToken);
         }
 
-        public Task ExtractZipFileAsync(string zipFile, string destFolder, CancellationToken cancellationToken = default)
+        public static Task ExtractZipFileAsync(string zipFile, string destFolder, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(zipFile))
             {

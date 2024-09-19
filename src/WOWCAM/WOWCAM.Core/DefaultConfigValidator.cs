@@ -2,12 +2,10 @@
 
 namespace WOWCAM.Core
 {
-    public sealed class DefaultConfigValidator(ILogger logger, IConfig config, IFileSystemHelper fileSystemHelper, ICurseHelper curseHelper) : IConfigValidator
+    public sealed class DefaultConfigValidator(ILogger logger, IConfig config) : IConfigValidator
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly IConfig config = config ?? throw new ArgumentNullException(nameof(config));
-        private readonly IFileSystemHelper fileSystemHelper = fileSystemHelper ?? throw new ArgumentNullException(nameof(fileSystemHelper));
-        private readonly ICurseHelper curseHelper = curseHelper ?? throw new ArgumentNullException(nameof(curseHelper));
 
         // See details and reasons for MaxPathLength value at:
         // https://stackoverflow.com/questions/265769/maximum-filename-length-in-ntfs-windows-xp-and-windows-vista
@@ -36,7 +34,7 @@ namespace WOWCAM.Core
                 if (!config.AddonUrls.Any())
                     throw new InvalidOperationException("Config file contains 0 addon URL entries and so there is nothing to download.");
 
-                if (config.AddonUrls.Any(url => !curseHelper.IsAddonPageUrl(url)))
+                if (config.AddonUrls.Any(url => !CurseHelper.IsAddonPageUrl(url)))
                     throw new InvalidOperationException("Config file contains at least 1 addon URL entry which is not a valid Curse addon URL.");
             }
             catch (Exception e)
@@ -46,9 +44,9 @@ namespace WOWCAM.Core
             }
         }
 
-        private void ValidateFolder(string folderValue, string folderName, int maxChars)
+        private static void ValidateFolder(string folderValue, string folderName, int maxChars)
         {
-            if (!fileSystemHelper.IsValidAbsolutePath(folderValue))
+            if (!FileSystemHelper.IsValidAbsolutePath(folderValue))
                 throw new InvalidOperationException(
                     $"Config file contains a {folderName} folder which is not a valid folder path (given path must be a valid absolute path to a folder).");
 

@@ -1,11 +1,9 @@
 ﻿namespace WOWCAM.Helper
 {
-    public sealed class DefaultDownloadHelper(HttpClient httpClient) : IDownloadHelper
+    public static class DownloadHelper
     {
-        private readonly HttpClient httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-
-        public async Task DownloadFileAsync(string downloadUrl, string filePath,
-            IProgress<ModelDownloadHelperProgress>? progress = default, CancellationToken cancellationToken = default)
+        public static async Task DownloadFileAsync(HttpClient httpClient, string downloadUrl, string filePath,
+            IProgress<DownloadHelperProgress>? progress = default, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(downloadUrl))
             {
@@ -32,7 +30,7 @@
                 response.EnsureSuccessStatusCode();
 
                 var totalBytes = response.Content.Headers.ContentLength ?? throw new InvalidOperationException("Could not determine response content length.");
-                progress.Report(new ModelDownloadHelperProgress(downloadUrl, true, 0, totalBytes, false));
+                progress.Report(new DownloadHelperProgress(downloadUrl, true, 0, totalBytes, false));
 
                 using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                 using var fileStream = File.Create(filePath);
@@ -47,7 +45,7 @@
                     readBytesAll += readBytesNow;
 
                     var transferFinished = readBytesAll >= totalBytes;
-                    progress.Report(new ModelDownloadHelperProgress(downloadUrl, false, readBytesAll, totalBytes, transferFinished));
+                    progress.Report(new DownloadHelperProgress(downloadUrl, false, readBytesAll, totalBytes, transferFinished));
                 }
 
                 if (readBytesAll != totalBytes)

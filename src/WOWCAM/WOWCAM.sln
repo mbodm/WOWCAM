@@ -9,8 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WOWCAM.Core", "WOWCAM.Core\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WOWCAM.Helper", "WOWCAM.Helper\WOWCAM.Helper.csproj", "{1A6C23B8-6D73-40A1-B858-39875236EF39}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "wcupdate", "wcupdate\wcupdate.csproj", "{32C6271F-CCFA-431C-8EDD-DE94F924CF59}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,10 +27,6 @@ Global
 		{1A6C23B8-6D73-40A1-B858-39875236EF39}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1A6C23B8-6D73-40A1-B858-39875236EF39}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1A6C23B8-6D73-40A1-B858-39875236EF39}.Release|Any CPU.Build.0 = Release|Any CPU
-		{32C6271F-CCFA-431C-8EDD-DE94F924CF59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{32C6271F-CCFA-431C-8EDD-DE94F924CF59}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{32C6271F-CCFA-431C-8EDD-DE94F924CF59}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{32C6271F-CCFA-431C-8EDD-DE94F924CF59}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

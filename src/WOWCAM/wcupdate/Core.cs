@@ -1,9 +1,12 @@
-﻿using System.Xml.Linq;
+﻿using System.Text;
 
 namespace wcupdate
 {
     internal static class Core
     {
+        public const string TargetAppName = "WOWCAM";
+        public const string TargetFileName = $"{TargetAppName}.exe";
+
         public static void Print(string msg)
         {
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] {msg}");
@@ -33,33 +36,18 @@ namespace wcupdate
             return result;
         }
 
-        public static async Task<(bool Success, string Value, string Error)> GetUpdateFolderFromConfigAsync()
+        public static string DecodeBase64(string base64)
         {
-            var xmlFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM.xml");
-            if (!File.Exists(xmlFile))
+            if (string.IsNullOrWhiteSpace(base64)) return string.Empty;
+
+            try
             {
-                return (false, string.Empty, "Could not found WOWCAM config file.");
+                return Encoding.UTF8.GetString(Convert.FromBase64String(base64));
             }
-
-            using var fileStream = new FileStream(xmlFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var doc = await XDocument.LoadAsync(fileStream, LoadOptions.None, CancellationToken.None).ConfigureAwait(false);
-            var temp = doc.Root?.Element("general")?.Element("temp")?.Value?.Trim() ?? "%TEMP%";
-            if (string.IsNullOrWhiteSpace(temp))
+            catch
             {
-                return (false, string.Empty, "Could not determine WOWCAM temp folder.");
+                return string.Empty;
             }
-
-            var tempFolder = Environment.ExpandEnvironmentVariables(temp);
-            var updateFolder = Path.Combine(tempFolder, "MBODM-WOWCAM-Update");
-            if (!Directory.Exists(updateFolder))
-            {
-                return (false, string.Empty, "Update folder not exists.");
-            }
-
-            fileStream.Close();
-
-            return (true, updateFolder, string.Empty);
         }
-
     }
 }

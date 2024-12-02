@@ -93,7 +93,7 @@ namespace WOWCAM
 
         private async void HyperlinkCheckUpdates_Click(object sender, RoutedEventArgs e)
         {
-            var finishedAndWaitingForUpdateTool = false;
+            //var finishedAndWaitingForUpdateTool = false;
 
             try
             {
@@ -107,8 +107,8 @@ namespace WOWCAM
                     return;
                 }
 
-                // Not sure how a MessageBox handles raw string literals (introduced in C# 11)
-                // Therefore i decided to place the safe bet here and do it somewhat oldschool
+                // Not sure how a MessageBox handles raw string literals (introduced in C# 11).
+                // Therefore i decided to place the safe bet here and do it somewhat old-school.
                 var text = string.Empty;
                 text += $"A new WOWCAM version is available.{Environment.NewLine}";
                 text += Environment.NewLine;
@@ -132,20 +132,23 @@ namespace WOWCAM
                     SetProgress(null, $"Downloading application update ({receivedMB} / {totalMB} MB)", p.ReceivedBytes, maximum);
                 }));
 
-                // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
-                // ProgressBar control from reaching its maximum shortly after the last async progress happened.
-                // The control is painted natively by the WinApi/OS itself. Therefore also no event-based tricks
-                // will solve the problem. I just added a short async wait delay instead, to keep things simple.
-                // *(TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
-                // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
+                // Even with a typical semaphore-blocking-mechanism(*) it is impossible to prevent a WinForms/WPF
+                // ProgressBar control from reaching its visual maximum AFTER the last async progress did happen.
+                // The control is painted natively by the WinApi/OS itself. Therefore any event-based tricks will
+                // not solve the problem. I just added a short async Wait() delay instead, to keep things simple.
+                // (*)TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
+                // a scheduler can still produce async progress, even when a Task.WhenAll() already has finished.
                 await Task.Delay(1250);
 
                 SetProgress(null, "Download finished", 1, 1);
-                ShowInfo("Application will restart now and apply update.");
-                SetProgress(null, "Apply update", 0, null);
-                updateManager.ApplyUpdate();
-                SetProgress(null, "Wainting for external update tool...", 1, null);
-                finishedAndWaitingForUpdateTool = true;
+                ShowInfo("Update applied. Application will restart now.");
+
+
+
+                //SetProgress(null, "Apply update", 0, null);
+                //updateManager.ApplyUpdate();
+                //SetProgress(null, "Wainting for external update tool...", 1, null);
+                //finishedAndWaitingForUpdateTool = true;
             }
             catch (Exception ex)
             {
@@ -153,11 +156,8 @@ namespace WOWCAM
             }
             finally
             {
-                if (!finishedAndWaitingForUpdateTool)
-                {
-                    SetControls(true);
-                    SetProgress(null, string.Empty, 0, 1);
-                }
+                SetControls(true);
+                SetProgress(null, string.Empty, 0, 1);
             }
         }
 

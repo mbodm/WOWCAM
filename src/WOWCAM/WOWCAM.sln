@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.10.34916.146
+VisualStudioVersion = 17.12.35521.163
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WOWCAM", "WOWCAM\WOWCAM.csproj", "{588FBE3E-BDC2-4923-BD13-91999C1BF064}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WOWCAM", "WOWCAM\WOWCAM.csproj", "{07E40AC1-8F53-4555-A4E0-EBAF654F2466}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WOWCAM.Core", "WOWCAM.Core\WOWCAM.Core.csproj", "{C8E28247-EC81-433E-9EF1-8E5F54D03D7F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WOWCAM.Core", "WOWCAM.Core\WOWCAM.Core.csproj", "{EC571E18-3D25-450A-AF64-1EEDD103C43B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WOWCAM.Helper", "WOWCAM.Helper\WOWCAM.Helper.csproj", "{1A6C23B8-6D73-40A1-B858-39875236EF39}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WOWCAM.Helper", "WOWCAM.Helper\WOWCAM.Helper.csproj", "{56ED8576-359B-4217-A3FE-EC8037D2FF7F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,23 +15,20 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{588FBE3E-BDC2-4923-BD13-91999C1BF064}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{588FBE3E-BDC2-4923-BD13-91999C1BF064}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{588FBE3E-BDC2-4923-BD13-91999C1BF064}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{588FBE3E-BDC2-4923-BD13-91999C1BF064}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C8E28247-EC81-433E-9EF1-8E5F54D03D7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C8E28247-EC81-433E-9EF1-8E5F54D03D7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C8E28247-EC81-433E-9EF1-8E5F54D03D7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C8E28247-EC81-433E-9EF1-8E5F54D03D7F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1A6C23B8-6D73-40A1-B858-39875236EF39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1A6C23B8-6D73-40A1-B858-39875236EF39}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1A6C23B8-6D73-40A1-B858-39875236EF39}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1A6C23B8-6D73-40A1-B858-39875236EF39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07E40AC1-8F53-4555-A4E0-EBAF654F2466}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07E40AC1-8F53-4555-A4E0-EBAF654F2466}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07E40AC1-8F53-4555-A4E0-EBAF654F2466}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07E40AC1-8F53-4555-A4E0-EBAF654F2466}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC571E18-3D25-450A-AF64-1EEDD103C43B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC571E18-3D25-450A-AF64-1EEDD103C43B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC571E18-3D25-450A-AF64-1EEDD103C43B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC571E18-3D25-450A-AF64-1EEDD103C43B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56ED8576-359B-4217-A3FE-EC8037D2FF7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56ED8576-359B-4217-A3FE-EC8037D2FF7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56ED8576-359B-4217-A3FE-EC8037D2FF7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56ED8576-359B-4217-A3FE-EC8037D2FF7F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {E62FFDDD-7175-4B45-90DC-08820E22B0C7}
 	EndGlobalSection
 EndGlobal

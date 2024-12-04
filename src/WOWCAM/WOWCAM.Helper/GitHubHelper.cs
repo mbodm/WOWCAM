@@ -3,11 +3,23 @@ using System.Text.Json;
 
 namespace WOWCAM.Helper
 {
-    public static class GitHubHelper
+    public sealed class GitHubHelper
     {
-        public static async Task<GitHubReleaseData> GetLatestReleaseData(HttpClient httpClient, CancellationToken cancellationToken = default)
+        public static async Task<GitHubReleaseData> GetLatestReleaseData(string user, string repo, HttpClient httpClient, CancellationToken cancellationToken = default)
         {
-            var json = await FetchLatestReleaseJson(httpClient, cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(user))
+            {
+                throw new ArgumentException($"'{nameof(user)}' cannot be null or whitespace.", nameof(user));
+            }
+
+            if (string.IsNullOrWhiteSpace(repo))
+            {
+                throw new ArgumentException($"'{nameof(repo)}' cannot be null or whitespace.", nameof(repo));
+            }
+
+            ArgumentNullException.ThrowIfNull(httpClient);
+
+            var json = await FetchLatestReleaseJson(user, repo, httpClient, cancellationToken).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
 
             var tagName = doc.RootElement.GetProperty("tag_name").GetString() ??
@@ -18,16 +30,16 @@ namespace WOWCAM.Helper
                 throw new InvalidOperationException("Could not found 'browser_download_url' in GitHub's JSON response.");
 
             if (!downloadUrl.EndsWith(".zip") || !Uri.TryCreate(downloadUrl, UriKind.Absolute, out Uri? uri) || uri == null)
-                throw new InvalidOperationException("Download url in GitHub's JSON response was not a valid WOWCAM release URL.");
+                throw new InvalidOperationException("Download url in GitHub's JSON response was not a valid zip download URL.");
 
             return new GitHubReleaseData(new Version(tagName), downloadUrl, uri.Segments.Last());
         }
 
-        private static async Task<string> FetchLatestReleaseJson(HttpClient httpClient, CancellationToken cancellationToken = default)
+        private static async Task<string> FetchLatestReleaseJson(string user, string repo, HttpClient httpClient, CancellationToken cancellationToken = default)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/repos/mbodm/wowcam/releases/latest");
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{user}/{repo}/releases/latest");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-            request.Headers.UserAgent.ParseAdd("mbodm");
+            request.Headers.UserAgent.ParseAdd(user);
 
             using var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
             var prettyStatusCode = $"HTTP {(int)response.StatusCode} ({response.StatusCode})";

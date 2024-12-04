@@ -2,15 +2,25 @@
 
 namespace WOWCAM.Helper
 {
-    public static class ProcessHelper
+    public sealed class ProcessHelper
     {
         public static bool IsRunningProcess(string exeFilePath)
         {
+            if (string.IsNullOrWhiteSpace(exeFilePath))
+            {
+                throw new ArgumentException($"'{nameof(exeFilePath)}' cannot be null or whitespace.", nameof(exeFilePath));
+            }
+
             return GetRunningProcess(exeFilePath) != null;
         }
 
         public static async Task<bool> KillProcessAsync(string exeFilePath)
         {
+            if (string.IsNullOrWhiteSpace(exeFilePath))
+            {
+                throw new ArgumentException($"'{nameof(exeFilePath)}' cannot be null or whitespace.", nameof(exeFilePath));
+            }
+
             var process = GetRunningProcess(exeFilePath);
             if (process == null) return false;
 
@@ -22,6 +32,11 @@ namespace WOWCAM.Helper
 
         public static async Task<bool> StartIndependentProcessAsync(string exeFilePath)
         {
+            if (string.IsNullOrWhiteSpace(exeFilePath))
+            {
+                throw new ArgumentException($"'{nameof(exeFilePath)}' cannot be null or whitespace.", nameof(exeFilePath));
+            }
+
             var processStartInfo = new ProcessStartInfo
             {
                 FileName = "cmd.exe",

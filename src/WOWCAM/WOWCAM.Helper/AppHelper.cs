@@ -2,7 +2,7 @@
 
 namespace WOWCAM.Helper
 {
-    public static class AppHelper
+    public sealed class AppHelper
     {
         public static string GetApplicationName() =>
             Assembly.GetEntryAssembly()?.GetName()?.Name ?? "UNKNOWN";

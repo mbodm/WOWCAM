@@ -1,10 +1,12 @@
 ﻿namespace WOWCAM.Helper
 {
-    public static class DownloadHelper
+    public sealed class DownloadHelper
     {
         public static async Task DownloadFileAsync(HttpClient httpClient, string downloadUrl, string filePath,
             IProgress<DownloadHelperProgress>? progress = default, CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(httpClient);
+
             if (string.IsNullOrWhiteSpace(downloadUrl))
             {
                 throw new ArgumentException($"'{nameof(downloadUrl)}' cannot be null or whitespace.", nameof(downloadUrl));

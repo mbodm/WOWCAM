@@ -18,7 +18,7 @@ namespace WOWCAM.Core
 
             try
             {
-                var latestReleaseData = await GitHubHelper.GetLatestReleaseData(httpClient, cancellationToken).ConfigureAwait(false);
+                var latestReleaseData = await GitHubHelper.GetLatestReleaseData("mbodm", "wowcam", httpClient, cancellationToken).ConfigureAwait(false);
                 var updateAvailable = installedVersion < latestReleaseData.Version;
 
                 return new ModelApplicationUpdateData(installedVersion, latestReleaseData.Version, updateAvailable, latestReleaseData.DownloadUrl, latestReleaseData.FileName);
@@ -70,15 +70,15 @@ namespace WOWCAM.Core
 
             var installedVersion = GetInstalledVersion();
 
-            string updateFolder;
+            string newExeFilePath;
 
             try
             {
-                updateFolder = GetUpdateFolder();
+                var updateFolder = GetUpdateFolder();
                 if (!Directory.Exists(updateFolder))
                     throw new InvalidOperationException("Update folder not exists.");
 
-                var newExeFilePath = Path.Combine(updateFolder, appFileName);
+                newExeFilePath = Path.Combine(updateFolder, appFileName);
                 if (!File.Exists(newExeFilePath))
                     throw new InvalidOperationException($"Update folder not contains {appFileName} file.");
 
@@ -89,37 +89,46 @@ namespace WOWCAM.Core
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException("Error while application prepares for update (see log file for details).", e);
+                throw new InvalidOperationException("Error while application prepared for update (see log file for details).", e);
             }
 
-            // Start update tool
+            // Overwrite application executable
 
             try
             {
-                var updateToolFileName = "WOWCAMUPD.exe";
-                var updateToolFilePath = Path.Combine(AppHelper.GetApplicationExecutableFolder(), updateToolFileName);
+                var exeFilePath = AppHelper.GetApplicationExecutableFilePath();
+                var updFilePath = newExeFilePath;
+                var bakFilePath = Path.ChangeExtension(AppHelper.GetApplicationExecutableFilePath(), ".bak");
 
-                if (!File.Exists(updateToolFilePath))
-                    throw new InvalidOperationException($"Could not found {updateToolFileName} in application folder.");
+                File.Move(exeFilePath, bakFilePath, true);
+                File.Copy(updFilePath, exeFilePath, true);
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                throw new InvalidOperationException("Could not apply update (see log file for details).", e);
+            }
+        }
 
-                // Using "cmd.exe /C" technique to decouple (sub)process from process-tree (see web for more information)
-
-                var processStartInfo = new ProcessStartInfo
+        public void RestartApplication()
+        {
+            try
+            {
+                var process = Process.Start(new ProcessStartInfo
                 {
-                    FileName = "cmd.exe",
-                    Arguments = $"/C start /min \"\" {updateToolFilePath} \"{updateFolder}\" /autoclose",
+                    Arguments = $"/C ping 127.0.0.1 -n 2 && \"{AppHelper.GetApplicationExecutableFilePath()}\"",
+                    WindowStyle = ProcessWindowStyle.Hidden,
                     CreateNoWindow = true,
-                };
+                    FileName = "cmd.exe"
+                });
 
-                logger.Log($"Todo: Calling now {processStartInfo.FileName} {processStartInfo.Arguments}");
-
-                if (Process.Start(processStartInfo) == null)
+                if (process == null)
                     throw new InvalidOperationException("The 'Process.Start()' call returned null.");
             }
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException("Error while starting update tool (see log file for details).", e);
+                throw new InvalidOperationException("Error while restarting application (see log file for details).", e);
             }
         }
 

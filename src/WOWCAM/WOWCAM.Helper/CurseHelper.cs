@@ -2,7 +2,7 @@
 
 namespace WOWCAM.Helper
 {
-    public static class CurseHelper
+    public sealed class CurseHelper
     {
         // See StackOverflow -> https://stackoverflow.com/questions/7134837/how-do-i-decode-a-base64-encoded-string
         public static string FetchJsonScript =>

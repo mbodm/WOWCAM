@@ -2,7 +2,7 @@
 
 namespace WOWCAM.Helper
 {
-    public static class FileSystemHelper
+    public sealed class FileSystemHelper
     {
         public static bool IsValidAbsolutePath(string path)
         {
@@ -207,6 +207,16 @@ namespace WOWCAM.Helper
 
         public static bool CopyFile(string sourceFilePath, string destFilePath)
         {
+            if (string.IsNullOrWhiteSpace(sourceFilePath))
+            {
+                throw new ArgumentException($"'{nameof(sourceFilePath)}' cannot be null or whitespace.", nameof(sourceFilePath));
+            }
+
+            if (string.IsNullOrWhiteSpace(destFilePath))
+            {
+                throw new ArgumentException($"'{nameof(destFilePath)}' cannot be null or whitespace.", nameof(destFilePath));
+            }
+
             // Try to copy file as user, otherwise ask for admin rights and copy file as admin, if user has no write access to folder.
 
             try

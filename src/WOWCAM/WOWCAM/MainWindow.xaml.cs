@@ -143,6 +143,7 @@ namespace WOWCAM
                 SetProgress(null, "Download finished", 1, 1);
                 ShowInfo("Update applied. Application will restart now.");
 
+                appli
 
 
                 //SetProgress(null, "Apply update", 0, null);

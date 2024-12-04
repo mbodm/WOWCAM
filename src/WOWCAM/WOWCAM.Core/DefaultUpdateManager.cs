@@ -36,8 +36,6 @@ namespace WOWCAM.Core
             try
             {
                 var updateFolder = GetUpdateFolder();
-                var releaseZipFilePath = Path.Combine(updateFolder, updateData.UpdateFileName);
-
                 if (!Directory.Exists(updateFolder))
                 {
                     Directory.CreateDirectory(updateFolder);
@@ -47,20 +45,22 @@ namespace WOWCAM.Core
                     await FileSystemHelper.DeleteFolderContentAsync(updateFolder, cancellationToken).ConfigureAwait(false);
                 }
 
-                await DownloadHelper.DownloadFileAsync(httpClient, updateData.UpdateDownloadUrl, releaseZipFilePath, downloadProgress, cancellationToken).ConfigureAwait(false);
+                var zipFilePath = Path.Combine(updateFolder, updateData.UpdateFileName);
+                await DownloadHelper.DownloadFileAsync(httpClient, updateData.UpdateDownloadUrl, zipFilePath, downloadProgress, cancellationToken).ConfigureAwait(false);
 
-                if (!File.Exists(releaseZipFilePath))
+                if (!File.Exists(zipFilePath))
                     throw new InvalidOperationException("Downloaded latest release, but update folder not contains zip file.");
 
-                await ZipFileHelper.ExtractZipFileAsync(releaseZipFilePath, updateFolder, cancellationToken).ConfigureAwait(false);
+                await ZipFileHelper.ExtractZipFileAsync(zipFilePath, updateFolder, cancellationToken).ConfigureAwait(false);
 
-                if (!File.Exists(Path.Combine(updateFolder, appFileName)))
+                var newExeFilePath = Path.Combine(updateFolder, appFileName);
+                if (!File.Exists(newExeFilePath))
                     throw new InvalidOperationException($"Extracted zip file, but update folder not contains {appFileName} file.");
             }
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException($"Error while downloading {appName} release (see log file for details).", e);
+                throw new InvalidOperationException($"Error while downloading latest {appName} release (see log file for details).", e);
             }
         }
 
@@ -71,7 +71,6 @@ namespace WOWCAM.Core
             var installedVersion = GetInstalledVersion();
 
             string newExeFilePath;
-
             try
             {
                 var updateFolder = GetUpdateFolder();
@@ -97,11 +96,10 @@ namespace WOWCAM.Core
             try
             {
                 var exeFilePath = AppHelper.GetApplicationExecutableFilePath();
-                var updFilePath = newExeFilePath;
-                var bakFilePath = Path.ChangeExtension(AppHelper.GetApplicationExecutableFilePath(), ".bak");
+                var bakFilePath = Path.ChangeExtension(exeFilePath, ".bak");
 
                 File.Move(exeFilePath, bakFilePath, true);
-                File.Copy(updFilePath, exeFilePath, true);
+                File.Copy(newExeFilePath, exeFilePath, true);
             }
             catch (Exception e)
             {
@@ -114,21 +112,41 @@ namespace WOWCAM.Core
         {
             try
             {
-                var process = Process.Start(new ProcessStartInfo
+                var psi = new ProcessStartInfo
                 {
                     Arguments = $"/C ping 127.0.0.1 -n 2 && \"{AppHelper.GetApplicationExecutableFilePath()}\"",
                     WindowStyle = ProcessWindowStyle.Hidden,
                     CreateNoWindow = true,
                     FileName = "cmd.exe"
-                });
+                };
 
-                if (process == null)
+                var process = Process.Start(psi) ??
                     throw new InvalidOperationException("The 'Process.Start()' call returned null.");
             }
             catch (Exception e)
             {
                 logger.Log(e);
                 throw new InvalidOperationException("Error while restarting application (see log file for details).", e);
+            }
+        }
+
+        public bool RemoveBakFile()
+        {
+            try
+            {
+                var exeFilePath = AppHelper.GetApplicationExecutableFilePath();
+                var bakFilePath = Path.ChangeExtension(exeFilePath, ".bak");
+
+                if (File.Exists(bakFilePath))
+                {
+                    File.Delete(bakFilePath);
+                }
+
+                return !File.Exists(bakFilePath);
+            }
+            catch
+            {
+                return false;
             }
         }
 

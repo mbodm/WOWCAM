@@ -9,5 +9,6 @@ namespace WOWCAM.Core
             IProgress<DownloadHelperProgress>? downloadProgress = default, CancellationToken cancellationToken = default);
         void ApplyUpdate();
         void RestartApplication();
+        bool RemoveBakFile();
     }
 }

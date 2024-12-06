@@ -93,8 +93,6 @@ namespace WOWCAM
 
         private async void HyperlinkCheckUpdates_Click(object sender, RoutedEventArgs e)
         {
-            //var finishedAndWaitingForUpdateTool = false;
-
             try
             {
                 SetControls(false);
@@ -141,15 +139,9 @@ namespace WOWCAM
                 await Task.Delay(1250);
 
                 SetProgress(null, "Download finished", 1, 1);
-                ShowInfo("Update applied. Application will restart now.");
-
-                appli
-
-
-                //SetProgress(null, "Apply update", 0, null);
-                //updateManager.ApplyUpdate();
-                //SetProgress(null, "Wainting for external update tool...", 1, null);
-                //finishedAndWaitingForUpdateTool = true;
+                updateManager.ApplyUpdate();
+                ShowInfo("Update successfully applied. Application will restart now.");
+                updateManager.RestartApplication();
             }
             catch (Exception ex)
             {

@@ -114,7 +114,7 @@ namespace WOWCAM.Core
             {
                 var psi = new ProcessStartInfo
                 {
-                    Arguments = $"/C ping 127.0.0.1 -n 2 && \"{AppHelper.GetApplicationExecutableFilePath()}\"",
+                    Arguments = $"/C start ping 127.0.0.1 -n 3 && \"{AppHelper.GetApplicationExecutableFilePath()}\"",
                     WindowStyle = ProcessWindowStyle.Hidden,
                     CreateNoWindow = true,
                     FileName = "cmd.exe"

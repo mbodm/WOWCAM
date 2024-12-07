@@ -18,7 +18,7 @@ namespace WOWCAM.Core
 
             try
             {
-                var latestReleaseData = await GitHubHelper.GetLatestReleaseData("mbodm", "wowcam", httpClient, cancellationToken).ConfigureAwait(false);
+                var latestReleaseData = await GitHubHelper.GetLatestReleaseDataAsync("mbodm", "wowcam", httpClient, cancellationToken).ConfigureAwait(false);
                 var updateAvailable = installedVersion < latestReleaseData.Version;
 
                 return new ModelApplicationUpdateData(installedVersion, latestReleaseData.Version, updateAvailable, latestReleaseData.DownloadUrl, latestReleaseData.FileName);

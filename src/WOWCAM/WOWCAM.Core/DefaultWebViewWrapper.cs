@@ -38,6 +38,9 @@ namespace WOWCAM.Core
 
         private Task<string> FetchJsonAsync(CoreWebView2 coreWebView, string addonUrl)
         {
+            // This method follows the typical "wrap EAP into TAP" pattern approach.
+            // But without cancellation support (for "why?" see public method above).
+
             var tcs = new TaskCompletionSource<string>();
 
             // NavigationStarting
@@ -66,6 +69,14 @@ namespace WOWCAM.Core
 
                             tcs.SetResult(addonPageJsonAsBase64);
                         }
+                        else
+                        {
+                            tcs.SetException(new InvalidOperationException("WebView2 executed 'FetchJsonScript' JavaScript code, but the returned 'ScriptResult.Succeeded' was false."));
+                        }
+                    }
+                    else
+                    {
+                        tcs.SetException(new InvalidOperationException("WebView2 raised the 'NavigationCompleted' event, but its 'EventArgs.IsSuccess' was false."));
                     }
                 }
             }

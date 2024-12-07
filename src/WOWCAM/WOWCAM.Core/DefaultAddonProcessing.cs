@@ -41,7 +41,7 @@ namespace WOWCAM.Core
 
                 try
                 {
-                    var addonDownloadUrlData = await webViewWrapper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl);
+                    var addonDownloadUrlData = await webViewWrapper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl).ConfigureAwait(false);
                     addonDownloadDataList.Add(addonDownloadUrlData);
                 }
                 catch (Exception e)
@@ -81,7 +81,7 @@ namespace WOWCAM.Core
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
 
-            await Task.Delay(200, cancellationToken);
+            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
 
             // Clear target folder
 
@@ -98,7 +98,7 @@ namespace WOWCAM.Core
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
 
-            await Task.Delay(200, cancellationToken);
+            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
 
             // Move to target folder
 
@@ -115,7 +115,7 @@ namespace WOWCAM.Core
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
 
-            await Task.Delay(200, cancellationToken);
+            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
 
             // Clean up temp folder
 

@@ -5,7 +5,7 @@ namespace WOWCAM.Helper
 {
     public sealed class GitHubHelper
     {
-        public static async Task<GitHubReleaseData> GetLatestReleaseData(string user, string repo, HttpClient httpClient, CancellationToken cancellationToken = default)
+        public static async Task<GitHubReleaseData> GetLatestReleaseDataAsync(string user, string repo, HttpClient httpClient, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(user))
             {
@@ -19,7 +19,7 @@ namespace WOWCAM.Helper
 
             ArgumentNullException.ThrowIfNull(httpClient);
 
-            var json = await FetchLatestReleaseJson(user, repo, httpClient, cancellationToken).ConfigureAwait(false);
+            var json = await FetchLatestReleaseJsonAsync(user, repo, httpClient, cancellationToken).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
 
             var tagName = doc.RootElement.GetProperty("tag_name").GetString() ??
@@ -35,7 +35,7 @@ namespace WOWCAM.Helper
             return new GitHubReleaseData(new Version(tagName), downloadUrl, uri.Segments.Last());
         }
 
-        private static async Task<string> FetchLatestReleaseJson(string user, string repo, HttpClient httpClient, CancellationToken cancellationToken = default)
+        private static async Task<string> FetchLatestReleaseJsonAsync(string user, string repo, HttpClient httpClient, CancellationToken cancellationToken = default)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{user}/{repo}/releases/latest");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));

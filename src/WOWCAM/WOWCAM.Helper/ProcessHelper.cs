@@ -14,7 +14,7 @@ namespace WOWCAM.Helper
             return GetRunningProcess(exeFilePath) != null;
         }
 
-        public static async Task<bool> KillProcessAsync(string exeFilePath)
+        public static async Task<bool> KillProcessAsync(string exeFilePath, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(exeFilePath))
             {
@@ -26,11 +26,11 @@ namespace WOWCAM.Helper
 
             process.Kill();
 
-            await Task.Delay(1000);
+            await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
             return !IsRunningProcess(exeFilePath);
         }
 
-        public static async Task<bool> StartIndependentProcessAsync(string exeFilePath)
+        public static async Task<bool> StartIndependentProcessAsync(string exeFilePath, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(exeFilePath))
             {
@@ -47,7 +47,7 @@ namespace WOWCAM.Helper
             var process = Process.Start(processStartInfo);
             if (process == null) return false;
 
-            await Task.Delay(3000);
+            await Task.Delay(3000, cancellationToken).ConfigureAwait(false);
             return IsRunningProcess(exeFilePath);
         }
 

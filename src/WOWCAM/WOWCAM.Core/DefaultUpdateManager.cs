@@ -112,9 +112,14 @@ namespace WOWCAM.Core
         {
             try
             {
+                // To decouple our .exe call from the cmd.exe process, we also need to use "start" here.
+                // Since we could have spaces in our .exe path, the path has to be surrounded by quotes.
+                // Doing this properly, together with "start", its fist argument has to be empty quotes.
+                // See here -> https://stackoverflow.com/questions/2937569/how-to-start-an-application-without-waiting-in-a-batch-file
+
                 var psi = new ProcessStartInfo
                 {
-                    Arguments = $"/C start ping 127.0.0.1 -n 3 && \"{AppHelper.GetApplicationExecutableFilePath()}\"",
+                    Arguments = $"/C ping 127.0.0.1 -n 2 && start \"\" \"{AppHelper.GetApplicationExecutableFilePath()}\"",
                     WindowStyle = ProcessWindowStyle.Hidden,
                     CreateNoWindow = true,
                     FileName = "cmd.exe"

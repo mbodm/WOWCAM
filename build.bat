@@ -9,12 +9,15 @@ cls
 echo.
 echo WOWCAM build script 1.0.3 (by MBODM 12/2024)
 echo.
-if not exist %RELEASE_FOLDER% mkdir %RELEASE_FOLDER%
 
 echo Build...
 cd %PROJECT_FOLDER%
 dotnet build --no-incremental -c Release -v quiet && dotnet publish -c Release -v quiet
 cd %CURRENT_FOLDER%
+echo.
+
+echo Copy...
+if not exist %RELEASE_FOLDER% mkdir %RELEASE_FOLDER%
 echo.
 copy /B /V /Y %PUBLISH_FOLDER%\WOWCAM.exe %RELEASE_FOLDER%
 

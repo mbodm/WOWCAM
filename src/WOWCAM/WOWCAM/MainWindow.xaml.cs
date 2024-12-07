@@ -142,6 +142,7 @@ namespace WOWCAM
                 updateManager.ApplyUpdate();
                 ShowInfo("Update successfully applied. Application will restart now.");
                 updateManager.RestartApplication();
+                Application.Current.Shutdown();
             }
             catch (Exception ex)
             {

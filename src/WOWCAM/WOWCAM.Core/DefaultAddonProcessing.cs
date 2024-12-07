@@ -41,7 +41,10 @@ namespace WOWCAM.Core
 
                 try
                 {
-                    var addonDownloadUrlData = await webViewWrapper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl).ConfigureAwait(false);
+                    // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
+                    // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
+
+                    var addonDownloadUrlData = await webViewWrapper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl);
                     addonDownloadDataList.Add(addonDownloadUrlData);
                 }
                 catch (Exception e)

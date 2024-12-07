@@ -6,22 +6,16 @@ set PROJECT_FOLDER=%CURRENT_FOLDER%\src\WOWCAM\WOWCAM
 set PUBLISH_FOLDER=%PROJECT_FOLDER%\bin\Release\net8.0-windows\win-x64\publish
 
 cls
-echo.
-echo WOWCAM build script 1.0.3 (by MBODM 12/2024)
-echo.
+echo. && echo WOWCAM build script 1.0.3 (by MBODM 12/2024) && echo.
+echo Will perform the following 4 steps now: && echo.
+echo 1) dotnet clean && echo 2) dotnet build && echo 3) dotnet publish && echo 4) copy executable && echo.
 
-echo Build...
 cd %PROJECT_FOLDER%
-dotnet build --no-incremental -c Release -v quiet && dotnet publish -c Release -v quiet
+dotnet clean -v quiet && dotnet build --no-incremental -c Release -v quiet && dotnet publish -c Release -v quiet
 cd %CURRENT_FOLDER%
-echo.
-
-echo Copy...
 if not exist %RELEASE_FOLDER% mkdir %RELEASE_FOLDER%
-echo.
-copy /B /V /Y %PUBLISH_FOLDER%\WOWCAM.exe %RELEASE_FOLDER%
+copy /B /V /Y %PUBLISH_FOLDER%\WOWCAM.exe %RELEASE_FOLDER% >NUL
 
-echo.
 echo Have a nice day.
 
 REM Show timeout when started via double click

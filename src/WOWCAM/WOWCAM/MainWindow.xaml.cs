@@ -107,15 +107,15 @@ namespace WOWCAM
 
                 // Not sure how a MessageBox handles raw string literals (introduced in C# 11).
                 // Therefore i decided to place the safe bet here and do it somewhat old-school.
-                var text = string.Empty;
-                text += $"A new WOWCAM version is available.{Environment.NewLine}";
-                text += Environment.NewLine;
-                text += $"This version: {updateData.InstalledVersion}{Environment.NewLine}";
-                text += $"Latest version: {updateData.AvailableVersion}{Environment.NewLine}";
-                text += Environment.NewLine;
-                text += $"Download and apply latest version now?{Environment.NewLine}";
+                var question1 = string.Empty;
+                question1 += $"A new WOWCAM version is available.{Environment.NewLine}";
+                question1 += Environment.NewLine;
+                question1 += $"This version: {updateData.InstalledVersion}{Environment.NewLine}";
+                question1 += $"Latest version: {updateData.AvailableVersion}{Environment.NewLine}";
+                question1 += Environment.NewLine;
+                question1 += $"Download latest version now?{Environment.NewLine}";
 
-                if (MessageBox.Show(text, "Question", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                if (MessageBox.Show(question1, "Question", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 {
                     return;
                 }
@@ -139,9 +139,16 @@ namespace WOWCAM
                 await Task.Delay(1250);
 
                 SetProgress(null, "Download finished", 1, 1);
+
+                var question2 = $"Update successfully downloaded.{Environment.NewLine}{Environment.NewLine}Apply update now and restart application?";
+                if (MessageBox.Show(question2, "Question", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+
                 updateManager.ApplyUpdate();
-                ShowInfo("Update successfully applied. Application will restart now.");
                 updateManager.RestartApplication();
+
                 Application.Current.Shutdown();
             }
             catch (Exception ex)

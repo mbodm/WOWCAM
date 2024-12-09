@@ -67,7 +67,7 @@ namespace WOWCAM.Core
             {
                 Directory.CreateDirectory(downloadFolder);
             }
-
+            
             // Download and Unzip
 
             try
@@ -80,6 +80,8 @@ namespace WOWCAM.Core
                 logger.Log(e);
                 throw new InvalidOperationException("An error occurred while downloading and unzipping the addons (see log file for details).");
             }
+
+            return;
 
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
@@ -155,9 +157,10 @@ namespace WOWCAM.Core
                 logger.Log(e);
                 throw new InvalidOperationException("An error occurred while downloading zip file (see log file for details).");
             }
-
+            
             progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedDownload, addonDownloadUrlData.FileName));
 
+            /*
             // Validdate & Extract zip file
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -184,6 +187,7 @@ namespace WOWCAM.Core
             }
 
             progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedUnzip, addonDownloadUrlData.FileName));
+            */
         }
     }
 }

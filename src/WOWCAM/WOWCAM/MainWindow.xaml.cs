@@ -165,21 +165,33 @@ namespace WOWCAM
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
             SetControls(false);
-            SetProgress(true, string.Empty, 0, config.AddonUrls.Count() * 3);
+            SetProgress(true, string.Empty, 0, config.AddonUrls.Count() * 2);
+
+
+            // Temp:
+            var fff = config.AddonUrls.Where(url => !url.Contains("raiderio"));
 
             var sw = Stopwatch.StartNew();
 
             try
             {
-                await addonProcessing.ProcessAddonsAsync(webView.CoreWebView2, config.AddonUrls, config.TempFolder, config.TargetFolder, new Progress<ModelAddonProcessingProgress>(p =>
+                await addonProcessing.ProcessAddonsAsync(webView.CoreWebView2, fff, config.TempFolder, config.TargetFolder, new Progress<ModelAddonProcessingProgress>(p =>
                 {
+                    //if (p.State == EnumAddonProcessingState.StartingFetch) labelProgressBar.Content = $"Fetch {p.Addon}";
+                    //if (p.State == EnumAddonProcessingState.StartingDownload) labelProgressBar.Content = $"Download {p.Addon}";
+                    //if (p.State == EnumAddonProcessingState.StartingUnzip) labelProgressBar.Content = $"Unzip {p.Addon}";
+                    //if (p.State == EnumAddonProcessingState.FinishedFetch || p.State == EnumAddonProcessingState.FinishedDownload || p.State == EnumAddonProcessingState.FinishedUnzip)
+                    //{
+                    //    progressBar.Value++;
+                    //    if (progressBar.Value == progressBar.Maximum) labelProgressBar.Content = "Clean up";
+                    //}
+
                     if (p.State == EnumAddonProcessingState.StartingFetch) labelProgressBar.Content = $"Fetch {p.Addon}";
                     if (p.State == EnumAddonProcessingState.StartingDownload) labelProgressBar.Content = $"Download {p.Addon}";
-                    if (p.State == EnumAddonProcessingState.StartingUnzip) labelProgressBar.Content = $"Unzip {p.Addon}";
-                    if (p.State == EnumAddonProcessingState.FinishedFetch || p.State == EnumAddonProcessingState.FinishedDownload || p.State == EnumAddonProcessingState.FinishedUnzip)
+                    if (p.State == EnumAddonProcessingState.FinishedFetch || p.State == EnumAddonProcessingState.FinishedDownload)
                     {
                         progressBar.Value++;
-                        if (progressBar.Value == progressBar.Maximum) labelProgressBar.Content = "Clean up";
+                        if (progressBar.Value == progressBar.Maximum) labelProgressBar.Content = "Done.";
                     }
                 }));
 

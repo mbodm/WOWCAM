@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace FinalPrototyping.Logger
+namespace WOWCAM.Core
 {
     public interface ILogger
     {

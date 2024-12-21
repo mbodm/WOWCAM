@@ -1,7 +1,6 @@
-﻿using System.IO;
-using Microsoft.Web.WebView2.Core;
+﻿using Microsoft.Web.WebView2.Core;
 
-namespace FinalPrototyping.WebView
+namespace WOWCAM.WebView
 {
     public sealed class WebViewHelper
     {

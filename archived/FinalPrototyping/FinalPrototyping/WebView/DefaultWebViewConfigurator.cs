@@ -1,5 +1,6 @@
 ﻿using System.IO;
-using FinalPrototyping.Helper;
+using WOWCAM.Helper;
+using WOWCAM.WebView;
 
 namespace FinalPrototyping.WebView
 {

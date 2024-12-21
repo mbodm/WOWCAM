@@ -2,10 +2,10 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using FinalPrototyping.Logger;
-using FinalPrototyping.Scrap;
 using FinalPrototyping.WebView;
-using Microsoft.Web.WebView2.Core;
+using WOWCAM.Core;
+using WOWCAM.Helper;
+using WOWCAM.WebView;
 
 namespace FinalPrototyping
 {
@@ -13,9 +13,9 @@ namespace FinalPrototyping
     {
         private readonly ILogger logger = new DefaultLogger();
 
-        private readonly DefaultWebViewProvider webViewProvider;
-        private readonly DefaultWebViewConfigurator webViewConfigurator;
-        private readonly DefaultCurseScraper curseScraper;
+        private readonly IWebViewProvider webViewProvider;
+        private readonly IWebViewConfigurator webViewConfigurator;
+        private readonly ICurseScraper curseScraper;
 
         private readonly Stopwatch sw = new();
 
@@ -39,7 +39,7 @@ namespace FinalPrototyping
             webViewConfigurator.SetDownloadFolder(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "TestDownloads"));
             webViewConfigurator.EnsureDownloadFolderExists();
 
-            webView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
+            //webView.CoreWebView2.DownloadStarting += CoreWebView2_DownloadStarting;
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e)
@@ -57,27 +57,94 @@ namespace FinalPrototyping
 
                 if (button.Content.ToString() == "Start2")
                 {
-                    var downloadUrl = await curseScraper.GetAddonDownloadUrlAsync("https://www.curseforge.com/wow/addons/raiderio");
-                    webView.CoreWebView2.Navigate(downloadUrl);
-                }
-            }
-        }
+                    IEnumerable<string> addonUrls = [
+                        "https://www.curseforge.com/wow/addons/deadly-boss-mods",
+                        "https://www.curseforge.com/wow/addons/details",
+                        "https://www.curseforge.com/wow/addons/groupfinderflags",
+                        "https://www.curseforge.com/wow/addons/raiderio",
+                        "https://www.curseforge.com/wow/addons/tomtom",
+                        "https://www.curseforge.com/wow/addons/weakauras-2"
+                    ];
 
-        private void CoreWebView2_DownloadStarting(object? sender, CoreWebView2DownloadStartingEventArgs e)
-        {
-            e.DownloadOperation.StateChanged += DownloadOperation_StateChanged;
-        }
+                    progressBar.Value = 0;
+                    progressBar.Maximum = addonUrls.Count();
 
-        private void DownloadOperation_StateChanged(object? sender, object e)
-        {
-            if (sender is CoreWebView2DownloadOperation op)
-            {
-                if (op.State == CoreWebView2DownloadState.Completed)
-                {
+
+
+
+                    /*
+                    List<string> downloadUrls = [];
+                    foreach (var addonUrl in addonUrls)
+                    {
+                        var addonName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl);
+                        textBlock.Text = $"Fetch {addonName}";
+
+                        var downloadUrl = await curseScraper.GetAddonDownloadUrlAsync(addonUrl);
+                        downloadUrls.Add(downloadUrl);
+
+                        progressBar.Value++;
+                    }
+                    */
+
+                    await GetDownloadUrlsAsync(addonUrls, new Progress<string>(p =>
+                    {
+
+                    })),
+
+
+
+
+
+                    //var downloadUrls = await curseScraper.GetAddonDownloadUrlsAsync(addonUrls);
+                    
+                    sw.Stop();
+                    MessageBox.Show($"Fetch finished. Time (in ms): {sw.ElapsedMilliseconds}");
+                    
+                    sw.Restart();
+                    progressBar.Value = 0;
+                    textBlock.Text = "Download...";
+
+                    /*
+                    var downloader = new DefaultWebViewDownloaderEAP(logger, webViewProvider);
+                    
+                    downloader.DownloadCompleted += (s, e) =>
+                    {
+                        sw.Stop();
+                        MessageBox.Show($"Download finished. Time (in ms): {sw.ElapsedMilliseconds}");
+                    };
+
+                    downloader.DownloadProgressChanged += (s, e) =>
+                    {
+                        progressBar.Value++;
+                    };
+                    
+                    downloader.DownloadAsync(downloadUrls, webViewConfigurator.GetDownloadFolder());
+                    */
+
+                    MessageBox.Show(string.Join(", ", downloadUrls));
+
+                    return;
+
+                    var downloader = new DefaultWebViewDownloader(logger, webViewProvider);
+
+                    var progress = new Progress<string>(p =>
+                    {
+                        progressBar.Value++;
+                    });
+
+                    await downloader.DownloadFilesAsync(downloadUrls, progress);
+
                     sw.Stop();
                     MessageBox.Show($"Download finished. Time (in ms): {sw.ElapsedMilliseconds}");
                 }
             }
+        }
+
+        private async Task GetDownloadUrlsAsync(IEnumerable<string> addonUrls, IProgress<string> progress, CancellationToken cancellationToken = default)
+        {
+            var tasks = addonUrls.Select(addonUrl => curseScraper.GetAddonDownloadUrlAsync(addonUrl, cancellationToken));
+            
+            await Task.WhenAll(tasks);
         }
     }
 }

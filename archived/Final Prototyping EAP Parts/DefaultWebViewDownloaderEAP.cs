@@ -1,17 +1,18 @@
 ﻿using System.Collections.Concurrent;
-using FinalPrototyping.Logger;
-using FinalPrototyping.WebView;
 using Microsoft.Web.WebView2.Core;
+using WOWCAM.Core;
 
-namespace FinalPrototyping.EAP
+namespace WOWCAM.WebView
 {
     public sealed class DefaultWebViewDownloaderEAP(ILogger logger, IWebViewProvider webViewProvider) : IWebViewDownloaderEAP
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly IWebViewProvider webViewProvider = webViewProvider ?? throw new ArgumentNullException(nameof(webViewProvider));
 
+
         private readonly ConcurrentQueue<string> queue = new();
         private int maxDownloads;
+        private int finishedDownloads;
         private bool errorOccurred;
         private bool cancellationRequested;
 
@@ -39,12 +40,18 @@ namespace FinalPrototyping.EAP
                 throw new InvalidOperationException(
                     "Busy, cause asynchronous operation is already running (EAP approach of this class does not support multiple concurrent invocations).");
             }
+            else
+            {
+                IsBusy = true;
+            }
 
-            IsBusy = true;
-
+            finishedDownloads = 0;
             maxDownloads = downloadUrls.Count();
-            errorOccurred = false;
-            cancellationRequested = false;
+
+            foreach (var downloadUrl in downloadUrls)
+            {
+                queue.Enqueue(downloadUrl);
+            }
 
             var webView = webViewProvider.GetWebView();
 
@@ -52,59 +59,38 @@ namespace FinalPrototyping.EAP
             webView.NavigationCompleted += WebView_NavigationCompleted;
             webView.DownloadStarting += WebView_DownloadStarting;
 
-            webView.Navigate(DequeueNextDownloadUrl());
+            var url = DequeueNextUrl();
+            webView.Navigate(url);
         }
 
-        public void DownloadAsyncCancel(object userState)
+        public void DownloadAsyncCancel()
         {
             cancellationRequested = true;
         }
 
         private void WebView_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
         {
-            logger.Log(WebViewHelper.CreateLogLinesForNavigationStarting(sender, e));
-
-            e.Cancel = cancellationRequested;
+            logger.Log("Todo");
         }
 
         private void WebView_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
         {
-            logger.Log(WebViewHelper.CreateLogLinesForNavigationCompleted(sender, e));
+            logger.Log("Todo");
 
-            if (sender is not CoreWebView2 webView)
+            if (sender is CoreWebView2 webView)
             {
-                logger.Log("WebView2 raised the 'NavigationCompleted' event, but its 'sender' was invalid.");
-                errorOccurred = true;
-                return;
-            }
+                // Do not check success or error here since by default Curse do a 'ConnectionAborted' before the download starts
 
-            if (!e.IsSuccess)
-            {
-                logger.Log("WebView2 raised the 'NavigationCompleted' event, but its 'EventArgs.IsSuccess' was 'false'.");
-                errorOccurred = true;
-                return;
+                if (!queue.IsEmpty)
+                {
+                    var url = DequeueNextUrl();
+                    webView.Navigate(url);
+                }
             }
-
-            if (e.WebErrorStatus == CoreWebView2WebErrorStatus.OperationCanceled)
-            {
-                logger.Log("WebView2 raised the 'NavigationCompleted' event, but its 'EventArgs.WebErrorStatus' was 'OperationCanceled'.");
-                errorOccurred = true;
-                return;
-            }
-
-            webView.Navigate(DequeueNextDownloadUrl());
         }
 
         private void WebView_DownloadStarting(object? sender, CoreWebView2DownloadStartingEventArgs e)
         {
-            logger.Log("Todo: Create log lines for download starting");
-
-            if (errorOccurred || cancellationRequested)
-            {
-                e.Cancel = true;
-                return;
-            }
-
             e.DownloadOperation.BytesReceivedChanged += DownloadOperation_BytesReceivedChanged;
             e.DownloadOperation.StateChanged += DownloadOperation_StateChanged;
         }
@@ -112,61 +98,31 @@ namespace FinalPrototyping.EAP
         private void DownloadOperation_BytesReceivedChanged(object? sender, object e)
         {
             logger.Log("Todo: Create log lines for BytesReceivedChanged");
-
-            if (sender is not CoreWebView2DownloadOperation downloadOperation)
-            {
-                logger.Log("WebView2 raised the 'BytesReceivedChanged' event, but its 'sender' was invalid.");
-                return;
-            }
-
-            if (errorOccurred || cancellationRequested)
-            {
-                downloadOperation.Cancel();
-                return;
-            }
         }
 
         private void DownloadOperation_StateChanged(object? sender, object e)
         {
             logger.Log("Todo: Create log lines for StateChanged");
 
-            if (sender is not CoreWebView2DownloadOperation downloadOperation)
+            if (sender is CoreWebView2DownloadOperation downloadOperation)
             {
-                logger.Log("WebView2 raised the 'BytesReceivedChanged' event, but its 'sender' was invalid.");
-                return;
-            }
-
-            if (errorOccurred || cancellationRequested)
-            {
-                downloadOperation.Cancel();
-            }
-
-            if (downloadOperation.State == CoreWebView2DownloadState.Interrupted)
-            {
-                if (downloadOperation.InterruptReason == CoreWebView2DownloadInterruptReason.UserCanceled)
+                if (downloadOperation.State == CoreWebView2DownloadState.Completed)
                 {
-                }
-            }
-            
-            if (downloadOperation.State == CoreWebView2DownloadState.Completed)
-            {
-                OnDownloadProgressChanged();
+                    Interlocked.Increment(ref finishedDownloads);
 
-                if (queue.Count <= 0)
-                {
-                    OnDownloadCompleted();
+                    OnDownloadProgressChanged();
+
+                    if (finishedDownloads >= maxDownloads)
+                    {
+                        OnDownloadCompleted();
+                    }
                 }
             }
         }
 
-        private string DequeueNextDownloadUrl()
+        private string DequeueNextUrl()
         {
-            if (queue.TryDequeue(out string? downloadUrl))
-            {
-                return downloadUrl;
-            }
-
-            throw new InvalidOperationException("Could not dequeue next URL from queue.");
+            return !queue.IsEmpty && queue.TryDequeue(out string? url) && url != null ? url : string.Empty;
         }
 
         private void OnDownloadCompleted()
@@ -203,7 +159,7 @@ namespace FinalPrototyping.EAP
 
             try
             {
-                var remainingDownloads = queue.Count;
+                var remainingDownloads = 0;
                 var finishedDownloads = maxDownloads - remainingDownloads;
 
                 var exact = (double)(finishedDownloads / maxDownloads) * 100;

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace FinalPrototyping.Helper
+namespace WOWCAM.Helper
 {
     public sealed class CurseHelper
     {

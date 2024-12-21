@@ -1,6 +1,6 @@
 ﻿using Microsoft.Web.WebView2.Core;
 
-namespace FinalPrototyping.WebView
+namespace WOWCAM.WebView
 {
     public interface IWebViewProvider
     {

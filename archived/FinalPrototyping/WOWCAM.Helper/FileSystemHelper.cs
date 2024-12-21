@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
-using System.IO;
 
-namespace FinalPrototyping.Helper
+namespace WOWCAM.Helper
 {
     public sealed class FileSystemHelper
     {

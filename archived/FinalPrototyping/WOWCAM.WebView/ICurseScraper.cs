@@ -1,4 +1,4 @@
-﻿namespace FinalPrototyping.Scrap
+﻿namespace WOWCAM.WebView
 {
     public interface ICurseScraper
     {

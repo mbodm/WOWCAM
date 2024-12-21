@@ -1,8 +1,7 @@
-﻿using System.IO;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace FinalPrototyping.Logger
+namespace WOWCAM.Core
 {
     public sealed class DefaultLogger : ILogger
     {

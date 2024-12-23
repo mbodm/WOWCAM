@@ -7,8 +7,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\WOWCAM.Helper\WOWCAM.Helper.csproj" />
-		<ProjectReference Include="..\WOWCAM.WebView\WOWCAM.WebView.csproj" />
+		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\WOWCAM.Core\WOWCAM.Core.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-﻿namespace WOWCAM.Core
+﻿namespace WOWCAM.WebView
 {
     public enum EnumAddonProcessingState
     {

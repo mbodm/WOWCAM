@@ -1,18 +1,18 @@
-﻿using Microsoft.Web.WebView2.Core;
+﻿using WOWCAM.Core;
 using WOWCAM.Helper;
 
-namespace WOWCAM.Core
+namespace WOWCAM.WebView
 {
-    public sealed class DefaultAddonProcessing(ILogger logger, IWebViewWrapper webViewWrapper, HttpClient httpClient) : IAddonProcessing
+    public sealed class DefaultAddonProcessing(ILogger logger, ICurseScraper curseScraper, IWebViewDownloader webViewDownloader, HttpClient httpClient) : IAddonProcessing
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IWebViewWrapper webViewWrapper = webViewWrapper ?? throw new ArgumentNullException(nameof(webViewWrapper));
+        private readonly ICurseScraper curseScraper = curseScraper ?? throw new ArgumentNullException(nameof(curseScraper));
+        private readonly IWebViewDownloader webViewDownloader = webViewDownloader ?? throw new ArgumentNullException(nameof(webViewDownloader));
         private readonly HttpClient httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
-        public async Task ProcessAddonsAsync(CoreWebView2 coreWebView, IEnumerable<string> addonUrls, string tempFolder, string targetFolder,
+        public async Task ProcessAddonsAsync(IEnumerable<string> addonUrls, string tempFolder, string targetFolder,
             IProgress<ModelAddonProcessingProgress>? progress = default, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(coreWebView);
             ArgumentNullException.ThrowIfNull(addonUrls);
 
             if (string.IsNullOrWhiteSpace(tempFolder))
@@ -25,37 +25,38 @@ namespace WOWCAM.Core
                 throw new ArgumentException($"'{nameof(targetFolder)}' cannot be null or whitespace.", nameof(targetFolder));
             }
 
+
+
+
+
+            // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
+            // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
+
+
+
+
+
             // Fetch JSON data
 
-            var addonDownloadDataList = new List<ModelAddonDownloadData>();
-
-            // This needs to happen sequential, cause of WebView2 behavior!
-            // Therefore do not use concurrency, like Task.WhenAll(), here!
-
-            foreach (var addonUrl in addonUrls)
+            IEnumerable<string> downloadUrls;
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var slugName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl);
-                progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingFetch, slugName));
-
-                try
+                var tasks = addonUrls.Select(async addonUrl =>
                 {
-                    // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
-                    // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
+                    progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingFetch, CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl)));
+                    var downloadUrl = await curseScraper.GetAddonDownloadUrlAsync(addonUrl, cancellationToken);
+                    progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedFetch, CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl)));
+                    return downloadUrl;
+                });
 
-                    var addonDownloadUrlData = await webViewWrapper.GetAddonDownloadUrlDataAsync(coreWebView, addonUrl);
-                    addonDownloadDataList.Add(addonDownloadUrlData);
-                }
-                catch (Exception e)
-                {
-                    logger.Log(e);
-                    throw new InvalidOperationException("An error occurred while fetching JSON from the addon pages (see log file for details).");
-                }
-
-                progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedFetch, slugName));
+                downloadUrls = await Task.WhenAll(tasks);
             }
-
+            catch (Exception e)
+            {
+                logger.Log(e);
+                throw new InvalidOperationException("An error occurred while fetching JSON from the addon pages (see log file for details).");
+            }
+            
             var downloadFolder = Path.Combine(tempFolder, "MBODM-WOWCAM-Download");
             if (!Directory.Exists(downloadFolder))
             {
@@ -67,12 +68,12 @@ namespace WOWCAM.Core
             {
                 Directory.CreateDirectory(downloadFolder);
             }
-            
+
             // Download and Unzip
 
             try
             {
-                var tasks = addonDownloadDataList.Select(addonDownloadUrlData => ProcessAddonAsync(addonDownloadUrlData, downloadFolder, unzipFolder, progress, cancellationToken));
+                var tasks = downloadUrls.Select(addonDownloadUrlData => ProcessAddonAsync(addonDownloadUrlData, downloadFolder, unzipFolder, progress, cancellationToken));
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -157,7 +158,7 @@ namespace WOWCAM.Core
                 logger.Log(e);
                 throw new InvalidOperationException("An error occurred while downloading zip file (see log file for details).");
             }
-            
+
             progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedDownload, addonDownloadUrlData.FileName));
 
             /*
@@ -188,6 +189,28 @@ namespace WOWCAM.Core
 
             progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedUnzip, addonDownloadUrlData.FileName));
             */
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        private async Task<IEnumerable<string>> GetDownloadUrlsAsync(IEnumerable<string> addonUrls, IProgress<string> progress, CancellationToken cancellationToken = default)
+        {
+            return downloadUrls;
         }
     }
 }

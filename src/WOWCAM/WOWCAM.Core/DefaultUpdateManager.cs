@@ -12,7 +12,7 @@ namespace WOWCAM.Core
         private readonly string appName = AppHelper.GetApplicationName();
         private readonly string appFileName = AppHelper.GetApplicationExecutableFileName();
 
-        public async Task<ModelApplicationUpdateData> CheckForUpdateAsync(CancellationToken cancellationToken = default)
+        public async Task<UpdateManagerUpdateData> CheckForUpdateAsync(CancellationToken cancellationToken = default)
         {
             var installedVersion = GetInstalledVersion();
 
@@ -21,7 +21,7 @@ namespace WOWCAM.Core
                 var latestReleaseData = await GitHubHelper.GetLatestReleaseDataAsync("mbodm", "wowcam", httpClient, cancellationToken).ConfigureAwait(false);
                 var updateAvailable = installedVersion < latestReleaseData.Version;
 
-                return new ModelApplicationUpdateData(installedVersion, latestReleaseData.Version, updateAvailable, latestReleaseData.DownloadUrl, latestReleaseData.FileName);
+                return new UpdateManagerUpdateData(installedVersion, latestReleaseData.Version, updateAvailable, latestReleaseData.DownloadUrl, latestReleaseData.FileName);
             }
             catch (Exception e)
             {
@@ -30,7 +30,7 @@ namespace WOWCAM.Core
             }
         }
 
-        public async Task DownloadUpdateAsync(ModelApplicationUpdateData updateData,
+        public async Task DownloadUpdateAsync(UpdateManagerUpdateData updateData,
             IProgress<DownloadHelperProgress>? downloadProgress = null, CancellationToken cancellationToken = default)
         {
             try

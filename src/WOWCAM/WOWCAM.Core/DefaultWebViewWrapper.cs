@@ -1,8 +1,7 @@
 ﻿using System.Text;
 using Microsoft.Web.WebView2.Core;
-using WOWCAM.Core;
 
-namespace WOWCAM.WebView
+namespace WOWCAM.Core
 {
     public sealed class WebViewWrapper(ILogger logger, IWebViewProvider webViewProvider)
     {
@@ -64,7 +63,7 @@ namespace WOWCAM.WebView
             return json;
         }
 
-        public async Task NavigateAndDownloadFileAsync(string downloadUrl, IProgress<DownloadProgress>? progress = null, CancellationToken cancellationToken = default)
+        public async Task NavigateAndDownloadFileAsync(string downloadUrl, IProgress<WebViewWrapperDownloadProgress>? progress = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(downloadUrl))
             {
@@ -89,13 +88,13 @@ namespace WOWCAM.WebView
                 throw new InvalidOperationException("Download navigation failed (WebView2 navigation encapsulation returned null).");
             }
 
-            // I decided against some "navigation progress" report state here (since WebView2 not offers anything to progress)
-            // Therefore a "nav-finished & download-starts" progress would be the only progress to give here (which is useless)
+            // I decided against some "navigation progress" report state here (since WebView2 not offers anything to progress).
+            // Therefore a "nav-finished & download-starts" progress would be the only progress to give here (which is useless).
 
             await ConcurrentDownloadAsync(downloadOperation, progress, cancellationToken);
         }
 
-        private Task<CoreWebView2DownloadOperation?> NonConcurrentNavigateAsync(string url, bool startsDownload, CancellationToken cancellationToken = default)
+        private Task<CoreWebView2DownloadOperation?> NonConcurrentNavigateAsync(string url, bool isDownload, CancellationToken cancellationToken = default)
         {
             // This method follows the typical "wrap EAP into TAP" approach (WebView2 navigation part)
 
@@ -121,11 +120,11 @@ namespace WOWCAM.WebView
 
                     if (e.IsSuccess)
                     {
-                        if (startsDownload)
+                        if (isDownload)
                         {
-                            // Behaviour is slightly different if URL automatically starts a download after navigation
-                            // For some reason the navigation connection aborts before download starts nonetheless then
-                            // Therefore navigation landing in 'ConnectionAborted' state below (instead of ending here)
+                            // Behaviour is slightly different if URL automatically starts a download after navigation.
+                            // For some reason the navigation connection aborts before download starts nonetheless then.
+                            // Therefore navigation landing in 'ConnectionAborted' state below (instead of ending here).
                         }
                         else
                         {
@@ -144,10 +143,10 @@ namespace WOWCAM.WebView
                                 tcs.SetException(new InvalidOperationException("WebView2 connection timeout occurred, while navigating."));
                                 break;
                             case CoreWebView2WebErrorStatus.ConnectionAborted:
-                                if (startsDownload)
+                                if (isDownload)
                                 {
-                                    // For a download URL ignore this error state since for some reason the navigation connection aborts before download starts nonetheless then
-                                    // There is some slightly different behaviour between a page URL (ends in "IsSuccess") and a download URL (ends in "DownloadStarting" event)
+                                    // There is some slightly different behaviour between a page URL (ends in "IsSuccess") and a download URL (ends in "DownloadStarting" event).
+                                    // For a download URL ignore this error state, cause for some reason the navigation connection aborts before download starts nonetheless then.
                                 }
                                 else
                                 {
@@ -191,7 +190,7 @@ namespace WOWCAM.WebView
             webView.NavigationStarting += NavigationStartingEventHandler;
             webView.NavigationCompleted += NavigationCompletedEventHandler;
 
-            if (startsDownload)
+            if (isDownload)
             {
                 webView.DownloadStarting += DownloadStartingEventHandler;
             }
@@ -230,7 +229,7 @@ namespace WOWCAM.WebView
         }
 
         private Task ConcurrentDownloadAsync(CoreWebView2DownloadOperation downloadOperation,
-            IProgress<DownloadProgress>? progress = default, CancellationToken cancellationToken = default)
+            IProgress<WebViewWrapperDownloadProgress>? progress = default, CancellationToken cancellationToken = default)
         {
             // This method follows the typical "wrap EAP into TAP" approach (WebView2 download part)
 
@@ -253,7 +252,7 @@ namespace WOWCAM.WebView
             // StateChanged
             void StateChangedEventHandler(object? sender, object e)
             {
-                logger.Log("WebView2 StateChanged event handler reached.");
+                logger.Log("WebView2 'StateChanged' event handler reached.");
 
                 if (sender is CoreWebView2DownloadOperation downloadOperation)
                 {
@@ -279,8 +278,8 @@ namespace WOWCAM.WebView
                             }
                             break;
                         case CoreWebView2DownloadState.Completed:
-                            // Sadly WebView2 does not raise the 'BytesReceivedChanged' event for very small download files
-                            // Therefore it is important to create a single 100% progress report here for accurate behavior
+                            // Sadly WebView2 does not raise the 'BytesReceivedChanged' event for very small download files.
+                            // Therefore it is important to create a single 100% progress report here, for accurate behavior.
                             progress?.Report(CreateDownloadProgress(downloadOperation));
                             tcs.TrySetResult();
                             break;
@@ -296,8 +295,8 @@ namespace WOWCAM.WebView
                 }
             }
 
-            // Normalize the 'CoreWebView2DownloadOperation' long and ulong? discrepancy to an uint (for better/easier progress report handling)
-            // An uint fits both (long and ulong) for progress and in my opinion there is just no need to support files larger than 4 GB anyway
+            // Normalize the 'CoreWebView2DownloadOperation' long and ulong? discrepancy to an uint (for better/easier progress report handling).
+            // An uint fits both (long and ulong) for progress and in my opinion there is just no need to support files larger than 4 GB anyway.
 
             if (downloadOperation.TotalBytesToReceive < uint.MaxValue)
             {
@@ -312,7 +311,7 @@ namespace WOWCAM.WebView
             return tcs.Task;
         }
 
-        private static DownloadProgress CreateDownloadProgress(CoreWebView2DownloadOperation downloadOperation)
+        private static WebViewWrapperDownloadProgress CreateDownloadProgress(CoreWebView2DownloadOperation downloadOperation)
         {
             var totalBytes = 0u;
             var receivedBytes = 0u;
@@ -327,7 +326,7 @@ namespace WOWCAM.WebView
 
             // Otherwise use 0 for total bytes and 0 for received bytes
 
-            return new DownloadProgress(downloadOperation.Uri, downloadOperation.ResultFilePath, totalBytes, receivedBytes);
+            return new WebViewWrapperDownloadProgress(downloadOperation.Uri, downloadOperation.ResultFilePath, totalBytes, receivedBytes);
         }
     }
 }

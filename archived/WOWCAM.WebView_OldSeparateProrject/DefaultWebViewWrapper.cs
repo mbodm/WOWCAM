@@ -1,20 +1,101 @@
-﻿using Microsoft.Web.WebView2.Core;
+﻿using System.Text;
+using Microsoft.Web.WebView2.Core;
 using WOWCAM.Core;
 
 namespace WOWCAM.WebView
 {
-    // Be careful: This class is used internally and is just a first step to TAP encapsulation for WebView2 navigation
-    // But this class does NOT already offering safe concurrent TAP navigations for WebView2 (and its specific design)
-    // This class is instead just A PART of the way to get there (to "wrap the specific WebView2 EAP design into TAP")
-
-    internal sealed class Shibby(ILogger logger, IWebViewProvider webViewProvider)
+    public sealed class DefaultWebViewWrapper(ILogger logger, IWebViewProvider webViewProvider)
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly IWebViewProvider webViewProvider = webViewProvider ?? throw new ArgumentNullException(nameof(webViewProvider));
 
+        private readonly SemaphoreSlim semaphore = new(1, 1);
+
         public bool HideDownloadDialog { get; set; }
 
-        public Task<CoreWebView2DownloadOperation?> NavigateAsync(string url, bool startsDownload, CancellationToken cancellationToken = default)
+        public async Task NavigateToPageAsync(string pageUrl, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(pageUrl))
+            {
+                throw new ArgumentException($"'{nameof(pageUrl)}' cannot be null or whitespace.", nameof(pageUrl));
+            }
+
+            // Process of "navigating to page" has to be one atomic operation, to prevent concurrent navigation. And here is why:
+            // Users of this TAP method expect the method to be able to run concurrently (since this is what TAP is designed for).
+            // But all WebView2 navigations (incl. their completion) have to run sequentially (cause of how WebView2 is designed).
+            // This means: A simple "encapsulate WebView2 EAP into TAP" approach is not enough, to handle the design of WebView2.
+            // Therefore a semaphore is used to make sure "navigating to page" runs atomic, to prevent any concurrent navigation.
+            // You may ask "why even bother with TAP then, instead of sync stuff?" and you will find the answer in below methods.
+
+            await semaphore.WaitAsync(cancellationToken);
+            logger.Log("Navigate to page URL.");
+            await NonConcurrentNavigateAsync(pageUrl, false, cancellationToken);
+            semaphore.Release();
+        }
+
+        public async Task<string> NavigateToPageAndExecuteJavaScriptAsync(string pageUrl, string javaScript, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(pageUrl))
+            {
+                throw new ArgumentException($"'{nameof(pageUrl)}' cannot be null or whitespace.", nameof(pageUrl));
+            }
+
+            if (string.IsNullOrWhiteSpace(javaScript))
+            {
+                throw new ArgumentException($"'{nameof(javaScript)}' cannot be null or whitespace.", nameof(javaScript));
+            }
+
+            // Complete process of "navigating to page and executing the JavaScript" has to be one atomic operation. Here is why:
+            // Users of this TAP method expect the method to be able to run concurrently (since this is what TAP is designed for).
+            // But all WebView2 navigations (incl. their completion) have to run sequentially (cause of how WebView2 is designed).
+            // Also WebView2 should not be allowed to navigate again, before JS code execution has finished for the current page.
+            // This means: A simple "encapsulate WebView2 EAP into TAP" approach is not enough, to handle the design of WebView2.
+            // Therefore a semaphore is used to make sure the whole "navigating to page and executing the JavaScript" runs atomic.
+
+            await semaphore.WaitAsync(cancellationToken);
+            logger.Log("Navigate to page URL and execute JavaScript code.");
+            await NonConcurrentNavigateAsync(pageUrl, false, cancellationToken);
+            var jsonAsBase64 = await ExecuteJavaScriptAsync(javaScript);
+            semaphore.Release();
+
+            var bytes = Convert.FromBase64String(jsonAsBase64);
+            var json = Encoding.UTF8.GetString(bytes);
+
+            return json;
+        }
+
+        public async Task NavigateAndDownloadFileAsync(string downloadUrl, IProgress<DownloadProgress>? progress = null, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(downloadUrl))
+            {
+                throw new ArgumentException($"'{nameof(downloadUrl)}' cannot be null or whitespace.", nameof(downloadUrl));
+            }
+
+            // Process of "navigating to url" has to be one atomic operation, while download can happen asynchronous. Here is why:
+            // Users of this TAP method expect the method to be able to run concurrently (since this is what TAP is designed for).
+            // But all WebView2 navigations (incl. their completion) have to run sequentially (cause of how WebView2 is designed).
+            // After a navigation has completed, WebView2 starts the resulting download asynchronously (does support concurrency).
+            // This means: A simple "encapsulate WebView2 EAP into TAP" approach is not enough, to handle the design of WebView2.
+            // Therefore a semaphore is used to first run an atomic navigation, till download starts (which can run concurrently).
+            // The key concept is "navigate sequentially while download concurrently" to get useful TAP handling out of WebView2.
+
+            await semaphore.WaitAsync(cancellationToken);
+            logger.Log("Navigate to download URL and start asynchronous download.");
+            var downloadOperation = await NonConcurrentNavigateAsync(downloadUrl, true, cancellationToken);
+            semaphore.Release();
+
+            if (downloadOperation == null)
+            {
+                throw new InvalidOperationException("Download navigation failed (WebView2 navigation encapsulation returned null).");
+            }
+
+            // I decided against some "navigation progress" report state here (since WebView2 not offers anything to progress)
+            // Therefore a "nav-finished & download-starts" progress would be the only progress to give here (which is useless)
+
+            await ConcurrentDownloadAsync(downloadOperation, progress, cancellationToken);
+        }
+
+        private Task<CoreWebView2DownloadOperation?> NonConcurrentNavigateAsync(string url, bool startsDownload, CancellationToken cancellationToken = default)
         {
             // This method follows the typical "wrap EAP into TAP" approach (WebView2 navigation part)
 
@@ -128,8 +209,28 @@ namespace WOWCAM.WebView
 
             return tcs.Task;
         }
-        
-        public Task DownloadAsync(CoreWebView2DownloadOperation downloadOperation, IProgress<DownloadProgress>? progress = default, CancellationToken cancellationToken = default)
+
+        private async Task<string> ExecuteJavaScriptAsync(string javaScriptCode)
+        {
+            var webView = webViewProvider.GetWebView();
+
+            var scriptResult = await webView.ExecuteScriptWithResultAsync(javaScriptCode);
+            if (!scriptResult.Succeeded)
+            {
+                throw new InvalidOperationException("WebView2 executed the JavaScript code, but the returned 'ScriptResult.Succeeded' was false.");
+            }
+
+            var jsonAsBase64 = scriptResult.ResultAsJson?.TrimStart('"').TrimEnd('"') ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(jsonAsBase64))
+            {
+                throw new InvalidOperationException("WebView2 executed the JavaScript code, but the returned 'ScriptResult.ResultAsJson' was null or empty.");
+            }
+
+            return jsonAsBase64;
+        }
+
+        private Task ConcurrentDownloadAsync(CoreWebView2DownloadOperation downloadOperation,
+            IProgress<DownloadProgress>? progress = default, CancellationToken cancellationToken = default)
         {
             // This method follows the typical "wrap EAP into TAP" approach (WebView2 download part)
 

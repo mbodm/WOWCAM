@@ -1,6 +1,6 @@
 ﻿namespace WOWCAM.Core
 {
-    public sealed record ModelApplicationUpdateData(
+    public sealed record UpdateManagerUpdateData(
         Version InstalledVersion,
         Version AvailableVersion,
         bool UpdateAvailable,

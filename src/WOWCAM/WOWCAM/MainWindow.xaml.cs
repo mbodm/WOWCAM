@@ -175,7 +175,7 @@ namespace WOWCAM
 
             try
             {
-                await addonProcessing.ProcessAddonsAsync(webView.CoreWebView2, fff, config.TempFolder, config.TargetFolder, new Progress<ModelAddonProcessingProgress>(p =>
+                await addonProcessing.ProcessAddonsAsync(webView.CoreWebView2, fff, config.TempFolder, config.TargetFolder, new Progress<AddonProcessingProgress>(p =>
                 {
                     //if (p.State == EnumAddonProcessingState.StartingFetch) labelProgressBar.Content = $"Fetch {p.Addon}";
                     //if (p.State == EnumAddonProcessingState.StartingDownload) labelProgressBar.Content = $"Download {p.Addon}";
@@ -186,9 +186,9 @@ namespace WOWCAM
                     //    if (progressBar.Value == progressBar.Maximum) labelProgressBar.Content = "Clean up";
                     //}
 
-                    if (p.State == EnumAddonProcessingState.StartingFetch) labelProgressBar.Content = $"Fetch {p.Addon}";
-                    if (p.State == EnumAddonProcessingState.StartingDownload) labelProgressBar.Content = $"Download {p.Addon}";
-                    if (p.State == EnumAddonProcessingState.FinishedFetch || p.State == EnumAddonProcessingState.FinishedDownload)
+                    if (p.State == AddonProcessingProgressState.StartingFetch) labelProgressBar.Content = $"Fetch {p.Addon}";
+                    if (p.State == AddonProcessingProgressState.StartingDownload) labelProgressBar.Content = $"Download {p.Addon}";
+                    if (p.State == AddonProcessingProgressState.FinishedFetch || p.State == AddonProcessingProgressState.FinishedDownload)
                     {
                         progressBar.Value++;
                         if (progressBar.Value == progressBar.Maximum) labelProgressBar.Content = "Done.";

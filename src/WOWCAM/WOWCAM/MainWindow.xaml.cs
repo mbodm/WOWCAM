@@ -12,26 +12,26 @@ namespace WOWCAM
         private readonly ILogger logger;
         private readonly IConfig config;
         private readonly IConfigValidator configValidator;
-        private readonly IWebViewWrapper webViewWrapper;
         private readonly IProcessStarter processStarter;
         private readonly IUpdateManager updateManager;
+        private readonly IWebViewProvider webViewProvider;
         private readonly IAddonProcessing addonProcessing;
 
         public MainWindow(
             ILogger logger,
             IConfig config,
             IConfigValidator configValidator,
-            IWebViewWrapper webViewWrapper,
             IProcessStarter processStarter,
             IUpdateManager updateManager,
+            IWebViewProvider webViewProvider,
             IAddonProcessing addonProcessing)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
             this.configValidator = configValidator ?? throw new ArgumentNullException(nameof(configValidator));
-            this.webViewWrapper = webViewWrapper ?? throw new ArgumentNullException(nameof(webViewWrapper));
             this.processStarter = processStarter ?? throw new ArgumentNullException(nameof(processStarter));
             this.updateManager = updateManager ?? throw new ArgumentNullException(nameof(updateManager));
+            this.webViewProvider = webViewProvider ?? throw new ArgumentNullException(nameof(webViewProvider));
             this.addonProcessing = addonProcessing ?? throw new ArgumentNullException(nameof(addonProcessing));
 
             InitializeComponent();
@@ -70,7 +70,8 @@ namespace WOWCAM
                 return;
             }
 
-            await ConfigureWebViewAsync(webViewWrapper);
+            await ConfigureWebViewAsync();
+            webViewProvider.SetWebView(webView.CoreWebView2);
 
             SetControls(true);
             if (config.WebDebug) ShowWebView();
@@ -169,22 +170,23 @@ namespace WOWCAM
 
 
             // Temp:
-            var fff = config.AddonUrls.Where(url => !url.Contains("raiderio"));
+            var addonUrls = config.AddonUrls.Where(url => !url.Contains("raiderio"));
 
             var sw = Stopwatch.StartNew();
 
             try
             {
+                /*
                 await addonProcessing.ProcessAddonsAsync(webView.CoreWebView2, fff, config.TempFolder, config.TargetFolder, new Progress<AddonProcessingProgress>(p =>
                 {
-                    //if (p.State == EnumAddonProcessingState.StartingFetch) labelProgressBar.Content = $"Fetch {p.Addon}";
-                    //if (p.State == EnumAddonProcessingState.StartingDownload) labelProgressBar.Content = $"Download {p.Addon}";
-                    //if (p.State == EnumAddonProcessingState.StartingUnzip) labelProgressBar.Content = $"Unzip {p.Addon}";
-                    //if (p.State == EnumAddonProcessingState.FinishedFetch || p.State == EnumAddonProcessingState.FinishedDownload || p.State == EnumAddonProcessingState.FinishedUnzip)
-                    //{
-                    //    progressBar.Value++;
-                    //    if (progressBar.Value == progressBar.Maximum) labelProgressBar.Content = "Clean up";
-                    //}
+                    if (p.State == EnumAddonProcessingState.StartingFetch) labelProgressBar.Content = $"Fetch {p.Addon}";
+                    if (p.State == EnumAddonProcessingState.StartingDownload) labelProgressBar.Content = $"Download {p.Addon}";
+                    if (p.State == EnumAddonProcessingState.StartingUnzip) labelProgressBar.Content = $"Unzip {p.Addon}";
+                    if (p.State == EnumAddonProcessingState.FinishedFetch || p.State == EnumAddonProcessingState.FinishedDownload || p.State == EnumAddonProcessingState.FinishedUnzip)
+                    {
+                        progressBar.Value++;
+                        if (progressBar.Value == progressBar.Maximum) labelProgressBar.Content = "Clean up";
+                    }
 
                     if (p.State == AddonProcessingProgressState.StartingFetch) labelProgressBar.Content = $"Fetch {p.Addon}";
                     if (p.State == AddonProcessingProgressState.StartingDownload) labelProgressBar.Content = $"Download {p.Addon}";
@@ -194,6 +196,9 @@ namespace WOWCAM
                         if (progressBar.Value == progressBar.Maximum) labelProgressBar.Content = "Done.";
                     }
                 }));
+                */
+
+                await addonProcessing.ProcessAddonsAsync(addonUrls, config.TempFolder, config.TargetFolder);
 
                 // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
                 // ProgressBar control from reaching its maximum shortly after the last async progress happened.

@@ -3,7 +3,7 @@ using Microsoft.Web.WebView2.Core;
 
 namespace WOWCAM.Core
 {
-    public sealed class WebViewWrapper(ILogger logger, IWebViewProvider webViewProvider)
+    public sealed class DefaultWebViewWrapper(ILogger logger, IWebViewProvider webViewProvider) : IWebViewWrapper
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly IWebViewProvider webViewProvider = webViewProvider ?? throw new ArgumentNullException(nameof(webViewProvider));

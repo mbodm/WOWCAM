@@ -1,7 +1,15 @@
-﻿using WOWCAM.Core;
-using WOWCAM.Helper;
+﻿using WOWCAM.Helper;
 
-namespace WOWCAM.WebView
+
+
+// Todo: Use this comment at all appropriate locations.
+
+// No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
+// In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
+
+
+
+namespace WOWCAM.Core
 {
     public sealed class DefaultAddonProcessing(ILogger logger, IWebViewWrapper webViewWrapper) : IAddonProcessing
     {
@@ -23,38 +31,6 @@ namespace WOWCAM.WebView
                 throw new ArgumentException($"'{nameof(targetFolder)}' cannot be null or whitespace.", nameof(targetFolder));
             }
 
-
-
-
-
-            // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
-            // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
-
-
-
-
-
-            // Fetch JSON data
-
-            IEnumerable<string> downloadUrls;
-            try
-            {
-                var tasks = addonUrls.Select(async addonUrl =>
-                {
-                    progress?.Report(new AddonProcessingProgress(AddonProcessingProgressState.StartingFetch, CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl)));
-                    var downloadUrl = await curseScraper.GetAddonDownloadUrlAsync(addonUrl, cancellationToken);
-                    progress?.Report(new AddonProcessingProgress(AddonProcessingProgressState.FinishedFetch, CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl)));
-                    return downloadUrl;
-                });
-
-                downloadUrls = await Task.WhenAll(tasks);
-            }
-            catch (Exception e)
-            {
-                logger.Log(e);
-                throw new InvalidOperationException("An error occurred while fetching JSON from the addon pages (see log file for details).");
-            }
-
             var downloadFolder = Path.Combine(tempFolder, "MBODM-WOWCAM-Download");
             if (!Directory.Exists(downloadFolder))
             {
@@ -67,17 +43,15 @@ namespace WOWCAM.WebView
                 Directory.CreateDirectory(downloadFolder);
             }
 
-            // Download and Unzip
-
             try
             {
-                var tasks = downloadUrls.Select(addonDownloadUrlData => ProcessAddonAsync(addonDownloadUrlData, downloadFolder, unzipFolder, progress, cancellationToken));
-                await Task.WhenAll(tasks).ConfigureAwait(false);
+                var tasks = addonUrls.Select(addonUrl => ProcessAddonAsync(addonUrl, downloadFolder, unzipFolder, cancellationToken));
+                await Task.WhenAll(tasks);
             }
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException("An error occurred while downloading and unzipping the addons (see log file for details).");
+                throw new InvalidOperationException("Todo");
             }
 
             return;
@@ -135,21 +109,22 @@ namespace WOWCAM.WebView
             }
         }
 
-        private async Task ProcessAddonAsync(ModelAddonDownloadData addonDownloadUrlData, string downloadFolder, string unzipFolder,
-            IProgress<AddonProcessingProgress>? progress, CancellationToken cancellationToken)
+        private async Task ProcessAddonAsync(string addonPageUrl, string downloadFolder, string unzipFolder, CancellationToken cancellationToken)
         {
-            var downloadUrl = addonDownloadUrlData.DownloadUrl;
-            var zipFilePath = Path.Combine(downloadFolder, addonDownloadUrlData.FileName);
+            // Fetch JSON data
 
-            // Download zip file
+            var json = await webViewWrapper.NavigateToPageAndExecuteJavaScriptAsync(addonPageUrl, CurseHelper.FetchJsonScript, cancellationToken);
+            var jsonModel = CurseHelper.SerializeAddonPageJson(json);
+            var downloadUrl = CurseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
+            var zipFilePath = Path.Combine(downloadFolder, jsonModel.FileName);
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            progress?.Report(new ModelAddonProcessingProgress(AddonProcessingProgressState.StartingDownload, addonDownloadUrlData.FileName));
+            // Download zip file
 
             try
             {
-                await DownloadHelper.DownloadFileAsync(httpClient, downloadUrl, zipFilePath, null, cancellationToken).ConfigureAwait(false);
+                await webViewWrapper.NavigateAndDownloadFileAsync(downloadUrl, null, cancellationToken);
             }
             catch (Exception e)
             {
@@ -157,23 +132,26 @@ namespace WOWCAM.WebView
                 throw new InvalidOperationException("An error occurred while downloading zip file (see log file for details).");
             }
 
-            progress?.Report(new ModelAddonProcessingProgress(AddonProcessingProgressState.FinishedDownload, addonDownloadUrlData.FileName));
-
-            /*
-            // Validdate & Extract zip file
-
             cancellationToken.ThrowIfCancellationRequested();
 
-            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.StartingUnzip, addonDownloadUrlData.FileName));
+            // Validdate zip file
 
-            if (!await ZipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken).ConfigureAwait(false))
+            try
             {
-                var message = "Downloaded zip file is corrupted (see log file for details).";
-                logger.Log(message);
-                throw new InvalidOperationException(message);
+                if (!await ZipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken).ConfigureAwait(false))
+                {
+                    throw new InvalidOperationException("It seems the downloaded zip file is corrupted, cause zip file validation failed.");
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                throw new InvalidOperationException("An error occurred while validating zip file (see log file for details).");
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+
+            // Extract zip file
 
             try
             {
@@ -184,31 +162,6 @@ namespace WOWCAM.WebView
                 logger.Log(e);
                 throw new InvalidOperationException("An error occurred while extracting zip file (see log file for details).");
             }
-
-            progress?.Report(new ModelAddonProcessingProgress(EnumAddonProcessingState.FinishedUnzip, addonDownloadUrlData.FileName));
-            */
-        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        private async Task<IEnumerable<string>> GetDownloadUrlsAsync(IEnumerable<string> addonUrls, IProgress<string> progress, CancellationToken cancellationToken = default)
-        {
-            return downloadUrls;
         }
     }
 }

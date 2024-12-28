@@ -53,13 +53,13 @@ namespace WOWCAM.Core
         {
             ArgumentNullException.ThrowIfNull(exception);
 
-            var message = $"Exception-Type: {exception.GetType().Name}{newLine}" + $"Exception-Message: {exception.Message}";
+            var message = $"Exception occurred.{newLine} ### Exception-Type: {exception.GetType().Name}{newLine}" + $" ### Exception-Message: {exception.Message}";
 
             if (!string.IsNullOrEmpty(exception.StackTrace))
             {
-                var formattedStackTrace = exception.StackTrace.Replace(newLine, string.Empty).Replace("   at ", $"{newLine}at ");
+                var formattedStackTrace = exception.StackTrace.Replace(newLine, string.Empty).Replace("   at ", $"{newLine}     at ");
 
-                message += $"{newLine}Exception-StackTrace:{formattedStackTrace}";
+                message += $"{newLine} ### Exception-StackTrace:{formattedStackTrace}";
             }
 
             lock (syncRoot)

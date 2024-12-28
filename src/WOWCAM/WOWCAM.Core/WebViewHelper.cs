@@ -75,11 +75,13 @@ namespace WOWCAM.Core
             var lines = new string[]
             {
                 $"{name} (event)",
-                $"{nameof(sender)} = {sender}",
-                $"{nameof(e)} = {e}"
+                $" => {nameof(sender)} = {sender}",
+                $" => {nameof(e)} = {e}"
             };
 
-            return lines.Concat(details);
+            var detailsIndented = details.Select(detail => " => " + detail);
+
+            return lines.Concat(detailsIndented);
         }
     }
 }

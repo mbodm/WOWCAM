@@ -5,12 +5,13 @@
         StartingFetch,
         FinishedFetch,
         StartingDownload,
+        Downloading,
         FinishedDownload,
         StartingUnzip,
         FinishedUnzip,
     }
 
-    public sealed record AddonProcessingProgress(AddonProcessingProgressState State, string Addon);
+    public sealed record AddonProcessingProgress(AddonProcessingProgressState State, string AddonName, byte DownloadPercent);
 
     public interface IAddonProcessing
     {

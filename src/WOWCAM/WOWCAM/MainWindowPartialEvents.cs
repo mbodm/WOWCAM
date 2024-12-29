@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 using System.Globalization;
 using System.IO;
 using System.Windows;
@@ -119,71 +120,67 @@ namespace WOWCAM
             }
         }
 
+        private CancellationTokenSource cts;
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            var stopwatch = new Stopwatch();
-
-            SetControls(false);
-            SetProgress(true, "Download and unzip addons ...", 0, config.AddonUrls.Count() * 3 * 100);
-
-            try
+            if ((string)button.Content == "_Start")
             {
-                stopwatch.Restart();
+                cts = new CancellationTokenSource();
+                var stopwatch = new Stopwatch();
 
-                await addonProcessing.ProcessAddonsAsync(config.AddonUrls, config.TempFolder, config.TargetFolder, new Progress<AddonProcessingProgress>(p =>
+                SetControls(false);
+                SetProgress(true, "Download and unzip addons ...", 0, 100);
+                button.IsEnabled = true;
+                button.Content = "Cancel";
+                
+                try
                 {
-                    switch (p.State)
+                    stopwatch.Restart();
+
+                    var progress = new Progress<byte>(p => progressBar.Value = p);
+                    await addonProcessing.ProcessAddonsAsync(config.AddonUrls, config.TempFolder, config.TargetFolder, progress, cts.Token);
+
+                    stopwatch.Stop();
+
+                    SetProgress(null, "Clean up ...", null, null);
+
+                    // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
+                    // ProgressBar control from reaching its maximum shortly after the last async progress happened.
+                    // The control is painted natively by the WinApi/OS itself. Therefore also no event-based tricks
+                    // will solve the problem. I just added a short async wait delay instead, to keep things simple.
+                    // *(TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
+                    // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
+                    await Task.Delay(1250);
+                }
+                catch (Exception ex)
+                {
+                    if (ex is TaskCanceledException || ex is OperationCanceledException)
                     {
-                        case AddonProcessingProgressState.FinishedFetch:
-                        case AddonProcessingProgressState.FinishedDownload:
-                        case AddonProcessingProgressState.FinishedUnzip:
-                            progressBar.Value += 100;
-
-
-                            
-
-
-                            break;
-                        case AddonProcessingProgressState.Downloading:
-                            
-
-
-                            
-                            
-                            
-                            
-                            
-                            var actualFuzz = actual - 100;
-                            var newfuzz = actualFuzz + p.DownloadPercent;
-                            progressBar.Value = newfuzz;
-                            break;
+                        ShowInfo("Operation cancelled by user.");
+                        SetProgress(null, "Cancelled", null, null);
                     }
-                }));
+                    else
+                    {
+                        SetProgress(null, "Error occurred", null, null);
+                        ShowError(ex.Message);
+                    }
 
-                stopwatch.Stop();
+                    return;
+                }
+                finally
+                {
+                    button.Content = "_Start";
+                    SetControls(true);
+                }
 
-                // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
-                // ProgressBar control from reaching its maximum shortly after the last async progress happened.
-                // The control is painted natively by the WinApi/OS itself. Therefore also no event-based tricks
-                // will solve the problem. I just added a short async wait delay instead, to keep things simple.
-                // *(TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
-                // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
-                await Task.Delay(1250);
+                var seconds = Math.Round((double)(stopwatch.ElapsedMilliseconds + 1250) / 1000);
+                var rounded = Convert.ToUInt32(seconds);
+                SetProgress(null, $"Successfully finished {config.AddonUrls.Count()} addons in {rounded} seconds", null, null);
             }
-            catch (Exception ex)
+            else
             {
-                SetProgress(null, "Error occurred", null, null);
-                ShowError(ex.Message);
-                return;
+                await cts.CancelAsync();
             }
-            finally
-            {
-                SetControls(true);
-            }
-
-            var seconds = Math.Round((double)(stopwatch.ElapsedMilliseconds + 1250) / 1000);
-            var rounded = Convert.ToUInt32(seconds);
-            SetProgress(null, $"Successfully finished {config.AddonUrls.Count()} addons in {rounded} seconds", null, null);
         }
     }
 }

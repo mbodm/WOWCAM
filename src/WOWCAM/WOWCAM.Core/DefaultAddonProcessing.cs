@@ -1,4 +1,5 @@
-﻿using WOWCAM.Helper;
+﻿using System.Collections.Concurrent;
+using WOWCAM.Helper;
 
 // Todo: Use this comment at all appropriate locations.
 
@@ -13,10 +14,20 @@ namespace WOWCAM.Core
         private readonly IWebViewProvider webViewProvider = webViewProvider ?? throw new ArgumentNullException(nameof(webViewProvider));
         private readonly IWebViewWrapper webViewWrapper = webViewWrapper ?? throw new ArgumentNullException(nameof(webViewWrapper));
 
+        private readonly ConcurrentDictionary<string, uint> progressData = new();
+
+        private enum AddonState { FetchFinished, DownloadProgress, DownloadFinished, UnzipFinished }
+        private sealed record AddonProgress(AddonState AddonState, string AddonName, byte DownloadPercent);
+
         public async Task ProcessAddonsAsync(IEnumerable<string> addonUrls, string tempFolder, string targetFolder,
-            IProgress<AddonProcessingProgress>? progress = default, CancellationToken cancellationToken = default)
+            IProgress<byte>? progress = default, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(addonUrls);
+
+            if (!addonUrls.Any())
+            {
+                return;
+            }
 
             if (string.IsNullOrWhiteSpace(tempFolder))
             {
@@ -28,34 +39,86 @@ namespace WOWCAM.Core
                 throw new ArgumentException($"'{nameof(targetFolder)}' cannot be null or whitespace.", nameof(targetFolder));
             }
 
+            // Prepare folders
+
             var downloadFolder = Path.Combine(tempFolder, "MBODM-WOWCAM-Download");
-            if (!Directory.Exists(downloadFolder))
+            if (Directory.Exists(downloadFolder))
+            {
+                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
+            }
+            else
             {
                 Directory.CreateDirectory(downloadFolder);
             }
-
-            await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
 
             var webView = webViewProvider.GetWebView();
             webView.Profile.DefaultDownloadFolderPath = downloadFolder;
 
             var unzipFolder = Path.Combine(tempFolder, "MBODM-WOWCAM-Unzip");
-            if (!Directory.Exists(downloadFolder))
+            if (Directory.Exists(unzipFolder))
             {
-                Directory.CreateDirectory(downloadFolder);
+                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
+            }
+            else
+            {
+                Directory.CreateDirectory(unzipFolder);
             }
 
-            await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
+            // Prepare progress dictionary
+
+            foreach (var addonUrl in addonUrls)
+            {
+                var addonName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl);
+                progressData.TryAdd(addonName, 0);
+            }
+
+            // Concurrenly do for every addon "fetch -> download -> unzip"
 
             try
             {
-                var tasks = addonUrls.Select(addonUrl => ProcessAddonAsync(addonUrl, downloadFolder, unzipFolder, progress, cancellationToken));
+                var tasks = addonUrls.Select(addonUrl =>
+                {
+                    var addonProgress = new Progress<AddonProgress>(p =>
+                    {
+                        switch (p.AddonState)
+                        {
+                            case AddonState.FetchFinished:
+                                progressData[p.AddonName] = 100;
+                                progress?.Report(CalcTotalPercent());
+                                break;
+                            case AddonState.DownloadProgress:
+                                progressData[p.AddonName] = 100u + p.DownloadPercent;
+                                progress?.Report(CalcTotalPercent());
+                                break;
+                            case AddonState.DownloadFinished:
+                                // Just to make sure download is 100%
+                                progressData[p.AddonName] = 200;
+                                progress?.Report(CalcTotalPercent());
+                                break;
+                            case AddonState.UnzipFinished:
+                                progressData[p.AddonName] = 300;
+                                progress?.Report(CalcTotalPercent());
+                                break;
+                        }
+                    });
+
+                    return ProcessAddonAsync(addonUrl, downloadFolder, unzipFolder, addonProgress, cancellationToken);
+                });
+
                 await Task.WhenAll(tasks);
             }
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException($"Todo: {e.Message}");
+
+                if (e is TaskCanceledException || e is OperationCanceledException)
+                {
+                    throw;
+                }
+                else
+                {
+                    throw new InvalidOperationException("An error occurred while processing the addons (see log file for details).");
+                }
             }
 
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
@@ -63,7 +126,6 @@ namespace WOWCAM.Core
             await Task.Delay(200, cancellationToken).ConfigureAwait(false);
 
             // Clear target folder
-
             try
             {
                 await FileSystemHelper.DeleteFolderContentAsync(targetFolder, cancellationToken).ConfigureAwait(false);
@@ -79,7 +141,6 @@ namespace WOWCAM.Core
             await Task.Delay(200, cancellationToken).ConfigureAwait(false);
 
             // Move to target folder
-
             try
             {
                 await FileSystemHelper.MoveFolderContentAsync(unzipFolder, targetFolder, cancellationToken).ConfigureAwait(false);
@@ -95,7 +156,6 @@ namespace WOWCAM.Core
             await Task.Delay(200, cancellationToken).ConfigureAwait(false);
 
             // Clean up temp folder
-
             try
             {
                 await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken).ConfigureAwait(false);
@@ -109,14 +169,12 @@ namespace WOWCAM.Core
         }
 
         private async Task ProcessAddonAsync(string addonPageUrl, string downloadFolder, string unzipFolder,
-            IProgress<AddonProcessingProgress>? progress = default, CancellationToken cancellationToken = default)
+            IProgress<AddonProgress>? progress = default, CancellationToken cancellationToken = default)
         {
             var addonName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonPageUrl);
 
             // Fetch JSON data
-
-            progress?.Report(new AddonProcessingProgress(AddonProcessingProgressState.StartingFetch, addonName, 0));
-
+            cancellationToken.ThrowIfCancellationRequested();
             CurseAddonPageJson jsonModel;
             try
             {
@@ -128,38 +186,38 @@ namespace WOWCAM.Core
                 logger.Log(e);
                 throw new InvalidOperationException("An error occurred while fetching JSON data from addon page (see log file for details).");
             }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            progress?.Report(new AddonProcessingProgress(AddonProcessingProgressState.FinishedFetch, addonName, 0));
+            progress?.Report(new AddonProgress(AddonState.FetchFinished, addonName, 0));
 
             // Download zip file
-
-            progress?.Report(new AddonProcessingProgress(AddonProcessingProgressState.StartingDownload, addonName, 0));
-
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
+                var downloadUrl = CurseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
                 var downloadProgress = new Progress<WebViewWrapperDownloadProgress>(p =>
                 {
                     var percent = CalcDownloadPercent(p.ReceivedBytes, p.TotalBytes);
-                    progress?.Report(new AddonProcessingProgress(AddonProcessingProgressState.Downloading, addonName, percent));
+                    progress?.Report(new AddonProgress(AddonState.DownloadProgress, addonName, percent));
                 });
-                
-                var downloadUrl = CurseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
+
                 await webViewWrapper.NavigateAndDownloadFileAsync(downloadUrl, downloadProgress, cancellationToken);
             }
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException("An error occurred while downloading zip file (see log file for details).");
+
+                if (e is TaskCanceledException || e is OperationCanceledException)
+                {
+                    throw;
+                }
+                else
+                {
+                    throw new InvalidOperationException("An error occurred while downloading zip file (see log file for details).");
+                }
             }
+            progress?.Report(new AddonProgress(AddonState.DownloadFinished, addonName, 100));
 
+            // Extract zip file
             cancellationToken.ThrowIfCancellationRequested();
-            progress?.Report(new AddonProcessingProgress(AddonProcessingProgressState.FinishedDownload, addonName, 100));
-
-            // Validate & Extract zip file
-
-            progress?.Report(new AddonProcessingProgress(AddonProcessingProgressState.StartingUnzip, addonName, 100));
-
             try
             {
                 var zipFilePath = Path.Combine(downloadFolder, jsonModel.FileName);
@@ -176,22 +234,55 @@ namespace WOWCAM.Core
                 logger.Log(e);
                 throw new InvalidOperationException("An error occurred while extracting zip file (see log file for details).");
             }
+            progress?.Report(new AddonProgress(AddonState.UnzipFinished, addonName, 100));
+        }
 
-            cancellationToken.ThrowIfCancellationRequested();
-            progress?.Report(new AddonProcessingProgress(AddonProcessingProgressState.FinishedUnzip, addonName, 100));
+        private void HandleException(Exception orgException, string newMessage)
+        {
+            if (orgException is TaskCanceledException || orgException is OperationCanceledException)
+            {
+                throw o;
+            }
+            else
+            {
+                throw new InvalidOperationException(newMessage);
+            }
+        }
+
+        private byte CalcTotalPercent()
+        {
+            // Doing casts inside try/catch block (just to be sure)
+
+            try
+            {
+                var sumOfAllAddons = (ulong)progressData.Sum(kvp => kvp.Value);
+                var hundredPercent = (ulong)progressData.Count * 300;
+
+                var exact = (double)sumOfAllAddons / hundredPercent;
+                var exactPercent = exact * 100;
+                var roundedPercent = (byte)Math.Round(exactPercent);
+                var cappedPercent = roundedPercent > 100 ? (byte)100 : roundedPercent; // Cap it (just to be sure)
+
+                return cappedPercent;
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         private static byte CalcDownloadPercent(uint bytesReceived, uint bytesTotal)
         {
-            // Doing casts inside try/catch block, just to be sure.
+            // Doing casts inside try/catch block (just to be sure)
 
             try
             {
-                double exact = (double)bytesReceived / bytesTotal * 100;
-                byte rounded = (byte)Math.Round(exact);
-                byte percent = rounded > 100 ? (byte)100 : rounded; // Cap it (just to be sure)
+                var exact = (double)bytesReceived / bytesTotal;
+                var exactPercent = exact * 100;
+                var roundedPercent = (byte)Math.Round(exactPercent);
+                var cappedPercent = roundedPercent > 100 ? (byte)100 : roundedPercent; // Cap it (just to be sure)
 
-                return percent;
+                return cappedPercent;
             }
             catch
             {

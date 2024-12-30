@@ -144,7 +144,11 @@ namespace WOWCAM.Core
 
                 if (File.Exists(bakFilePath))
                 {
-                    File.Delete(bakFilePath);
+                    var fileInfo = new FileInfo(bakFilePath);
+                    if (fileInfo.LastAccessTimeUtc < DateTime.UtcNow.AddDays(-3))
+                    {
+                        File.Delete(bakFilePath);
+                    }
                 }
 
                 return !File.Exists(bakFilePath);

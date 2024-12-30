@@ -27,6 +27,8 @@ namespace WOWCAM
                 return;
             }
 
+            updateManager.RemoveBakFile();
+
             await ConfigureWebViewAsync();
             webViewProvider.SetWebView(webView.CoreWebView2);
 

@@ -241,6 +241,11 @@ namespace WOWCAM.Core
                 if (sender is CoreWebView2DownloadOperation downloadOperation)
                 {
                     progress?.Report(CreateDownloadProgress(downloadOperation));
+
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        downloadOperation.Cancel();
+                    }
                 }
                 else
                 {

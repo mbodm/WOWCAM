@@ -6,6 +6,9 @@
         x:Class="WOWCAM.MainWindow"
         mc:Ignorable="d"
         Title="WOWCAM" Width="512" Height="160" WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize" Loaded="Window_Loaded">
+    <Window.Resources>
+        <ContextMenu x:Key="keyContextMenu" />
+    </Window.Resources>
     <DockPanel LastChildFill="True" Margin="10">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Right">
             <TextBlock Name="textBlockConfigFolder">
@@ -19,10 +22,11 @@
             <Label Padding="0" Name="labelProgressBar">Status</Label>
             <DockPanel LastChildFill="True" Margin="0 3 0 0">
                 <Button DockPanel.Dock="Right" Width="75" Height="25" Margin="10 0 0 0" Name="button" Click="Button_Click">_Start</Button>
-                <ProgressBar DockPanel.Dock="Left" Height="25" Name="progressBar" />
+                <ProgressBar DockPanel.Dock="Left" Height="25" Name="progressBar" MouseUp="ProgressBar_MouseUp" />
             </DockPanel>
         </StackPanel>
-        <Border DockPanel.Dock="Top" Margin="0 10 0 0" BorderBrush="{Binding ElementName=progressBar, Path=BorderBrush}" BorderThickness="1" Visibility="Hidden" Name="border">
+        <Border DockPanel.Dock="Top" Margin="0 10 0 0" BorderBrush="{Binding ElementName=progressBar, Path=BorderBrush}" BorderThickness="1" 
+                Visibility="Hidden" IsEnabled="False" Name="border">
             <Wpf:WebView2 Width="0" Height="0" IsEnabled="False" Name="webView" />
         </Border>
     </DockPanel>

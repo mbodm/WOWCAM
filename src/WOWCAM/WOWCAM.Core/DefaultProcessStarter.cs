@@ -23,5 +23,18 @@ namespace WOWCAM.Core
                 throw new InvalidOperationException("Could not start Explorer.exe process to open folder (see log file for details).", e);
             }
         }
+
+        public void ShowLogFileInNotepad()
+        {
+            try
+            {
+                Process.Start("notepad", logger.Storage);
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                throw new InvalidOperationException("Could not start Notepad.exe process to show log file (see log file for details).", e);
+            }
+        }
     }
 }

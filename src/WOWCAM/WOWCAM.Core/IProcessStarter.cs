@@ -3,5 +3,6 @@
     public interface IProcessStarter
     {
         void OpenFolderInExplorer(string folder);
+        void ShowLogFileInNotepad();
     }
 }

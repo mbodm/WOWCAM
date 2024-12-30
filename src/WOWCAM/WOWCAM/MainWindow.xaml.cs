@@ -37,7 +37,7 @@ namespace WOWCAM
             MinHeight = Height;
             Title = $"WOWCAM {AppHelper.GetApplicationVersion()}";
 
-            SetProgress(null, string.Empty, null, null);
+            SetProgress(false, string.Empty, 0, 100);
             SetControls(false);
         }
 

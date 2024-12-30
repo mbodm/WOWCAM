@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 using System.Globalization;
 using System.IO;
 using System.Windows;
-using WOWCAM.Core;
+using System.Windows.Controls;
+using System.Windows.Input;
 using WOWCAM.Helper;
 
 namespace WOWCAM
@@ -120,26 +120,76 @@ namespace WOWCAM
             }
         }
 
-        private CancellationTokenSource cts;
+        private void ProgressBar_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (e.Source is ProgressBar && e.ChangedButton == MouseButton.Right &&
+                Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift))
+            {
+                if (FindResource("keyContextMenu") is ContextMenu contextMenu)
+                {
+                    contextMenu.Items.Clear();
+
+                    var item1 = new MenuItem { Header = "Show log file" };
+                    item1.IsCheckable = false;
+                    item1.Icon = new TextBlock { Text = "  1" };
+                    item1.Click += (s, e) => processStarter.ShowLogFileInNotepad();
+                    contextMenu.Items.Add(item1);
+
+                    if (!webView.IsEnabled)
+                    {
+                        var item2 = new MenuItem { Header = "Activate Debug-Mode" };
+                        item2.Icon = new TextBlock { Text = "  2" };
+                        item2.Click += (s, e) =>
+                        {
+                            var question = string.Empty;
+                            question += $"Are you sure?{Environment.NewLine}{Environment.NewLine}";
+                            question += $"Debug-Mode enables WebView2, with active dev tools.{Environment.NewLine}";
+                            question += $"Don't click any web content while progress is running!{Environment.NewLine}";
+                            if (MessageBox.Show(question, "Question", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                            {
+                                ShowWebView();
+                            }
+                        };
+
+                        contextMenu.Items.Add(item2);
+                    }
+
+                    contextMenu.IsOpen = true;
+                }
+
+                e.Handled = true;
+            }
+        }
+
+        private CancellationTokenSource? cts = null;
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            if ((string)button.Content == "_Start")
+            if (sender is not Button button || button.Content is not string buttonText)
             {
-                cts = new CancellationTokenSource();
-                var stopwatch = new Stopwatch();
+                return;
+            }
 
+            if (buttonText == "_Cancel")
+            {
+                if (cts != null)
+                {
+                    await cts.CancelAsync();
+                }
+            }
+            else
+            {
                 SetControls(false);
                 SetProgress(true, "Download and unzip addons ...", 0, 100);
                 button.IsEnabled = true;
-                button.Content = "Cancel";
-                
+                button.Content = "_Cancel";
+                cts = new CancellationTokenSource();
+
+                var stopwatch = new Stopwatch();
                 try
                 {
-                    stopwatch.Restart();
-
+                    stopwatch.Start();
                     var progress = new Progress<byte>(p => progressBar.Value = p);
-                    await addonProcessing.ProcessAddonsAsync(config.AddonUrls, config.TempFolder, config.TargetFolder, progress, cts.Token);
-
+                    await addonProcessing.ProcessAddonsAsync(config.AddonUrls, config.TempFolder, config.TargetFolder, webView.IsEnabled, progress, cts.Token);
                     stopwatch.Stop();
 
                     SetProgress(null, "Clean up ...", null, null);
@@ -156,7 +206,6 @@ namespace WOWCAM
                 {
                     if (ex is TaskCanceledException || ex is OperationCanceledException)
                     {
-                        ShowInfo("Operation cancelled by user.");
                         SetProgress(null, "Cancelled", null, null);
                     }
                     else
@@ -176,10 +225,6 @@ namespace WOWCAM
                 var seconds = Math.Round((double)(stopwatch.ElapsedMilliseconds + 1250) / 1000);
                 var rounded = Convert.ToUInt32(seconds);
                 SetProgress(null, $"Successfully finished {config.AddonUrls.Count()} addons in {rounded} seconds", null, null);
-            }
-            else
-            {
-                await cts.CancelAsync();
             }
         }
     }

@@ -1,13 +1,12 @@
 ﻿using System.Collections.Concurrent;
 using WOWCAM.Helper;
 
-// Todo: Use this comment at all appropriate locations.
-
-// No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
-// In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
-
 namespace WOWCAM.Core
 {
+    // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
+    // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
+    // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
+
     public sealed class DefaultAddonProcessing(ILogger logger, IWebViewProvider webViewProvider, IWebViewWrapper webViewWrapper) : IAddonProcessing
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -19,7 +18,7 @@ namespace WOWCAM.Core
         private enum AddonState { FetchFinished, DownloadProgress, DownloadFinished, UnzipFinished }
         private sealed record AddonProgress(AddonState AddonState, string AddonName, byte DownloadPercent);
 
-        public async Task ProcessAddonsAsync(IEnumerable<string> addonUrls, string tempFolder, string targetFolder,
+        public async Task ProcessAddonsAsync(IEnumerable<string> addonUrls, string tempFolder, string targetFolder, bool showDownloadDialog = false,
             IProgress<byte>? progress = default, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(addonUrls);
@@ -38,6 +37,8 @@ namespace WOWCAM.Core
             {
                 throw new ArgumentException($"'{nameof(targetFolder)}' cannot be null or whitespace.", nameof(targetFolder));
             }
+
+            webViewWrapper.HideDownloadDialog = !showDownloadDialog;
 
             // Prepare folders
 
@@ -66,6 +67,7 @@ namespace WOWCAM.Core
 
             // Prepare progress dictionary
 
+            progressData.Clear();
             foreach (var addonUrl in addonUrls)
             {
                 var addonName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl);
@@ -109,62 +111,54 @@ namespace WOWCAM.Core
             }
             catch (Exception e)
             {
-                logger.Log(e);
-
-                if (e is TaskCanceledException || e is OperationCanceledException)
-                {
-                    throw;
-                }
-                else
-                {
-                    throw new InvalidOperationException("An error occurred while processing the addons (see log file for details).");
-                }
+                HandleNonCancellationException(e, "An error occurred while processing the addons (see log file for details).");
+                throw;
             }
 
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(200, cancellationToken);
 
             // Clear target folder
             try
             {
-                await FileSystemHelper.DeleteFolderContentAsync(targetFolder, cancellationToken).ConfigureAwait(false);
+                await FileSystemHelper.DeleteFolderContentAsync(targetFolder, cancellationToken);
             }
             catch (Exception e)
             {
-                logger.Log(e);
-                throw new InvalidOperationException("An error occurred while deleting the content of target folder (see log file for details).");
+                HandleNonCancellationException(e, "An error occurred while deleting the content of target folder (see log file for details).");
+                throw;
             }
 
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(200, cancellationToken);
 
             // Move to target folder
             try
             {
-                await FileSystemHelper.MoveFolderContentAsync(unzipFolder, targetFolder, cancellationToken).ConfigureAwait(false);
+                await FileSystemHelper.MoveFolderContentAsync(unzipFolder, targetFolder, cancellationToken);
             }
             catch (Exception e)
             {
-                logger.Log(e);
-                throw new InvalidOperationException("An error occurred while moving the unzipped addons to target folder (see log file for details).");
+                HandleNonCancellationException(e, "An error occurred while moving the unzipped addons to target folder (see log file for details).");
+                throw;
             }
 
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(200, cancellationToken);
 
             // Clean up temp folder
             try
             {
-                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken).ConfigureAwait(false);
-                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken).ConfigureAwait(false);
+                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
+                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
             }
             catch (Exception e)
             {
-                logger.Log(e);
-                throw new InvalidOperationException("An error occurred while deleting the content of temp folder (see log file for details).");
+                HandleNonCancellationException(e, "An error occurred while deleting the content of temp folder (see log file for details).");
+                throw;
             }
         }
 
@@ -183,8 +177,8 @@ namespace WOWCAM.Core
             }
             catch (Exception e)
             {
-                logger.Log(e);
-                throw new InvalidOperationException("An error occurred while fetching JSON data from addon page (see log file for details).");
+                HandleNonCancellationException(e, "An error occurred while fetching JSON data from addon page (see log file for details).");
+                throw;
             }
             progress?.Report(new AddonProgress(AddonState.FetchFinished, addonName, 0));
 
@@ -203,16 +197,8 @@ namespace WOWCAM.Core
             }
             catch (Exception e)
             {
-                logger.Log(e);
-
-                if (e is TaskCanceledException || e is OperationCanceledException)
-                {
-                    throw;
-                }
-                else
-                {
-                    throw new InvalidOperationException("An error occurred while downloading zip file (see log file for details).");
-                }
+                HandleNonCancellationException(e, "An error occurred while downloading zip file (see log file for details).");
+                throw;
             }
             progress?.Report(new AddonProgress(AddonState.DownloadFinished, addonName, 100));
 
@@ -222,30 +208,28 @@ namespace WOWCAM.Core
             {
                 var zipFilePath = Path.Combine(downloadFolder, jsonModel.FileName);
 
-                if (!await ZipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken).ConfigureAwait(false))
+                if (!await ZipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken))
                 {
                     throw new InvalidOperationException("It seems the downloaded zip file is corrupted, cause zip file validation failed.");
                 }
 
-                await ZipFileHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken).ConfigureAwait(false);
+                await ZipFileHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken);
             }
             catch (Exception e)
             {
-                logger.Log(e);
-                throw new InvalidOperationException("An error occurred while extracting zip file (see log file for details).");
+                HandleNonCancellationException(e, "An error occurred while extracting zip file (see log file for details).");
+                throw;
             }
             progress?.Report(new AddonProgress(AddonState.UnzipFinished, addonName, 100));
         }
 
-        private void HandleException(Exception orgException, string newMessage)
+        private void HandleNonCancellationException(Exception orgException, string bunchMessage)
         {
-            if (orgException is TaskCanceledException || orgException is OperationCanceledException)
+            logger.Log(orgException);
+
+            if (orgException is not TaskCanceledException && orgException is not OperationCanceledException)
             {
-                throw o;
-            }
-            else
-            {
-                throw new InvalidOperationException(newMessage);
+                throw new InvalidOperationException(bunchMessage);
             }
         }
 

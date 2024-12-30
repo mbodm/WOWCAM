@@ -43,6 +43,7 @@ namespace WOWCAM
             webView.Width = double.NaN;
             webView.Height = double.NaN;
             webView.IsEnabled = true;
+            border.IsEnabled = true;
             border.Visibility = Visibility.Visible;
         }
 

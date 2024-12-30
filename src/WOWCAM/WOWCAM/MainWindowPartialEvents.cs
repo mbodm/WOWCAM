@@ -31,7 +31,6 @@ namespace WOWCAM
             webViewProvider.SetWebView(webView.CoreWebView2);
 
             SetControls(true);
-            if (config.WebDebug) ShowWebView();
 
             button.TabIndex = 0;
             button.Focus();

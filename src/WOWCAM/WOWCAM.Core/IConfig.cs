@@ -7,7 +7,6 @@
         bool SmartUpdate { get; }
         bool SilentMode { get; }
         bool UnzipOnly { get; }
-        bool WebDebug { get; }
         string TargetFolder { get; }
         IEnumerable<string> AddonUrls { get; }
 

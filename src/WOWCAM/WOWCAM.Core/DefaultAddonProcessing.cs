@@ -1,4 +1,6 @@
 ﻿using System.Collections.Concurrent;
+using System.Reflection.Metadata;
+using System.Xml.Linq;
 using WOWCAM.Helper;
 
 namespace WOWCAM.Core
@@ -15,10 +17,11 @@ namespace WOWCAM.Core
 
         private readonly ConcurrentDictionary<string, uint> progressData = new();
 
+
         private enum AddonState { FetchFinished, DownloadProgress, DownloadFinished, UnzipFinished }
         private sealed record AddonProgress(AddonState AddonState, string AddonName, byte DownloadPercent);
 
-        public async Task ProcessAddonsAsync(IEnumerable<string> addonUrls, string tempFolder, string targetFolder, bool showDownloadDialog = false,
+        public async Task ProcessAddonsAsync(IEnumerable<string> addonUrls, string tempFolder, string targetFolder, bool smartUpdate = false, bool showDownloadDialog = false,
             IProgress<byte>? progress = default, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(addonUrls);
@@ -74,6 +77,20 @@ namespace WOWCAM.Core
                 progressData.TryAdd(addonName, 0);
             }
 
+            // Handle SmartUpdate mode
+
+            if (smartUpdate)
+            {
+                await CreateSmartUpdateFile(cancellationToken);
+            }
+            else
+            {
+                if (File.Exists(smartUpdateFile))
+                {
+                    File.Delete(smartUpdateFile);
+                }
+            }
+
             // Concurrenly do for every addon "fetch -> download -> unzip"
 
             try
@@ -104,7 +121,7 @@ namespace WOWCAM.Core
                         }
                     });
 
-                    return ProcessAddonAsync(addonUrl, downloadFolder, unzipFolder, addonProgress, cancellationToken);
+                    return ProcessAddonAsync(addonUrl, downloadFolder, unzipFolder, smartUpdate, addonProgress, cancellationToken);
                 });
 
                 await Task.WhenAll(tasks);
@@ -162,7 +179,7 @@ namespace WOWCAM.Core
             }
         }
 
-        private async Task ProcessAddonAsync(string addonPageUrl, string downloadFolder, string unzipFolder,
+        private async Task ProcessAddonAsync(string addonPageUrl, string downloadFolder, string unzipFolder, bool smartUpdate,
             IProgress<AddonProgress>? progress = default, CancellationToken cancellationToken = default)
         {
             var addonName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonPageUrl);
@@ -181,6 +198,20 @@ namespace WOWCAM.Core
                 throw;
             }
             progress?.Report(new AddonProgress(AddonState.FetchFinished, addonName, 0));
+
+
+
+
+            if (smartUpdate)
+            {
+
+            }
+
+
+
+
+
+
 
             // Download zip file
             cancellationToken.ThrowIfCancellationRequested();
@@ -273,5 +304,6 @@ namespace WOWCAM.Core
                 return 0;
             }
         }
+
     }
 }

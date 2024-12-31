@@ -10,11 +10,9 @@ namespace WOWCAM.Core
 
         public string ActiveProfile { get; private set; } = string.Empty;
         public string TempFolder { get; private set; } = string.Empty;
-        public bool SmartUpdate { get; private set; } = false;
-        public bool SilentMode { get; private set; } = false;
-        public bool UnzipOnly { get; private set; } = false;
         public string TargetFolder { get; private set; } = string.Empty;
         public IEnumerable<string> AddonUrls { get; private set; } = [];
+        public IEnumerable<string> Options { get; private set; } = [];
 
         public string Storage => xmlFile;
         public bool Exists => File.Exists(xmlFile);
@@ -79,12 +77,10 @@ namespace WOWCAM.Core
                 CheckActiveProfileSection(doc, ActiveProfile);
                 TempFolder = GetTempFolder(doc);
 
-                SmartUpdate = GetSmartUpdate(doc);
-                SilentMode = GetSilentMode(doc);
-                UnzipOnly = GetUnzipOnly(doc);
-
                 TargetFolder = GetTargetFolder(doc, ActiveProfile);
                 AddonUrls = GetAddonUrls(doc, ActiveProfile);
+
+                Options = GetOptions(doc);
             }
             catch (Exception e)
             {
@@ -134,30 +130,6 @@ namespace WOWCAM.Core
             return Environment.ExpandEnvironmentVariables(s);
         }
 
-        private static bool GetSmartUpdate(XDocument doc)
-        {
-            // No <smartupdate> not means error since it's not a must-have setting (if not existing a fallback value is used)
-            var s = doc.Root?.Element("options")?.Element("smartupdate")?.Value?.Trim() ?? "false";
-
-            return bool.TryParse(s, out bool b) && b;
-        }
-
-        private static bool GetSilentMode(XDocument doc)
-        {
-            // No <silentmode> not means error since it's not a must-have setting (if not existing a fallback value is used)
-            var s = doc.Root?.Element("options")?.Element("silentmode")?.Value?.Trim() ?? "false";
-
-            return bool.TryParse(s, out bool b) && b;
-        }
-
-        private static bool GetUnzipOnly(XDocument doc)
-        {
-            // No <unziponly> not means error since it's not a must-have setting (if not existing a fallback value is used)
-            var s = doc.Root?.Element("options")?.Element("unziponly")?.Value?.Trim() ?? "false";
-
-            return bool.TryParse(s, out bool b) && b;
-        }
-
         private static string GetTargetFolder(XDocument doc, string profile)
         {
             var s = doc.Root?.Element("profiles")?.Element(profile)?.Element("folder")?.Value?.Trim() ??
@@ -168,10 +140,37 @@ namespace WOWCAM.Core
 
         private static IEnumerable<string> GetAddonUrls(XDocument doc, string profile)
         {
-            var element = doc.Root?.Element("profiles")?.Element(profile)?.Element("addons") ??
+            var addons = doc.Root?.Element("profiles")?.Element(profile)?.Element("addons") ??
                 throw new InvalidOperationException("Error in config file: Could not determine addon urls for given profile.");
 
-            return element.Elements()?.Where(e => e.Name == "url")?.Select(e => e.Value.Trim().ToLower())?.Distinct() ?? [];
+            return addons.Elements()?.Where(e => e.Name == "url")?.Select(e => e.Value.Trim().ToLower())?.Distinct() ?? [];
+        }
+
+        private static IEnumerable<string> GetOptions(XDocument doc)
+        {
+            var options = doc.Root?.Element("options") ??
+                throw new InvalidOperationException("Error in config file: Could not determine options.");
+
+            List<string> result = [];
+            foreach (var option in options.Elements())
+            {
+                var value = option.Value.ToString().Trim().ToLower();
+                switch (value)
+                {
+                    case "":
+                        throw new InvalidOperationException("Error in config file: Found <options> entry with empty or whitespace value (supported values are 'true' and 'false').");
+                    case "true":
+                        result.Add(option.Name.ToString().Trim().ToLower());
+                        break;
+                    case "false":
+                        // Do nothing (just not add option to result)
+                        break;
+                    default:
+                        throw new InvalidOperationException("Error in config file: Found <options> entry with unsupported value (supported values are 'true' and 'false').");
+                }
+            }
+
+            return result.AsEnumerable();
         }
     }
 }

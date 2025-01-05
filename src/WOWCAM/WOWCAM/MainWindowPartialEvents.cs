@@ -172,6 +172,9 @@ namespace WOWCAM
                 return;
             }
 
+            var updatedAddons = 0u;
+            var smartUpdate = config.Options.Contains("SmartUpdate", StringComparer.InvariantCultureIgnoreCase);
+
             if (buttonText == "_Cancel")
             {
                 if (cts != null)
@@ -192,8 +195,8 @@ namespace WOWCAM
                 {
                     stopwatch.Start();
                     var progress = new Progress<byte>(p => progressBar.Value = p);
-                    var smartUpdate = config.Options.Contains("SmartUpdate", StringComparer.InvariantCultureIgnoreCase);
-                    await addonProcessing.ProcessAddonsAsync(config.AddonUrls, config.TempFolder, config.TargetFolder, smartUpdate, webView.IsEnabled, progress, cts.Token);
+                    updatedAddons = await addonProcessing.ProcessAddonsAsync(config.AddonUrls, config.TempFolder, config.TargetFolder, webView.IsEnabled, smartUpdate,
+                        progress, cts.Token);
                     stopwatch.Stop();
 
                     SetProgress(null, "Clean up ...", null, null);
@@ -228,7 +231,14 @@ namespace WOWCAM
 
                 var seconds = Math.Round((double)(stopwatch.ElapsedMilliseconds + 1250) / 1000);
                 var rounded = Convert.ToUInt32(seconds);
-                SetProgress(null, $"Successfully finished {config.AddonUrls.Count()} addons in {rounded} seconds", null, null);
+                var statusText = $"Successfully finished {config.AddonUrls.Count()} addons in {rounded} seconds";
+
+                if (smartUpdate)
+                {
+                    statusText += $"   (SU -> {updatedAddons} addons updated)";
+                }
+
+                SetProgress(null, statusText, null, null);
             }
         }
     }

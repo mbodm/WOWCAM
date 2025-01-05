@@ -20,14 +20,14 @@ namespace WOWCAM.Core
         private enum AddonState { FetchFinished, DownloadProgress, DownloadFinished, UnzipFinished, NoNeedToUpdateBySUF }
         private sealed record AddonProgress(AddonState AddonState, string AddonName, byte DownloadPercent);
 
-        public async Task ProcessAddonsAsync(IEnumerable<string> addonUrls, string tempFolder, string targetFolder, bool smartUpdate = false, bool showDownloadDialog = false,
+        public async Task<uint> ProcessAddonsAsync(IEnumerable<string> addonUrls, string tempFolder, string targetFolder, bool showDownloadDialog = false, bool smartUpdate = false,
             IProgress<byte>? progress = default, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(addonUrls);
 
             if (!addonUrls.Any())
             {
-                return;
+                return 0;
             }
 
             if (string.IsNullOrWhiteSpace(tempFolder))
@@ -89,6 +89,7 @@ namespace WOWCAM.Core
 
             // Concurrenly do for every addon "fetch -> download -> unzip"
 
+            uint updatedAddonsCounter = 0;
             try
             {
                 var tasks = addonUrls.Select(addonUrl =>
@@ -109,6 +110,7 @@ namespace WOWCAM.Core
                                 break;
                             case AddonState.UnzipFinished:
                                 progressData[p.AddonName] = 300;
+                                Interlocked.Increment(ref updatedAddonsCounter);
                                 break;
                             case AddonState.NoNeedToUpdateBySUF:
                                 progressData[p.AddonName] = 300;
@@ -174,6 +176,8 @@ namespace WOWCAM.Core
                 HandleNonCancellationException(e, "An error occurred while deleting the content of temp folder (see log file for details).");
                 throw;
             }
+
+            return updatedAddonsCounter;
         }
 
         private async Task ProcessAddonAsync(string addonPageUrl, string downloadFolder, string unzipFolder, bool smartUpdate,

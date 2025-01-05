@@ -24,7 +24,8 @@ namespace WOWCAM
             var webViewWrapper = new DefaultWebViewWrapper(logger, webViewProvider);
             var processStarter = new DefaultProcessStarter(logger);
             var updateManager = new DefaultUpdateManager(logger, config, httpClient);
-            var addonProcessing = new DefaultAddonProcessing(logger, webViewProvider, webViewWrapper);
+            var smartUpdateFeature = new DefaultSmartUpdateFeature();
+            var addonProcessing = new DefaultAddonProcessing(logger, webViewProvider, webViewWrapper, smartUpdateFeature);
 
             MainWindow = new MainWindow(logger, config, configValidator, processStarter, updateManager, webViewProvider, addonProcessing);
         }

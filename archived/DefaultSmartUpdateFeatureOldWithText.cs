@@ -1,6 +1,4 @@
-﻿using System.Threading;
-
-namespace WOWCAM.Core
+﻿namespace WOWCAM.Core
 {
     internal sealed class DefaultSmartUpdateFeatureOldWithText : ISmartUpdateFeature
     {

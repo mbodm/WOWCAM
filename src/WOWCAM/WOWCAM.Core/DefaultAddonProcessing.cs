@@ -1,6 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Reflection.Metadata;
-using System.Xml.Linq;
 using WOWCAM.Helper;
 
 namespace WOWCAM.Core
@@ -9,16 +7,17 @@ namespace WOWCAM.Core
     // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
     // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
 
-    public sealed class DefaultAddonProcessing(ILogger logger, IWebViewProvider webViewProvider, IWebViewWrapper webViewWrapper) : IAddonProcessing
+    public sealed class DefaultAddonProcessing(
+        ILogger logger, IWebViewProvider webViewProvider, IWebViewWrapper webViewWrapper, ISmartUpdateFeature smartUpdateFeature) : IAddonProcessing
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly IWebViewProvider webViewProvider = webViewProvider ?? throw new ArgumentNullException(nameof(webViewProvider));
         private readonly IWebViewWrapper webViewWrapper = webViewWrapper ?? throw new ArgumentNullException(nameof(webViewWrapper));
+        private readonly ISmartUpdateFeature smartUpdateFeature = smartUpdateFeature ?? throw new ArgumentNullException(nameof(smartUpdateFeature));
 
         private readonly ConcurrentDictionary<string, uint> progressData = new();
 
-
-        private enum AddonState { FetchFinished, DownloadProgress, DownloadFinished, UnzipFinished }
+        private enum AddonState { FetchFinished, DownloadProgress, DownloadFinished, UnzipFinished, NoNeedToUpdateBySUF }
         private sealed record AddonProgress(AddonState AddonState, string AddonName, byte DownloadPercent);
 
         public async Task ProcessAddonsAsync(IEnumerable<string> addonUrls, string tempFolder, string targetFolder, bool smartUpdate = false, bool showDownloadDialog = false,
@@ -81,14 +80,11 @@ namespace WOWCAM.Core
 
             if (smartUpdate)
             {
-                await CreateSmartUpdateFile(cancellationToken);
+                await smartUpdateFeature.CreateStorageIfNotExistsAsync(cancellationToken);
             }
             else
             {
-                if (File.Exists(smartUpdateFile))
-                {
-                    File.Delete(smartUpdateFile);
-                }
+                await smartUpdateFeature.RemoveStorageIfExistsAsync(cancellationToken);
             }
 
             // Concurrenly do for every addon "fetch -> download -> unzip"
@@ -103,22 +99,23 @@ namespace WOWCAM.Core
                         {
                             case AddonState.FetchFinished:
                                 progressData[p.AddonName] = 100;
-                                progress?.Report(CalcTotalPercent());
                                 break;
                             case AddonState.DownloadProgress:
                                 progressData[p.AddonName] = 100u + p.DownloadPercent;
-                                progress?.Report(CalcTotalPercent());
                                 break;
                             case AddonState.DownloadFinished:
                                 // Just to make sure download is 100%
                                 progressData[p.AddonName] = 200;
-                                progress?.Report(CalcTotalPercent());
                                 break;
                             case AddonState.UnzipFinished:
                                 progressData[p.AddonName] = 300;
-                                progress?.Report(CalcTotalPercent());
+                                break;
+                            case AddonState.NoNeedToUpdateBySUF:
+                                progressData[p.AddonName] = 300;
                                 break;
                         }
+
+                        progress?.Report(CalcTotalPercent());
                     });
 
                     return ProcessAddonAsync(addonUrl, downloadFolder, unzipFolder, smartUpdate, addonProgress, cancellationToken);
@@ -199,25 +196,35 @@ namespace WOWCAM.Core
             }
             progress?.Report(new AddonProgress(AddonState.FetchFinished, addonName, 0));
 
+            // Build download URL
+            var downloadUrl = CurseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
 
-
-
-            if (smartUpdate)
+            // Handle SmartUpdate mode
+            cancellationToken.ThrowIfCancellationRequested();
+            try
             {
+                if (smartUpdate)
+                {
+                    var exists = await smartUpdateFeature.ExactEntryExistsAsync(addonName, downloadUrl, cancellationToken);
+                    if (exists)
+                    {
+                        progress?.Report(new AddonProgress(AddonState.NoNeedToUpdateBySUF, addonName, 100));
+                        return;
+                    }
 
+                    await smartUpdateFeature.AddOrUpdateEntryAsync(addonName, downloadUrl, cancellationToken);
+                }
             }
-
-
-
-
-
-
+            catch (Exception e)
+            {
+                HandleNonCancellationException(e, "An error occurred while using SmartUpdate feature (see log file for details).");
+                throw;
+            }
 
             // Download zip file
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                var downloadUrl = CurseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
                 var downloadProgress = new Progress<WebViewWrapperDownloadProgress>(p =>
                 {
                     var percent = CalcDownloadPercent(p.ReceivedBytes, p.TotalBytes);
@@ -304,6 +311,5 @@ namespace WOWCAM.Core
                 return 0;
             }
         }
-
     }
 }

@@ -10,13 +10,15 @@ namespace WOWCAM.Core
         public string Storage => smartUpdateFile;
         public bool StorageExists => File.Exists(smartUpdateFile);
 
-        public Task CreateStorageAsync(CancellationToken cancellationToken = default)
+        public Task CreateStorageIfNotExistsAsync(CancellationToken cancellationToken = default)
         {
+            if (StorageExists)
+            {
+                return Task.CompletedTask;
+            }
+
             var s = """
                 <?xml version="1.0" encoding="utf-8"?>
-                <!-- ===================================================================== -->
-                <!-- Please have a look at https://github.com/mbodm/wowcam for file format -->
-                <!-- ===================================================================== -->
                 <wowcam>
                 	<smartupdate>
                 	</smartupdate>
@@ -28,9 +30,9 @@ namespace WOWCAM.Core
             return File.WriteAllTextAsync(smartUpdateFile, s, cancellationToken);
         }
 
-        public Task RemoveStorageAsync(CancellationToken cancellationToken = default)
+        public Task RemoveStorageIfExistsAsync(CancellationToken cancellationToken = default)
         {
-            if (File.Exists(smartUpdateFile))
+            if (StorageExists)
             {
                 File.Delete(smartUpdateFile);
             }
@@ -40,32 +42,58 @@ namespace WOWCAM.Core
 
         public async Task<bool> ExactEntryExistsAsync(string addonName, string downloadUrl, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(addonName))
+            {
+                throw new ArgumentException($"'{nameof(addonName)}' cannot be null or whitespace.", nameof(addonName));
+            }
+
+            if (string.IsNullOrWhiteSpace(downloadUrl))
+            {
+                throw new ArgumentException($"'{nameof(downloadUrl)}' cannot be null or whitespace.", nameof(downloadUrl));
+            }
+
             var doc = await LoadFileAsync(cancellationToken).ConfigureAwait(false);
 
             // Not checking file format again (since this was done when file was loaded)
 
             var entries = doc.Root?.Element("smartupdate")?.Elements("entry");
-            var lastDownloadUrl = entries?.Where(entry => entry.Attribute("addonName")?.Name == addonName).FirstOrDefault()?.Attribute("lastDownloadUrl")?.Value ?? string.Empty;
+            var lastDownloadUrl = entries?.Where(entry => entry.Attribute("addonName")?.Value == addonName).FirstOrDefault()?.Attribute("lastDownloadUrl")?.Value ?? string.Empty;
+            var bothUrlsAreTheSame = lastDownloadUrl.Trim().Equals(downloadUrl.Trim(), StringComparison.CurrentCultureIgnoreCase);
 
-            return lastDownloadUrl.Trim().Equals(downloadUrl.Trim(), StringComparison.CurrentCultureIgnoreCase);
+            return bothUrlsAreTheSame;
         }
 
         public async Task AddOrUpdateEntryAsync(string addonName, string downloadUrl, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(addonName))
+            {
+                throw new ArgumentException($"'{nameof(addonName)}' cannot be null or whitespace.", nameof(addonName));
+            }
+
+            if (string.IsNullOrWhiteSpace(downloadUrl))
+            {
+                throw new ArgumentException($"'{nameof(downloadUrl)}' cannot be null or whitespace.", nameof(downloadUrl));
+            }
+
             var now = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture); // ISO 8601 timestamp
             var doc = await LoadFileAsync(cancellationToken).ConfigureAwait(false);
 
             // Not checking file format again (since this was done when file was loaded)
 
-            doc.Root?.Element("smartupdate")?.Elements("entry")?.Where(entry => entry.Name == )
+            var entry = doc.Root?.Element("smartupdate")?.Elements("entry")?.Where(entry => entry.Name == addonName).FirstOrDefault();
+            if (entry == null)
+            {
+                doc.Root?.Element("smartupdate")?.Add(new XElement("entry",
+                    new XAttribute("addonName", addonName), new XAttribute("lastDownloadUrl", downloadUrl), new XAttribute("changedAt", now)));
+            }
+            else
+            {
+                entry.SetAttributeValue("lastDownloadUrl", downloadUrl);
+                entry.SetAttributeValue("changedAt", now);
+            }
 
-
-                // Todo Hier gehts weiter
-
-
-
-            doc.Root?.Element("smartupdate")?.Add(new XElement("entry",
-                new XAttribute("addonName", addonName), new XAttribute("lastDownloadUrl", downloadUrl), new XAttribute("changedAt", now.ToString())));
+            var sortedEntries = doc.Root?.Element("smartupdate")?.Elements("entry")?.OrderBy(entry => entry.Attribute("addonName")?.Value);
+            doc.Root?.Element("smartUpdate")?.ReplaceAll(sortedEntries);
 
             using var fileStream = new FileStream(smartUpdateFile, FileMode.Create, FileAccess.Write, FileShare.Read);
             await doc.SaveAsync(fileStream, SaveOptions.None, cancellationToken).ConfigureAwait(false);
@@ -84,6 +112,5 @@ namespace WOWCAM.Core
 
             return doc;
         }
-
     }
 }

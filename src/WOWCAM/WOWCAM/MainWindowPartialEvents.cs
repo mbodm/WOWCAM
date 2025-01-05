@@ -190,7 +190,8 @@ namespace WOWCAM
                 {
                     stopwatch.Start();
                     var progress = new Progress<byte>(p => progressBar.Value = p);
-                    await addonProcessing.ProcessAddonsAsync(config.AddonUrls, config.TempFolder, config.TargetFolder, webView.IsEnabled, progress, cts.Token);
+                    var smartUpdate = config.Options.Contains("SmartUpdate", StringComparer.InvariantCultureIgnoreCase);
+                    await addonProcessing.ProcessAddonsAsync(config.AddonUrls, config.TempFolder, config.TargetFolder, smartUpdate, webView.IsEnabled, progress, cts.Token);
                     stopwatch.Stop();
 
                     SetProgress(null, "Clean up ...", null, null);

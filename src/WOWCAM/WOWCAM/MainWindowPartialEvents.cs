@@ -13,6 +13,8 @@ namespace WOWCAM
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
             logger.ClearLog();
+            logger.Log("Log file cleared.");
+            logger.Log("Application started.");
 
             try
             {

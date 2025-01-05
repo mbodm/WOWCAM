@@ -1,5 +1,5 @@
-﻿using System.Globalization;
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
+using WOWCAM.Helper;
 
 namespace WOWCAM.Core
 {
@@ -75,7 +75,7 @@ namespace WOWCAM.Core
                 throw new ArgumentException($"'{nameof(downloadUrl)}' cannot be null or whitespace.", nameof(downloadUrl));
             }
 
-            var now = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture); // ISO 8601 timestamp
+            var now = DateTime.UtcNow.ToIso8601();
             var doc = await LoadFileAsync(cancellationToken).ConfigureAwait(false);
 
             // Not checking file format again (since this was done when file was loaded)

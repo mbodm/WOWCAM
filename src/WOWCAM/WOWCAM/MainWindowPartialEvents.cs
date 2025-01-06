@@ -185,7 +185,7 @@ namespace WOWCAM
             else
             {
                 SetControls(false);
-                SetProgress(true, "Download and unzip addons ...", 0, 100);
+                SetProgress(true, smartUpdate ? "Processing addons ..." : "Download and unzip addons ...", 0, 100);
                 button.IsEnabled = true;
                 button.Content = "_Cancel";
                 cts = new CancellationTokenSource();
@@ -231,14 +231,10 @@ namespace WOWCAM
 
                 var seconds = Math.Round((double)(stopwatch.ElapsedMilliseconds + 1250) / 1000);
                 var rounded = Convert.ToUInt32(seconds);
-                var statusText = $"Successfully finished {config.AddonUrls.Count()} addons in {rounded} seconds";
+                var statusText1 = $"Successfully updated {updatedAddons} addon(s) in {rounded} seconds";
+                var statusText2 = $"Successfully finished {config.AddonUrls.Count()} addon(s) in {rounded} seconds";
 
-                if (smartUpdate)
-                {
-                    statusText += $"   (SU -> {updatedAddons} addons updated)";
-                }
-
-                SetProgress(null, statusText, null, null);
+                SetProgress(null, smartUpdate ? statusText1 : statusText2, null, null);
             }
         }
     }

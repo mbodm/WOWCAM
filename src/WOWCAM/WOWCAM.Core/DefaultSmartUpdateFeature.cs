@@ -52,12 +52,11 @@ namespace WOWCAM.Core
                 throw new ArgumentException($"'{nameof(downloadUrl)}' cannot be null or whitespace.", nameof(downloadUrl));
             }
 
-            var doc = await LoadFileAsync(cancellationToken).ConfigureAwait(false);
+            var doc = await LoadFileAsync(smartUpdateFile, cancellationToken).ConfigureAwait(false);
 
             // Not checking file format again (since this was done when file was loaded)
 
-            var entries = doc.Root?.Element("smartupdate")?.Elements("entry");
-            var lastDownloadUrl = entries?.Where(entry => entry.Attribute("addonName")?.Value == addonName).FirstOrDefault()?.Attribute("lastDownloadUrl")?.Value ?? string.Empty;
+            var lastDownloadUrl = GetEntryByAddonName(doc, addonName)?.Attribute("lastDownloadUrl")?.Value ?? string.Empty;
             var bothUrlsAreTheSame = lastDownloadUrl.Trim().Equals(downloadUrl.Trim(), StringComparison.CurrentCultureIgnoreCase);
 
             return bothUrlsAreTheSame;
@@ -76,11 +75,11 @@ namespace WOWCAM.Core
             }
 
             var now = DateTime.UtcNow.ToIso8601();
-            var doc = await LoadFileAsync(cancellationToken).ConfigureAwait(false);
+            var doc = await LoadFileAsync(smartUpdateFile, cancellationToken).ConfigureAwait(false);
 
             // Not checking file format again (since this was done when file was loaded)
 
-            var entry = doc.Root?.Element("smartupdate")?.Elements("entry")?.Where(entry => entry.Name == addonName).FirstOrDefault();
+            var entry = GetEntryByAddonName(doc, addonName);
             if (entry == null)
             {
                 doc.Root?.Element("smartupdate")?.Add(new XElement("entry",
@@ -99,9 +98,9 @@ namespace WOWCAM.Core
             await doc.SaveAsync(fileStream, SaveOptions.None, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task<XDocument> LoadFileAsync(CancellationToken cancellationToken = default)
+        private static async Task<XDocument> LoadFileAsync(string xmlFile, CancellationToken cancellationToken = default)
         {
-            using var fileStream = new FileStream(smartUpdateFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var fileStream = new FileStream(xmlFile, FileMode.Open, FileAccess.Read, FileShare.Read);
             var doc = await XDocument.LoadAsync(fileStream, LoadOptions.None, cancellationToken).ConfigureAwait(false);
 
             if (doc.Root == null || doc.Root.Name != "wowcam")
@@ -111,6 +110,15 @@ namespace WOWCAM.Core
                 throw new InvalidOperationException("Error in SmartUpdate file: The <smartupdate> section not exists.");
 
             return doc;
+        }
+
+        private static XElement? GetEntryByAddonName(XDocument document, string addonName)
+        {
+            var entry = document?.Root?.Element("smartupdate")?.Elements("entry")?.
+                Where(entry => (entry.Attribute("addonName")?.Value?.Trim() ?? string.Empty).Equals(addonName?.Trim(), StringComparison.CurrentCultureIgnoreCase)).
+                FirstOrDefault();
+
+            return entry;
         }
     }
 }

@@ -56,7 +56,7 @@ namespace WOWCAM.Core
 
             // Not checking file format again (since this was done when file was loaded)
 
-            var lastDownloadUrl = GetEntryByAddonName(doc, addonName)?.Attribute("lastDownloadUrl")?.Value ?? string.Empty;
+            var lastDownloadUrl = GetEntryByAddonName(doc, addonName)?.Element("lastDownloadUrl")?.Value ?? string.Empty;
             var bothUrlsAreTheSame = lastDownloadUrl.Trim().Equals(downloadUrl.Trim(), StringComparison.CurrentCultureIgnoreCase);
 
             return bothUrlsAreTheSame;
@@ -82,20 +82,26 @@ namespace WOWCAM.Core
             var entry = GetEntryByAddonName(doc, addonName);
             if (entry == null)
             {
-                doc.Root?.Element("smartupdate")?.Add(new XElement("entry",
-                    new XAttribute("addonName", addonName), new XAttribute("lastDownloadUrl", downloadUrl), new XAttribute("changedAt", now)));
+                doc.Root?.Element("smartupdate")?.Add(
+                    new XElement("entry",
+                        new XElement("addonName", addonName),
+                        new XElement("lastDownloadUrl", downloadUrl),
+                        new XElement("changedAt", now)));
             }
             else
             {
-                entry.SetAttributeValue("lastDownloadUrl", downloadUrl);
-                entry.SetAttributeValue("changedAt", now);
+                entry.SetElementValue("lastDownloadUrl", downloadUrl);
+                entry.SetElementValue("changedAt", now);
             }
 
-            var sortedEntries = doc.Root?.Element("smartupdate")?.Elements("entry")?.OrderBy(entry => entry.Attribute("addonName")?.Value);
+            var sortedEntries = doc.Root?.Element("smartupdate")?.Elements("entry")?.OrderBy(entry => entry.Element("addonName")?.Value);
             doc.Root?.Element("smartUpdate")?.ReplaceAll(sortedEntries);
 
-            using var fileStream = new FileStream(smartUpdateFile, FileMode.Create, FileAccess.Write, FileShare.Read);
+            using var fileStream = new FileStream(smartUpdateFile, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
             await doc.SaveAsync(fileStream, SaveOptions.None, cancellationToken).ConfigureAwait(false);
+
+            // The XML writer kills the last CRLF
+            await File.AppendAllTextAsync(smartUpdateFile, Environment.NewLine, cancellationToken).ConfigureAwait(false);
         }
 
         private static async Task<XDocument> LoadFileAsync(string xmlFile, CancellationToken cancellationToken = default)
@@ -115,7 +121,7 @@ namespace WOWCAM.Core
         private static XElement? GetEntryByAddonName(XDocument document, string addonName)
         {
             var entry = document?.Root?.Element("smartupdate")?.Elements("entry")?.
-                Where(entry => (entry.Attribute("addonName")?.Value?.Trim() ?? string.Empty).Equals(addonName?.Trim(), StringComparison.CurrentCultureIgnoreCase)).
+                Where(entry => (entry.Element("addonName")?.Value?.Trim() ?? string.Empty).Equals(addonName?.Trim(), StringComparison.CurrentCultureIgnoreCase)).
                 FirstOrDefault();
 
             return entry;

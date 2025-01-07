@@ -1,33 +1,59 @@
-﻿using System.Xml.Linq;
-using WOWCAM.Helper;
+﻿using System.Collections.Concurrent;
+using System.Xml.Linq;
 
 namespace WOWCAM.Core
 {
     public sealed class DefaultSmartUpdateFeature : ISmartUpdateFeature
     {
-        private readonly string smartUpdateFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM-SmartUpdate.xml");
+        private readonly string smartUpdateFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM-SU.xml");
+        private readonly ConcurrentDictionary<string, string> dict = new();
 
         public string Storage => smartUpdateFile;
         public bool StorageExists => File.Exists(smartUpdateFile);
 
-        public Task CreateStorageIfNotExistsAsync(CancellationToken cancellationToken = default)
+        public async Task SaveToStorageAsync(CancellationToken cancellationToken = default)
         {
-            if (StorageExists)
+            var entries = dict.OrderBy(kvp => kvp.Key).Select(kvp => new XElement("entry",
+                new XAttribute("name", kvp.Key),
+                new XAttribute("url", kvp.Value)));
+
+            var doc = new XDocument(new XElement("wowcam", new XElement("smartupdate", entries)));
+
+            using var fileStream = new FileStream(smartUpdateFile, FileMode.Create, FileAccess.Write, FileShare.Read);
+            await doc.SaveAsync(fileStream, SaveOptions.None, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task LoadFromStorageIfExistsAsync(CancellationToken cancellationToken = default)
+        {
+            dict.Clear();
+
+            if (!StorageExists)
             {
-                return Task.CompletedTask;
+                return;
             }
 
-            var s = """
-                <?xml version="1.0" encoding="utf-8"?>
-                <wowcam>
-                	<smartupdate>
-                	</smartupdate>
-                </wowcam>
-                """;
+            using var fileStream = new FileStream(smartUpdateFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var doc = await XDocument.LoadAsync(fileStream, LoadOptions.None, cancellationToken).ConfigureAwait(false);
 
-            s += Environment.NewLine;
+            var root = doc.Element("wowcam") ??
+                throw new InvalidOperationException("Error in SmartUpdate file: The <wowcam> root element not exists.");
 
-            return File.WriteAllTextAsync(smartUpdateFile, s, cancellationToken);
+            var parent = root.Element("smartupdate") ??
+                throw new InvalidOperationException("Error in SmartUpdate file: The <smartupdate> section not exists.");
+
+            var entries = parent.Elements("entry");
+            foreach (var entry in entries)
+            {
+                var addonName = entry?.Attribute("name")?.Value ?? string.Empty;
+                var lastDownloadUrl = entry?.Attribute("url")?.Value ?? string.Empty;
+
+                if (string.IsNullOrWhiteSpace(addonName) || string.IsNullOrWhiteSpace(lastDownloadUrl))
+                {
+                    throw new InvalidOperationException("Error in SmartUpdate file: The <smartupdate> section contains one or more invalid entries.");
+                }
+
+                dict.TryAdd(addonName, lastDownloadUrl);
+            }
         }
 
         public Task RemoveStorageIfExistsAsync(CancellationToken cancellationToken = default)
@@ -40,91 +66,19 @@ namespace WOWCAM.Core
             return Task.Delay(200, cancellationToken);
         }
 
-        public async Task<bool> ExactEntryExistsAsync(string addonName, string downloadUrl, CancellationToken cancellationToken = default)
+        public bool ExactEntryExists(string addonName, string downloadUrl)
         {
-            if (string.IsNullOrWhiteSpace(addonName))
+            if (!dict.TryGetValue(addonName, out string? value) || string.IsNullOrWhiteSpace(value))
             {
-                throw new ArgumentException($"'{nameof(addonName)}' cannot be null or whitespace.", nameof(addonName));
+                return false;
             }
 
-            if (string.IsNullOrWhiteSpace(downloadUrl))
-            {
-                throw new ArgumentException($"'{nameof(downloadUrl)}' cannot be null or whitespace.", nameof(downloadUrl));
-            }
-
-            var doc = await LoadFileAsync(smartUpdateFile, cancellationToken).ConfigureAwait(false);
-
-            // Not checking file format again (since this was done when file was loaded)
-
-            var lastDownloadUrl = GetEntryByAddonName(doc, addonName)?.Element("lastDownloadUrl")?.Value ?? string.Empty;
-            var bothUrlsAreTheSame = lastDownloadUrl.Trim().Equals(downloadUrl.Trim(), StringComparison.CurrentCultureIgnoreCase);
-
-            return bothUrlsAreTheSame;
+            return value == downloadUrl;
         }
 
-        public async Task AddOrUpdateEntryAsync(string addonName, string downloadUrl, CancellationToken cancellationToken = default)
+        public void AddOrUpdateEntry(string addonName, string downloadUrl)
         {
-            if (string.IsNullOrWhiteSpace(addonName))
-            {
-                throw new ArgumentException($"'{nameof(addonName)}' cannot be null or whitespace.", nameof(addonName));
-            }
-
-            if (string.IsNullOrWhiteSpace(downloadUrl))
-            {
-                throw new ArgumentException($"'{nameof(downloadUrl)}' cannot be null or whitespace.", nameof(downloadUrl));
-            }
-
-            var now = DateTime.UtcNow.ToIso8601();
-            var doc = await LoadFileAsync(smartUpdateFile, cancellationToken).ConfigureAwait(false);
-
-            // Not checking file format again (since this was done when file was loaded)
-
-            var entry = GetEntryByAddonName(doc, addonName);
-            if (entry == null)
-            {
-                doc.Root?.Element("smartupdate")?.Add(
-                    new XElement("entry",
-                        new XElement("addonName", addonName),
-                        new XElement("lastDownloadUrl", downloadUrl),
-                        new XElement("changedAt", now)));
-            }
-            else
-            {
-                entry.SetElementValue("lastDownloadUrl", downloadUrl);
-                entry.SetElementValue("changedAt", now);
-            }
-
-            var sortedEntries = doc.Root?.Element("smartupdate")?.Elements("entry")?.OrderBy(entry => entry.Element("addonName")?.Value);
-            doc.Root?.Element("smartUpdate")?.ReplaceAll(sortedEntries);
-
-            using var fileStream = new FileStream(smartUpdateFile, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
-            await doc.SaveAsync(fileStream, SaveOptions.None, cancellationToken).ConfigureAwait(false);
-
-            // The XML writer kills the last CRLF
-            await File.AppendAllTextAsync(smartUpdateFile, Environment.NewLine, cancellationToken).ConfigureAwait(false);
-        }
-
-        private static async Task<XDocument> LoadFileAsync(string xmlFile, CancellationToken cancellationToken = default)
-        {
-            using var fileStream = new FileStream(xmlFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var doc = await XDocument.LoadAsync(fileStream, LoadOptions.None, cancellationToken).ConfigureAwait(false);
-
-            if (doc.Root == null || doc.Root.Name != "wowcam")
-                throw new InvalidOperationException("Error in SmartUpdate file: The <wowcam> root element not exists.");
-
-            if (doc.Root.Element("smartupdate") == null)
-                throw new InvalidOperationException("Error in SmartUpdate file: The <smartupdate> section not exists.");
-
-            return doc;
-        }
-
-        private static XElement? GetEntryByAddonName(XDocument document, string addonName)
-        {
-            var entry = document?.Root?.Element("smartupdate")?.Elements("entry")?.
-                Where(entry => (entry.Element("addonName")?.Value?.Trim() ?? string.Empty).Equals(addonName?.Trim(), StringComparison.CurrentCultureIgnoreCase)).
-                FirstOrDefault();
-
-            return entry;
+            dict.AddOrUpdate(addonName, downloadUrl, (_, _) => downloadUrl);
         }
     }
 }

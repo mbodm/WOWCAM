@@ -68,7 +68,6 @@ namespace WOWCAM.Core
             }
 
             // Prepare progress dictionary
-
             progressData.Clear();
             foreach (var addonUrl in addonUrls)
             {
@@ -77,18 +76,24 @@ namespace WOWCAM.Core
             }
 
             // Handle SmartUpdate mode
-
-            if (smartUpdate)
+            try
             {
-                await smartUpdateFeature.CreateStorageIfNotExistsAsync(cancellationToken);
+                if (smartUpdate)
+                {
+                    await smartUpdateFeature.LoadFromStorageIfExistsAsync(cancellationToken);
+                }
+                else
+                {
+                    await smartUpdateFeature.RemoveStorageIfExistsAsync(cancellationToken);
+                }
             }
-            else
+            catch (Exception e)
             {
-                await smartUpdateFeature.RemoveStorageIfExistsAsync(cancellationToken);
+                HandleNonCancellationException(e, "An error occurred while using SmartUpdate feature (see log file for details).");
+                throw;
             }
 
-            // Concurrenly do for every addon "fetch -> download -> unzip"
-
+            // Concurrently do for every addon "fetch -> download -> unzip" (or maybe skip last 2 parts if SmartUpdate is active)
             uint updatedAddonsCounter = 0;
             try
             {
@@ -128,6 +133,20 @@ namespace WOWCAM.Core
             catch (Exception e)
             {
                 HandleNonCancellationException(e, "An error occurred while processing the addons (see log file for details).");
+                throw;
+            }
+
+            // Handle SmartUpdate mode
+            try
+            {
+                if (smartUpdate)
+                {
+                    await smartUpdateFeature.SaveToStorageAsync(cancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Exception e)
+            {
+                HandleNonCancellationException(e, "An error occurred while using SmartUpdate feature (see log file for details).");
                 throw;
             }
 
@@ -186,82 +205,57 @@ namespace WOWCAM.Core
             var addonName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonPageUrl);
 
             // Fetch JSON data
-            cancellationToken.ThrowIfCancellationRequested();
-            CurseAddonPageJson jsonModel;
-            try
-            {
-                var json = await webViewWrapper.NavigateToPageAndExecuteJavaScriptAsync(addonPageUrl, CurseHelper.FetchJsonScript, cancellationToken);
-                jsonModel = CurseHelper.SerializeAddonPageJson(json);
-            }
-            catch (Exception e)
-            {
-                HandleNonCancellationException(e, "An error occurred while fetching JSON data from addon page (see log file for details).");
-                throw;
-            }
-            progress?.Report(new AddonProgress(AddonState.FetchFinished, addonName, 0));
 
-            // Build download URL
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var json = await webViewWrapper.NavigateToPageAndExecuteJavaScriptAsync(addonPageUrl, CurseHelper.FetchJsonScript, cancellationToken);
+            var jsonModel = CurseHelper.SerializeAddonPageJson(json);
             var downloadUrl = CurseHelper.BuildInitialDownloadUrl(jsonModel.ProjectId, jsonModel.FileId);
 
-            // Handle SmartUpdate mode
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                if (smartUpdate)
-                {
-                    var exists = await smartUpdateFeature.ExactEntryExistsAsync(addonName, downloadUrl, cancellationToken);
-                    if (exists)
-                    {
-                        progress?.Report(new AddonProgress(AddonState.NoNeedToUpdateBySUF, addonName, 100));
-                        return;
-                    }
+            progress?.Report(new AddonProgress(AddonState.FetchFinished, addonName, 0));
 
-                    await smartUpdateFeature.AddOrUpdateEntryAsync(addonName, downloadUrl, cancellationToken);
-                }
-            }
-            catch (Exception e)
+            // Handle SmartUpdate mode
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (smartUpdate)
             {
-                HandleNonCancellationException(e, "An error occurred while using SmartUpdate feature (see log file for details).");
-                throw;
+                if (smartUpdateFeature.ExactEntryExists(addonName, downloadUrl))
+                {
+                    progress?.Report(new AddonProgress(AddonState.NoNeedToUpdateBySUF, addonName, 100));
+                    return;
+                }
+
+                smartUpdateFeature.AddOrUpdateEntry(addonName, downloadUrl);
             }
 
             // Download zip file
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                var downloadProgress = new Progress<WebViewWrapperDownloadProgress>(p =>
-                {
-                    var percent = CalcDownloadPercent(p.ReceivedBytes, p.TotalBytes);
-                    progress?.Report(new AddonProgress(AddonState.DownloadProgress, addonName, percent));
-                });
 
-                await webViewWrapper.NavigateAndDownloadFileAsync(downloadUrl, downloadProgress, cancellationToken);
-            }
-            catch (Exception e)
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var downloadProgress = new Progress<WebViewWrapperDownloadProgress>(p =>
             {
-                HandleNonCancellationException(e, "An error occurred while downloading zip file (see log file for details).");
-                throw;
-            }
+                var percent = CalcDownloadPercent(p.ReceivedBytes, p.TotalBytes);
+                progress?.Report(new AddonProgress(AddonState.DownloadProgress, addonName, percent));
+            });
+
+            await webViewWrapper.NavigateAndDownloadFileAsync(downloadUrl, downloadProgress, cancellationToken);
+
             progress?.Report(new AddonProgress(AddonState.DownloadFinished, addonName, 100));
 
             // Extract zip file
+
             cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                var zipFilePath = Path.Combine(downloadFolder, jsonModel.FileName);
 
-                if (!await ZipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken))
-                {
-                    throw new InvalidOperationException("It seems the downloaded zip file is corrupted, cause zip file validation failed.");
-                }
+            var zipFilePath = Path.Combine(downloadFolder, jsonModel.FileName);
 
-                await ZipFileHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken);
-            }
-            catch (Exception e)
+            if (!await ZipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken))
             {
-                HandleNonCancellationException(e, "An error occurred while extracting zip file (see log file for details).");
-                throw;
+                throw new InvalidOperationException("It seems the downloaded zip file is corrupted, cause zip file validation failed.");
             }
+
+            await ZipFileHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken);
+
             progress?.Report(new AddonProgress(AddonState.UnzipFinished, addonName, 100));
         }
 

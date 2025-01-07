@@ -70,6 +70,8 @@ namespace WOWCAM.Core
 
         private void AppendLogEntry(string header, string file, int line, string message)
         {
+            // var now = DateTime.UtcNow.ToIso8601(true);
+
             var now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
 
             file = Path.GetFileName(file);

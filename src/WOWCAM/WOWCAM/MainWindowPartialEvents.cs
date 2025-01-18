@@ -125,23 +125,24 @@ namespace WOWCAM
 
         private void ProgressBar_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (e.Source is ProgressBar && e.ChangedButton == MouseButton.Right &&
-                Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift))
+            if (e.Source is ProgressBar && e.ChangedButton == MouseButton.Right && Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift))
             {
                 if (FindResource("keyContextMenu") is ContextMenu contextMenu)
                 {
                     contextMenu.Items.Clear();
 
-                    var item1 = new MenuItem { Header = "Show log file" };
-                    item1.IsCheckable = false;
-                    item1.Icon = new TextBlock { Text = "  1" };
+                    var item1 = new MenuItem { Header = "Show log file", Icon = new TextBlock { Text = "  1" } };
                     item1.Click += (s, e) => processStarter.ShowLogFileInNotepad();
                     contextMenu.Items.Add(item1);
 
                     if (!webView.IsEnabled)
                     {
-                        var item2 = new MenuItem { Header = "Activate Debug-Mode" };
-                        item2.Icon = new TextBlock { Text = "  2" };
+                        var item2 = new MenuItem
+                        {
+                            Header = "Activate Debug-Mode",
+                            Icon = new TextBlock { Text = "  2" }
+                        };
+
                         item2.Click += (s, e) =>
                         {
                             var question = string.Empty;
@@ -231,8 +232,10 @@ namespace WOWCAM
 
                 var seconds = Math.Round((double)(stopwatch.ElapsedMilliseconds + 1250) / 1000);
                 var rounded = Convert.ToUInt32(seconds);
-                var statusText1 = $"Successfully updated {updatedAddons} addon(s) in {rounded} seconds";
-                var statusText2 = $"Successfully finished {config.AddonUrls.Count()} addon(s) in {rounded} seconds";
+                var addonOrAddons1 = PluralizeHelper.PluralizeWord("addon", () => updatedAddons != 1);
+                var addonOrAddons2 = PluralizeHelper.PluralizeWord("addon", () => config.AddonUrls.Count() != 1);
+                var statusText1 = $"Successfully updated {updatedAddons} {addonOrAddons1} in {rounded} seconds";
+                var statusText2 = $"Successfully finished {config.AddonUrls.Count()} {addonOrAddons2} in {rounded} seconds";
 
                 SetProgress(null, smartUpdate ? statusText1 : statusText2, null, null);
             }

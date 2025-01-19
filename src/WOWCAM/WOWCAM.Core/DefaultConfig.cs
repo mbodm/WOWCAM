@@ -30,9 +30,8 @@ namespace WOWCAM.Core
                 		<temp>%TEMP%</temp>
                 	</general>
                 	<options>
-                		<smartupdate>false</smartupdate>
+                		<smartupdate>true</smartupdate>
                 		<silentmode>false</silentmode>
-                		<unziponly>false</unziponly>
                 	</options>
                 	<profiles>
                 		<retail>
@@ -48,6 +47,12 @@ namespace WOWCAM.Core
                 """;
 
             s += Environment.NewLine;
+
+            var configFolder = Path.GetDirectoryName(xmlFile) ?? string.Empty;
+            if (!Directory.Exists(configFolder))
+            {
+                Directory.CreateDirectory(configFolder);
+            }
 
             return File.WriteAllTextAsync(xmlFile, s, cancellationToken);
         }

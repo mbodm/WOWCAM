@@ -1,11 +1,12 @@
 ﻿using System.Collections.Concurrent;
 using System.Xml.Linq;
+using WOWCAM.Helper;
 
 namespace WOWCAM.Core
 {
     public sealed class DefaultSmartUpdateFeature : ISmartUpdateFeature
     {
-        private readonly string smartUpdateFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM-SU.xml");
+        private readonly string smartUpdateFile = Path.Combine(AppHelper.GetApplicationExecutableFolder(), "WOWCAM.smu");
         private readonly ConcurrentDictionary<string, string> dict = new();
 
         public string Storage => smartUpdateFile;

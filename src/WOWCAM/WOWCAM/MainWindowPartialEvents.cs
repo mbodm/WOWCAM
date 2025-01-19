@@ -13,8 +13,7 @@ namespace WOWCAM
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
             logger.ClearLog();
-            logger.Log("Log file cleared.");
-            logger.Log("Application started.");
+            logger.Log("Application started and log file was cleared.");
 
             try
             {
@@ -131,19 +130,23 @@ namespace WOWCAM
                 {
                     contextMenu.Items.Clear();
 
-                    var item1 = new MenuItem { Header = "Show log file", Icon = new TextBlock { Text = "  1" } };
-                    item1.Click += (s, e) => processStarter.ShowLogFileInNotepad();
-                    contextMenu.Items.Add(item1);
+                    var itemLogFile = new MenuItem { Header = "Show log file", Icon = new TextBlock { Text = "  1" } };
+                    itemLogFile.Click += (s, e) => processStarter.ShowLogFileInNotepad();
+                    contextMenu.Items.Add(itemLogFile);
+
+                    var itemProgramFolder = new MenuItem { Header = "Show program folder", Icon = new TextBlock { Text = "  2" } };
+                    itemProgramFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(AppHelper.GetApplicationExecutableFolder());
+                    contextMenu.Items.Add(itemProgramFolder);
+
+                    var itemAddonsFolder = new MenuItem { Header = "Show addons folder", Icon = new TextBlock { Text = "  3" } };
+                    itemAddonsFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(config.TargetFolder);
+                    contextMenu.Items.Add(itemAddonsFolder);
 
                     if (!webView.IsEnabled)
                     {
-                        var item2 = new MenuItem
-                        {
-                            Header = "Activate Debug-Mode",
-                            Icon = new TextBlock { Text = "  2" }
-                        };
+                        var itemWebView = new MenuItem { Header = "Activate web Debug-Mode", Icon = new TextBlock { Text = "  4" } };
 
-                        item2.Click += (s, e) =>
+                        itemWebView.Click += (s, e) =>
                         {
                             var question = string.Empty;
                             question += $"Are you sure?{Environment.NewLine}{Environment.NewLine}";
@@ -155,7 +158,7 @@ namespace WOWCAM
                             }
                         };
 
-                        contextMenu.Items.Add(item2);
+                        contextMenu.Items.Add(itemWebView);
                     }
 
                     contextMenu.IsOpen = true;
@@ -214,7 +217,7 @@ namespace WOWCAM
                 {
                     if (ex is TaskCanceledException || ex is OperationCanceledException)
                     {
-                        SetProgress(null, "Cancelled", null, null);
+                        SetProgress(null, "Cancelled by user", null, null);
                     }
                     else
                     {

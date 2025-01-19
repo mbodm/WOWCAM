@@ -1,12 +1,13 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
+using WOWCAM.Helper;
 
 namespace WOWCAM.Core
 {
     public sealed class DefaultLogger : ILogger
     {
         private readonly object syncRoot = new();
-        private readonly string logFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM.log");
+        private readonly string logFile = Path.Combine(AppHelper.GetApplicationExecutableFolder(), "WOWCAM.log");
         private readonly string newLine = Environment.NewLine;
 
         public string Storage => logFile;

@@ -10,9 +10,10 @@ namespace WOWCAM.Core
 
         public string ActiveProfile { get; private set; } = string.Empty;
         public string TempFolder { get; private set; } = string.Empty;
+        public IEnumerable<string> ActiveOptions { get; private set; } = [];
+
         public string TargetFolder { get; private set; } = string.Empty;
         public IEnumerable<string> AddonUrls { get; private set; } = [];
-        public IEnumerable<string> Options { get; private set; } = [];
 
         public string Storage => xmlFile;
         public bool Exists => File.Exists(xmlFile);
@@ -30,7 +31,7 @@ namespace WOWCAM.Core
                 		<temp>%TEMP%</temp>
                 	</general>
                 	<options>
-                		<smartupdate>true</smartupdate>
+                		<autoupdate>false</autoupdate>
                 		<silentmode>false</silentmode>
                 	</options>
                 	<profiles>
@@ -64,13 +65,11 @@ namespace WOWCAM.Core
             try
             {
                 using var fileStream = new FileStream(Storage, FileMode.Open, FileAccess.Read, FileShare.Read);
-
                 doc = await XDocument.LoadAsync(fileStream, LoadOptions.None, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
                 logger.Log(e);
-
                 throw new InvalidOperationException("Could not load config file (see log file for details).", e);
             }
 
@@ -81,16 +80,14 @@ namespace WOWCAM.Core
                 ActiveProfile = GetActiveProfile(doc);
                 CheckActiveProfileSection(doc, ActiveProfile);
                 TempFolder = GetTempFolder(doc);
+                ActiveOptions = GetActiveOptions(doc);
 
                 TargetFolder = GetTargetFolder(doc, ActiveProfile);
                 AddonUrls = GetAddonUrls(doc, ActiveProfile);
-
-                Options = GetOptions(doc);
             }
             catch (Exception e)
             {
                 logger.Log(e);
-
                 throw new InvalidOperationException("Format error in config file (see log file for details).", e);
             }
         }
@@ -135,23 +132,7 @@ namespace WOWCAM.Core
             return Environment.ExpandEnvironmentVariables(s);
         }
 
-        private static string GetTargetFolder(XDocument doc, string profile)
-        {
-            var s = doc.Root?.Element("profiles")?.Element(profile)?.Element("folder")?.Value?.Trim() ??
-                throw new InvalidOperationException("Error in config file: Could not determine target folder for given profile.");
-
-            return Environment.ExpandEnvironmentVariables(s);
-        }
-
-        private static IEnumerable<string> GetAddonUrls(XDocument doc, string profile)
-        {
-            var addons = doc.Root?.Element("profiles")?.Element(profile)?.Element("addons") ??
-                throw new InvalidOperationException("Error in config file: Could not determine addon urls for given profile.");
-
-            return addons.Elements()?.Where(e => e.Name == "url")?.Select(e => e.Value.Trim().ToLower())?.Distinct() ?? [];
-        }
-
-        private static IEnumerable<string> GetOptions(XDocument doc)
+        private static IEnumerable<string> GetActiveOptions(XDocument doc)
         {
             var options = doc.Root?.Element("options") ??
                 throw new InvalidOperationException("Error in config file: Could not determine options.");
@@ -176,6 +157,22 @@ namespace WOWCAM.Core
             }
 
             return result.AsEnumerable();
+        }
+
+        private static string GetTargetFolder(XDocument doc, string profile)
+        {
+            var s = doc.Root?.Element("profiles")?.Element(profile)?.Element("folder")?.Value?.Trim() ??
+                throw new InvalidOperationException("Error in config file: Could not determine target folder for given profile.");
+
+            return Environment.ExpandEnvironmentVariables(s);
+        }
+
+        private static IEnumerable<string> GetAddonUrls(XDocument doc, string profile)
+        {
+            var addons = doc.Root?.Element("profiles")?.Element(profile)?.Element("addons") ??
+                throw new InvalidOperationException("Error in config file: Could not determine addon urls for given profile.");
+
+            return addons.Elements()?.Where(e => e.Name == "url")?.Select(e => e.Value.Trim().ToLower())?.Distinct() ?? [];
         }
     }
 }

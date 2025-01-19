@@ -3,10 +3,10 @@ using WOWCAM.Helper;
 
 namespace WOWCAM.Core
 {
-    public sealed class DefaultUpdateManager(ILogger logger, IConfig config, HttpClient httpClient) : IUpdateManager
+    public sealed class DefaultUpdateManager(ILogger logger, ISettings settings, HttpClient httpClient) : IUpdateManager
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IConfig config = config ?? throw new ArgumentNullException(nameof(config));
+        private readonly ISettings settings = settings ?? throw new ArgumentNullException(nameof(settings));
         private readonly HttpClient httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
         private readonly string appName = AppHelper.GetApplicationName();
@@ -177,9 +177,9 @@ namespace WOWCAM.Core
 
         private string GetUpdateFolder()
         {
-            // Trust application and config validator (since this is business logic and not a helper) and therefore do no temp folder check here
+            // Trust application and config validator (since this is business logic and not a helper) and therefore do no folder check here
 
-            return Path.Combine(config.TempFolder, "MBODM-WOWCAM-Update");
+            return settings.AppUpdateFolder;
         }
     }
 }

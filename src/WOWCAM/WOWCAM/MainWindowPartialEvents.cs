@@ -28,6 +28,8 @@ namespace WOWCAM
                 return;
             }
 
+            settings.Load();
+
             updateManager.RemoveBakFile();
 
             await ConfigureWebViewAsync();
@@ -177,7 +179,7 @@ namespace WOWCAM
             }
 
             var updatedAddons = 0u;
-            var smartUpdate = config.Options.Contains("SmartUpdate", StringComparer.InvariantCultureIgnoreCase);
+            var smartUpdate = settings.Options.Contains("SmartUpdate", StringComparer.InvariantCultureIgnoreCase);
 
             if (buttonText == "_Cancel")
             {
@@ -199,7 +201,7 @@ namespace WOWCAM
                 {
                     stopwatch.Start();
                     var progress = new Progress<byte>(p => progressBar.Value = p);
-                    updatedAddons = await addonProcessing.ProcessAddonsAsync(config.AddonUrls, config.TempFolder, config.TargetFolder, webView.IsEnabled, smartUpdate,
+                    updatedAddons = await addonProcessing.ProcessAddonsAsync(settings.AddonUrls, config.TempFolder, config.TargetFolder, webView.IsEnabled, smartUpdate,
                         progress, cts.Token);
                     stopwatch.Stop();
 

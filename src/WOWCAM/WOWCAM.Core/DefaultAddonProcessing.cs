@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Threading;
 using WOWCAM.Helper;
 
 namespace WOWCAM.Core
@@ -68,6 +69,7 @@ namespace WOWCAM.Core
             }
 
             // Prepare progress dictionary
+
             progressData.Clear();
             foreach (var addonUrl in addonUrls)
             {
@@ -76,6 +78,7 @@ namespace WOWCAM.Core
             }
 
             // Handle SmartUpdate mode
+
             try
             {
                 if (smartUpdate)
@@ -94,6 +97,7 @@ namespace WOWCAM.Core
             }
 
             // Concurrently do for every addon "fetch -> download -> unzip" (or maybe skip last 2 parts if SmartUpdate is active)
+
             uint updatedAddonsCounter = 0;
             try
             {
@@ -137,6 +141,7 @@ namespace WOWCAM.Core
             }
 
             // Handle SmartUpdate mode
+
             try
             {
                 if (smartUpdate)
@@ -150,51 +155,10 @@ namespace WOWCAM.Core
                 throw;
             }
 
-            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
-            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(200, cancellationToken);
+            // Move and clean up
 
-            // Clear target folder
-            try
-            {
-                await FileSystemHelper.DeleteFolderContentAsync(targetFolder, cancellationToken);
-            }
-            catch (Exception e)
-            {
-                HandleNonCancellationException(e, "An error occurred while deleting the content of target folder (see log file for details).");
-                throw;
-            }
-
-            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
-            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(200, cancellationToken);
-
-            // Move to target folder
-            try
-            {
-                await FileSystemHelper.MoveFolderContentAsync(unzipFolder, targetFolder, cancellationToken);
-            }
-            catch (Exception e)
-            {
-                HandleNonCancellationException(e, "An error occurred while moving the unzipped addons to target folder (see log file for details).");
-                throw;
-            }
-
-            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
-            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(200, cancellationToken);
-
-            // Clean up temp folder
-            try
-            {
-                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
-                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
-            }
-            catch (Exception e)
-            {
-                HandleNonCancellationException(e, "An error occurred while deleting the content of temp folder (see log file for details).");
-                throw;
-            }
+            await MoveAsync(targetFolder, unzipFolder, smartUpdate, cancellationToken);
+            await CleanUpAsync(downloadFolder, unzipFolder, cancellationToken);
 
             return updatedAddonsCounter;
         }
@@ -307,6 +271,72 @@ namespace WOWCAM.Core
             catch
             {
                 return 0;
+            }
+        }
+
+        private async Task MoveAsync(string targetFolder, string unzipFolder, bool smartUpdate, CancellationToken cancellationToken = default)
+        {
+            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
+            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
+            await Task.Delay(200, cancellationToken);
+
+            smartUpdate = false;
+            if (smartUpdate)
+            {
+                //var subFolders = Directory.GetDirectories(unzipFolder);
+                //foreach (var subFolder in subFolders)
+                //{
+                //    var folderName = 
+                //}
+
+                // Todo: Wir bauen das alles um.
+            }
+            else
+            {
+                // Clear target folder
+                try
+                {
+                    await FileSystemHelper.DeleteFolderContentAsync(targetFolder, cancellationToken);
+                }
+                catch (Exception e)
+                {
+                    HandleNonCancellationException(e, "An error occurred while deleting the content of target folder (see log file for details).");
+                    throw;
+                }
+
+                // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
+                // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
+                await Task.Delay(200, cancellationToken);
+
+                // Move to target folder
+                try
+                {
+                    await FileSystemHelper.MoveFolderContentAsync(unzipFolder, targetFolder, cancellationToken);
+                }
+                catch (Exception e)
+                {
+                    HandleNonCancellationException(e, "An error occurred while moving the unzipped addons to target folder (see log file for details).");
+                    throw;
+                }
+            }
+        }
+
+        private async Task CleanUpAsync(string downloadFolder, string unzipFolder, CancellationToken cancellationToken = default)
+        {
+            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
+            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
+            await Task.Delay(200, cancellationToken);
+
+            // Clean up temp folder
+            try
+            {
+                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
+                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
+            }
+            catch (Exception e)
+            {
+                HandleNonCancellationException(e, "An error occurred while deleting the content of temp folder (see log file for details).");
+                throw;
             }
         }
     }

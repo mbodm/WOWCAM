@@ -2,9 +2,9 @@
 using System.Text;
 using WOWCAM.Helper;
 
-namespace WOWCAM.Core
+namespace WOWCAM.Core.Parts.Logging
 {
-    public sealed class DefaultLogger : ILogger
+    public sealed class TextFileLogger : ILogger
     {
         private readonly object syncRoot = new();
         private readonly string logFile = Path.Combine(AppHelper.GetApplicationExecutableFolder(), "WOWCAM.log");

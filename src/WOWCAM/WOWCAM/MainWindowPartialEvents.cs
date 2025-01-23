@@ -17,9 +17,9 @@ namespace WOWCAM
 
             try
             {
-                if (!config.Exists) await config.CreateDefaultAsync();
-                await config.LoadAsync();
-                configValidator.Validate();
+                if (!config.StorageExists) await config.CreateStorageWithDefaultsAsync();
+                await config.LoadFromStorageAsync();
+                config.Validate();
             }
             catch (Exception ex)
             {
@@ -28,7 +28,7 @@ namespace WOWCAM
                 return;
             }
 
-            settings.Load();
+            appSettings.Init();
 
             updateManager.RemoveBakFile();
 
@@ -83,7 +83,7 @@ namespace WOWCAM
                 }
 
                 SetProgress(null, "Downloading application update", 0, null);
-                await updateManager.DownloadUpdateAsync(updateData, new Progress<DownloadHelperProgress>(p =>
+                await updateManager.DownloadUpdateAsync(updateData, new Progress<DownloadProgress>(p =>
                 {
                     var receivedMB = ((double)p.ReceivedBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
                     var totalMB = ((double)p.TotalBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
@@ -124,12 +124,14 @@ namespace WOWCAM
             }
         }
 
-        private void ProgressBar_MouseUp(object sender, MouseButtonEventArgs e)
+        private async void ProgressBar_MouseUp(object sender, MouseButtonEventArgs e)
         {
             if (e.Source is ProgressBar && e.ChangedButton == MouseButton.Right && Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift))
             {
                 if (FindResource("keyContextMenu") is ContextMenu contextMenu)
                 {
+                    if (!await LoadSettingsAsync()) return;
+
                     contextMenu.Items.Clear();
 
                     var itemLogFile = new MenuItem { Header = "Show log file", Icon = new TextBlock { Text = "  1" } };
@@ -141,7 +143,7 @@ namespace WOWCAM
                     contextMenu.Items.Add(itemProgramFolder);
 
                     var itemAddonsFolder = new MenuItem { Header = "Show addons folder", Icon = new TextBlock { Text = "  3" } };
-                    itemAddonsFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(config.TargetFolder);
+                    itemAddonsFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(appSettings.Data.AddonTargetFolder);
                     contextMenu.Items.Add(itemAddonsFolder);
 
                     if (!webView.IsEnabled)
@@ -178,8 +180,10 @@ namespace WOWCAM
                 return;
             }
 
+            if (!await LoadSettingsAsync()) return;
+
             var updatedAddons = 0u;
-            var smartUpdate = settings.Options.Contains("SmartUpdate", StringComparer.InvariantCultureIgnoreCase);
+            var smartUpdate = appSettings.Data.Options.Contains("SmartUpdate", StringComparer.InvariantCultureIgnoreCase);
 
             if (buttonText == "_Cancel")
             {
@@ -201,8 +205,8 @@ namespace WOWCAM
                 {
                     stopwatch.Start();
                     var progress = new Progress<byte>(p => progressBar.Value = p);
-                    updatedAddons = await addonProcessing.ProcessAddonsAsync(settings.AddonUrls, config.TempFolder, config.TargetFolder, webView.IsEnabled, smartUpdate,
-                        progress, cts.Token);
+                    updatedAddons = await addonProcessing.ProcessAddonsAsync(
+                        appSettings.Data.AddonUrls, appSettings.Data.WorkFolder, appSettings.Data.AddonTargetFolder, webView.IsEnabled, smartUpdate, progress, cts.Token);
                     stopwatch.Stop();
 
                     SetProgress(null, "Clean up ...", null, null);
@@ -238,9 +242,9 @@ namespace WOWCAM
                 var seconds = Math.Round((double)(stopwatch.ElapsedMilliseconds + 1250) / 1000);
                 var rounded = Convert.ToUInt32(seconds);
                 var addonOrAddons1 = PluralizeHelper.PluralizeWord("addon", () => updatedAddons != 1);
-                var addonOrAddons2 = PluralizeHelper.PluralizeWord("addon", () => config.AddonUrls.Count() != 1);
+                var addonOrAddons2 = PluralizeHelper.PluralizeWord("addon", () => appSettings.Data.AddonUrls.Count() != 1);
                 var statusText1 = $"Successfully updated {updatedAddons} {addonOrAddons1} in {rounded} seconds";
-                var statusText2 = $"Successfully finished {config.AddonUrls.Count()} {addonOrAddons2} in {rounded} seconds";
+                var statusText2 = $"Successfully finished {appSettings.Data.AddonUrls.Count()} {addonOrAddons2} in {rounded} seconds";
 
                 SetProgress(null, smartUpdate ? statusText1 : statusText2, null, null);
             }

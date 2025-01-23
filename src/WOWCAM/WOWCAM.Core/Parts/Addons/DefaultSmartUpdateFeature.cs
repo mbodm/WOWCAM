@@ -2,7 +2,7 @@
 using System.Xml.Linq;
 using WOWCAM.Helper;
 
-namespace WOWCAM.Core
+namespace WOWCAM.Core.Parts.Addons
 {
     public sealed class DefaultSmartUpdateFeature : ISmartUpdateFeature
     {

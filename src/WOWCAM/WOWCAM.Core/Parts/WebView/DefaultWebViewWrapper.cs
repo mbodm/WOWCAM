@@ -1,7 +1,8 @@
 ﻿using System.Text;
 using Microsoft.Web.WebView2.Core;
+using WOWCAM.Core.Parts.Logging;
 
-namespace WOWCAM.Core
+namespace WOWCAM.Core.Parts.WebView
 {
     public sealed class DefaultWebViewWrapper(ILogger logger, IWebViewProvider webViewProvider) : IWebViewWrapper
     {
@@ -63,7 +64,7 @@ namespace WOWCAM.Core
             return json;
         }
 
-        public async Task NavigateAndDownloadFileAsync(string downloadUrl, IProgress<WebViewWrapperDownloadProgress>? progress = null, CancellationToken cancellationToken = default)
+        public async Task NavigateAndDownloadFileAsync(string downloadUrl, IProgress<DownloadProgress>? progress = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(downloadUrl))
             {
@@ -229,7 +230,7 @@ namespace WOWCAM.Core
         }
 
         private Task ConcurrentDownloadAsync(CoreWebView2DownloadOperation downloadOperation,
-            IProgress<WebViewWrapperDownloadProgress>? progress = default, CancellationToken cancellationToken = default)
+            IProgress<DownloadProgress>? progress = default, CancellationToken cancellationToken = default)
         {
             // This method follows the typical "wrap EAP into TAP" approach (WebView2 download part)
 
@@ -316,7 +317,7 @@ namespace WOWCAM.Core
             return tcs.Task;
         }
 
-        private static WebViewWrapperDownloadProgress CreateDownloadProgress(CoreWebView2DownloadOperation downloadOperation)
+        private static DownloadProgress CreateDownloadProgress(CoreWebView2DownloadOperation downloadOperation)
         {
             var totalBytes = 0u;
             var receivedBytes = 0u;
@@ -331,7 +332,7 @@ namespace WOWCAM.Core
 
             // Otherwise use 0 for total bytes and 0 for received bytes
 
-            return new WebViewWrapperDownloadProgress(downloadOperation.Uri, downloadOperation.ResultFilePath, totalBytes, receivedBytes);
+            return new DownloadProgress(downloadOperation.Uri, downloadOperation.ResultFilePath, totalBytes, receivedBytes);
         }
     }
 }

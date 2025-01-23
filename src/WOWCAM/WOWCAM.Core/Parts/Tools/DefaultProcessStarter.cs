@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
+using WOWCAM.Core.Parts.Logging;
 
-namespace WOWCAM.Core
+namespace WOWCAM.Core.Parts.Tools
 {
     public sealed class DefaultProcessStarter(ILogger logger) : IProcessStarter
     {

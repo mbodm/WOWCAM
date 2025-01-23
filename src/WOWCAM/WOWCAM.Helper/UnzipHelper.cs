@@ -2,7 +2,7 @@
 
 namespace WOWCAM.Helper
 {
-    public sealed class ZipFileHelper
+    public sealed class UnzipHelper
     {
         public static Task<bool> ValidateZipFileAsync(string zipFile, CancellationToken cancellationToken = default)
         {

@@ -1,4 +1,7 @@
 ﻿namespace WOWCAM.Helper
 {
-    public sealed record GitHubReleaseData(Version Version, string DownloadUrl, string FileName);
+    public sealed record GitHubReleaseData(
+        Version Version,
+        string DownloadUrl,
+        string FileName);
 }

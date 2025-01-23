@@ -1,5 +1,11 @@
 ﻿using System.Windows;
-using WOWCAM.Core;
+using WOWCAM.Core.Parts.Addons;
+using WOWCAM.Core.Parts.Config;
+using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Core.Parts.Settings;
+using WOWCAM.Core.Parts.Tools;
+using WOWCAM.Core.Parts.Update;
+using WOWCAM.Core.Parts.WebView;
 using WOWCAM.Helper;
 
 namespace WOWCAM
@@ -8,8 +14,7 @@ namespace WOWCAM
     {
         private readonly ILogger logger;
         private readonly IConfig config;
-        private readonly IConfigValidator configValidator;
-        private readonly ISettings settings;
+        private readonly IAppSettings appSettings;
         private readonly IProcessStarter processStarter;
         private readonly IUpdateManager updateManager;
         private readonly IWebViewProvider webViewProvider;
@@ -18,8 +23,7 @@ namespace WOWCAM
         public MainWindow(
             ILogger logger,
             IConfig config,
-            IConfigValidator configValidator,
-            ISettings settings,
+            IAppSettings appSettings,
             IProcessStarter processStarter,
             IUpdateManager updateManager,
             IWebViewProvider webViewProvider,
@@ -27,8 +31,7 @@ namespace WOWCAM
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
-            this.configValidator = configValidator ?? throw new ArgumentNullException(nameof(configValidator));
-            this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            this.appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
             this.processStarter = processStarter ?? throw new ArgumentNullException(nameof(processStarter));
             this.updateManager = updateManager ?? throw new ArgumentNullException(nameof(updateManager));
             this.webViewProvider = webViewProvider ?? throw new ArgumentNullException(nameof(webViewProvider));

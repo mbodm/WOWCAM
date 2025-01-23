@@ -1,4 +1,4 @@
-﻿namespace WOWCAM.Core
+﻿namespace WOWCAM.Core.Parts.Tools
 {
     public interface IProcessStarter
     {

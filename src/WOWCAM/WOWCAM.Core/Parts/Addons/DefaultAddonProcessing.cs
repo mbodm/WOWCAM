@@ -1,8 +1,9 @@
 ﻿using System.Collections.Concurrent;
-using System.Threading;
+using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Core.Parts.WebView;
 using WOWCAM.Helper;
 
-namespace WOWCAM.Core
+namespace WOWCAM.Core.Parts.Addons
 {
     // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
     // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
@@ -21,7 +22,7 @@ namespace WOWCAM.Core
         private enum AddonState { FetchFinished, DownloadProgress, DownloadFinished, UnzipFinished, NoNeedToUpdateBySUF }
         private sealed record AddonProgress(AddonState AddonState, string AddonName, byte DownloadPercent);
 
-        public async Task<uint> ProcessAddonsAsync(IEnumerable<string> addonUrls, string tempFolder, string targetFolder, bool showDownloadDialog = false, bool smartUpdate = false,
+        public async Task<uint> ProcessAddonsAsync(IEnumerable<string> addonUrls, string targetFolder, string workFolder, bool showDownloadDialog = false, bool smartUpdate = false,
             IProgress<byte>? progress = default, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(addonUrls);
@@ -31,21 +32,21 @@ namespace WOWCAM.Core
                 return 0;
             }
 
-            if (string.IsNullOrWhiteSpace(tempFolder))
-            {
-                throw new ArgumentException($"'{nameof(tempFolder)}' cannot be null or whitespace.", nameof(tempFolder));
-            }
-
             if (string.IsNullOrWhiteSpace(targetFolder))
             {
                 throw new ArgumentException($"'{nameof(targetFolder)}' cannot be null or whitespace.", nameof(targetFolder));
+            }
+
+            if (string.IsNullOrWhiteSpace(workFolder))
+            {
+                throw new ArgumentException($"'{nameof(workFolder)}' cannot be null or whitespace.", nameof(workFolder));
             }
 
             webViewWrapper.HideDownloadDialog = !showDownloadDialog;
 
             // Prepare folders
 
-            var downloadFolder = Path.Combine(tempFolder, "MBODM-WOWCAM-Download");
+            var downloadFolder = Path.Combine(workFolder, "MBODM-WOWCAM-Addons-Download");
             if (Directory.Exists(downloadFolder))
             {
                 await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
@@ -58,7 +59,7 @@ namespace WOWCAM.Core
             var webView = webViewProvider.GetWebView();
             webView.Profile.DefaultDownloadFolderPath = downloadFolder;
 
-            var unzipFolder = Path.Combine(tempFolder, "MBODM-WOWCAM-Unzip");
+            var unzipFolder = Path.Combine(workFolder, "MBODM-WOWCAM-Addons-Unzip");
             if (Directory.Exists(unzipFolder))
             {
                 await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
@@ -197,7 +198,7 @@ namespace WOWCAM.Core
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var downloadProgress = new Progress<WebViewWrapperDownloadProgress>(p =>
+            var downloadProgress = new Progress<WebView.DownloadProgress>(p =>
             {
                 var percent = CalcDownloadPercent(p.ReceivedBytes, p.TotalBytes);
                 progress?.Report(new AddonProgress(AddonState.DownloadProgress, addonName, percent));
@@ -213,12 +214,12 @@ namespace WOWCAM.Core
 
             var zipFilePath = Path.Combine(downloadFolder, jsonModel.FileName);
 
-            if (!await ZipFileHelper.ValidateZipFileAsync(zipFilePath, cancellationToken))
+            if (!await UnzipHelper.ValidateZipFileAsync(zipFilePath, cancellationToken))
             {
                 throw new InvalidOperationException("It seems the downloaded zip file is corrupted, cause zip file validation failed.");
             }
 
-            await ZipFileHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken);
+            await UnzipHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken);
 
             progress?.Report(new AddonProgress(AddonState.UnzipFinished, addonName, 100));
         }

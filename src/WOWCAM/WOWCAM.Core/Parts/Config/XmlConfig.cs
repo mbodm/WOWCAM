@@ -1,24 +1,23 @@
 ﻿using System.Xml.Linq;
+using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Helper;
 
-namespace WOWCAM.Core
+// Todo: Do consistent BL exception handling here.
+
+namespace WOWCAM.Core.Parts.Config
 {
-    public sealed class DefaultConfig(ILogger logger) : IConfig
+    public sealed class XmlConfig(ILogger logger) : IConfig
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         private readonly string xmlFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM.xml");
 
-        public string ActiveProfile { get; private set; } = string.Empty;
-        public string TempFolder { get; private set; } = string.Empty;
-        public IEnumerable<string> ActiveOptions { get; private set; } = [];
-
-        public string TargetFolder { get; private set; } = string.Empty;
-        public IEnumerable<string> AddonUrls { get; private set; } = [];
+        public ConfigData Data { get; private set; } = new ConfigData(string.Empty, string.Empty, [], string.Empty, []);
 
         public string Storage => xmlFile;
-        public bool Exists => File.Exists(xmlFile);
+        public bool StorageExists => File.Exists(xmlFile);
 
-        public Task CreateDefaultAsync(CancellationToken cancellationToken = default)
+        public Task CreateStorageWithDefaultsAsync(CancellationToken cancellationToken = default)
         {
             var s = """
                 <?xml version="1.0" encoding="utf-8"?>
@@ -58,13 +57,13 @@ namespace WOWCAM.Core
             return File.WriteAllTextAsync(xmlFile, s, cancellationToken);
         }
 
-        public async Task LoadAsync(CancellationToken cancellationToken = default)
+        public async Task LoadFromStorageAsync(CancellationToken cancellationToken = default)
         {
             XDocument doc;
 
             try
             {
-                using var fileStream = new FileStream(Storage, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var fileStream = new FileStream(xmlFile, FileMode.Open, FileAccess.Read, FileShare.Read);
                 doc = await XDocument.LoadAsync(fileStream, LoadOptions.None, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
@@ -77,18 +76,57 @@ namespace WOWCAM.Core
             {
                 CheckBasicFileStructure(doc);
 
-                ActiveProfile = GetActiveProfile(doc);
-                CheckActiveProfileSection(doc, ActiveProfile);
-                TempFolder = GetTempFolder(doc);
-                ActiveOptions = GetActiveOptions(doc);
+                var activeProfile = GetActiveProfile(doc);
+                CheckActiveProfileSection(doc, activeProfile);
+                var tempFolder = GetTempFolder(doc);
+                var activeOptions = GetActiveOptions(doc);
 
-                TargetFolder = GetTargetFolder(doc, ActiveProfile);
-                AddonUrls = GetAddonUrls(doc, ActiveProfile);
+                var targetFolder = GetTargetFolder(doc, activeProfile);
+                var addonUrls = GetAddonUrls(doc, activeProfile);
+
+                Data = new ConfigData(activeProfile, tempFolder, activeOptions, targetFolder, addonUrls);
             }
             catch (Exception e)
             {
                 logger.Log(e);
                 throw new InvalidOperationException("Format error in config file (see log file for details).", e);
+            }
+        }
+
+        public void Validate()
+        {
+            // See details and reasons for MaxPathLength value at:
+            // https://stackoverflow.com/questions/265769/maximum-filename-length-in-ntfs-windows-xp-and-windows-vista
+            // https://stackoverflow.com/questions/23588944/better-to-check-if-length-exceeds-max-path-or-catch-pathtoolongexception
+
+            const int MaxPathLength = 240;
+
+            try
+            {
+                if (Data.TempFolder == string.Empty)
+                    throw new InvalidOperationException("Config file contains no temp folder and also the application's own default fallback value (%TEMP%) is not active.");
+
+                ValidateFolder(Data.TempFolder, "temp", MaxPathLength);
+
+                if (Data.TargetFolder == string.Empty)
+                    throw new InvalidOperationException("Config file contains no target folder to download and extract the zip files into.");
+
+                // Easy to foresee max length of temp. Not that easy to foresee max length of target, when considering content of
+                // zip file (files and subfolders). Therefore just using half of MAX_PATH here, as some "rule of thumb". If in a
+                // rare case a full dest path exceeds MAX_PATH, it seems OK to let the unzip operation fail gracefully on its own.
+
+                ValidateFolder(Data.TargetFolder, "target", MaxPathLength / 2);
+
+                if (!Data.AddonUrls.Any())
+                    throw new InvalidOperationException("Config file contains 0 addon URL entries and so there is nothing to download.");
+
+                if (Data.AddonUrls.Any(url => !CurseHelper.IsAddonPageUrl(url)))
+                    throw new InvalidOperationException("Config file contains at least 1 addon URL entry which is not a valid Curse addon URL.");
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                throw;
             }
         }
 
@@ -173,6 +211,23 @@ namespace WOWCAM.Core
                 throw new InvalidOperationException("Error in config file: Could not determine addon urls for given profile.");
 
             return addons.Elements()?.Where(e => e.Name == "url")?.Select(e => e.Value.Trim().ToLower())?.Distinct() ?? [];
+        }
+
+        private static void ValidateFolder(string folderValue, string folderName, int maxChars)
+        {
+            if (!FileSystemHelper.IsValidAbsolutePath(folderValue))
+                throw new InvalidOperationException(
+                    $"Config file contains a {folderName} folder which is not a valid folder path (given path must be a valid absolute path to a folder).");
+
+            if (folderValue.Length > maxChars)
+                throw new InvalidOperationException(
+                    $"Config file contains a {folderName} folder path which is too long (make sure given path is smaller than {maxChars} characters).");
+
+            // I decided to NOT create any configured folder by code since the default config makes various assumptions i.e. about WoW folder in %PROGRAMFILES(X86)%
+
+            if (!Directory.Exists(folderValue))
+                throw new InvalidOperationException(
+                    $"Config file contains a {folderName} folder which not exists (the app will not create any configured folder automatically, on purpose).");
         }
     }
 }

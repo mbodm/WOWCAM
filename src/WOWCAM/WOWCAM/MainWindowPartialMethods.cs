@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Documents;
-using WOWCAM.Core;
+using WOWCAM.Core.Parts.WebView;
 
 namespace WOWCAM
 {
@@ -17,7 +17,7 @@ namespace WOWCAM
                 }
             };
 
-            var environment = await WebViewHelper.CreateEnvironmentAsync(config.TempFolder);
+            var environment = await WebViewHelper.CreateEnvironmentAsync(appSettings.Data.WebViewEnvironmentFolder);
             await webView.EnsureCoreWebView2Async(environment);
         }
 

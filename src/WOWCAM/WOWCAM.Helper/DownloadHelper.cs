@@ -3,7 +3,7 @@
     public sealed class DownloadHelper
     {
         public static async Task DownloadFileAsync(HttpClient httpClient, string downloadUrl, string filePath,
-            IProgress<DownloadHelperProgress>? progress = default, CancellationToken cancellationToken = default)
+            IProgress<DownloadProgress>? progress = default, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(httpClient);
 
@@ -32,7 +32,7 @@
                 response.EnsureSuccessStatusCode();
 
                 var totalBytes = response.Content.Headers.ContentLength ?? throw new InvalidOperationException("Could not determine response content length.");
-                progress.Report(new DownloadHelperProgress(downloadUrl, true, 0, totalBytes, false));
+                progress.Report(new DownloadProgress(downloadUrl, true, 0, totalBytes, false));
 
                 using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
                 using var fileStream = File.Create(filePath);
@@ -47,7 +47,7 @@
                     readBytesAll += readBytesNow;
 
                     var transferFinished = readBytesAll >= totalBytes;
-                    progress.Report(new DownloadHelperProgress(downloadUrl, false, readBytesAll, totalBytes, transferFinished));
+                    progress.Report(new DownloadProgress(downloadUrl, false, readBytesAll, totalBytes, transferFinished));
                 }
 
                 if (readBytesAll != totalBytes)

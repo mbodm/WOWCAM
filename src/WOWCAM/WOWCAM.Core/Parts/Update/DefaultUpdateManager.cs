@@ -1,18 +1,20 @@
 ﻿using System.Diagnostics;
+using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Core.Parts.Settings;
 using WOWCAM.Helper;
 
-namespace WOWCAM.Core
+namespace WOWCAM.Core.Parts.Update
 {
-    public sealed class DefaultUpdateManager(ILogger logger, ISettings settings, HttpClient httpClient) : IUpdateManager
+    public sealed class DefaultUpdateManager(ILogger logger, IAppSettings appSettings, HttpClient httpClient) : IUpdateManager
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly ISettings settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        private readonly IAppSettings appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
         private readonly HttpClient httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
         private readonly string appName = AppHelper.GetApplicationName();
         private readonly string appFileName = AppHelper.GetApplicationExecutableFileName();
 
-        public async Task<UpdateManagerUpdateData> CheckForUpdateAsync(CancellationToken cancellationToken = default)
+        public async Task<UpdateData> CheckForUpdateAsync(CancellationToken cancellationToken = default)
         {
             var installedVersion = GetInstalledVersion();
 
@@ -21,7 +23,7 @@ namespace WOWCAM.Core
                 var latestReleaseData = await GitHubHelper.GetLatestReleaseDataAsync("mbodm", "wowcam", httpClient, cancellationToken).ConfigureAwait(false);
                 var updateAvailable = installedVersion < latestReleaseData.Version;
 
-                return new UpdateManagerUpdateData(installedVersion, latestReleaseData.Version, updateAvailable, latestReleaseData.DownloadUrl, latestReleaseData.FileName);
+                return new UpdateData(installedVersion, latestReleaseData.Version, updateAvailable, latestReleaseData.DownloadUrl, latestReleaseData.FileName);
             }
             catch (Exception e)
             {
@@ -30,8 +32,7 @@ namespace WOWCAM.Core
             }
         }
 
-        public async Task DownloadUpdateAsync(UpdateManagerUpdateData updateData,
-            IProgress<DownloadHelperProgress>? downloadProgress = null, CancellationToken cancellationToken = default)
+        public async Task DownloadUpdateAsync(UpdateData updateData, IProgress<DownloadProgress>? downloadProgress = null, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -51,7 +52,7 @@ namespace WOWCAM.Core
                 if (!File.Exists(zipFilePath))
                     throw new InvalidOperationException("Downloaded latest release, but update folder not contains zip file.");
 
-                await ZipFileHelper.ExtractZipFileAsync(zipFilePath, updateFolder, cancellationToken).ConfigureAwait(false);
+                await UnzipHelper.ExtractZipFileAsync(zipFilePath, updateFolder, cancellationToken).ConfigureAwait(false);
 
                 var newExeFilePath = Path.Combine(updateFolder, appFileName);
                 if (!File.Exists(newExeFilePath))
@@ -144,11 +145,15 @@ namespace WOWCAM.Core
 
                 if (File.Exists(bakFilePath))
                 {
-                    var fileInfo = new FileInfo(bakFilePath);
-                    if (fileInfo.LastAccessTimeUtc < DateTime.UtcNow.AddDays(-3))
-                    {
-                        File.Delete(bakFilePath);
-                    }
+                    // Todo: Remove comment when finally decided.
+
+                    //var fileInfo = new FileInfo(bakFilePath);
+                    //if (fileInfo.LastAccessTimeUtc < DateTime.UtcNow.AddDays(-3))
+                    //{
+                    //    File.Delete(bakFilePath);
+                    //}
+
+                    File.Delete(bakFilePath);
                 }
 
                 return !File.Exists(bakFilePath);
@@ -179,7 +184,7 @@ namespace WOWCAM.Core
         {
             // Trust application and config validator (since this is business logic and not a helper) and therefore do no folder check here
 
-            return settings.AppUpdateFolder;
+            return appSettings.Data.AppUpdateFolder;
         }
     }
 }

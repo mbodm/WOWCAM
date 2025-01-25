@@ -15,20 +15,7 @@ namespace WOWCAM
             logger.ClearLog();
             logger.Log("Application started and log file was cleared.");
 
-            try
-            {
-                if (!config.StorageExists) await config.CreateStorageWithDefaultsAsync();
-                await config.LoadFromStorageAsync();
-                config.Validate();
-            }
-            catch (Exception ex)
-            {
-                ShowError(ex.Message);
-                Setlinks(true, 0);
-                return;
-            }
-
-            appSettings.Init();
+            await LoadSettingsAsync();
 
             updateManager.RemoveBakFile();
 
@@ -130,7 +117,7 @@ namespace WOWCAM
             {
                 if (FindResource("keyContextMenu") is ContextMenu contextMenu)
                 {
-                    if (!await LoadSettingsAsync()) return;
+                    await LoadSettingsAsync();
 
                     contextMenu.Items.Clear();
 
@@ -180,7 +167,7 @@ namespace WOWCAM
                 return;
             }
 
-            if (!await LoadSettingsAsync()) return;
+            await LoadSettingsAsync();
 
             var updatedAddons = 0u;
             var smartUpdate = appSettings.Data.Options.Contains("SmartUpdate", StringComparer.InvariantCultureIgnoreCase);
@@ -206,7 +193,7 @@ namespace WOWCAM
                     stopwatch.Start();
                     var progress = new Progress<byte>(p => progressBar.Value = p);
                     updatedAddons = await addonProcessing.ProcessAddonsAsync(
-                        appSettings.Data.AddonUrls, appSettings.Data.WorkFolder, appSettings.Data.AddonTargetFolder, webView.IsEnabled, smartUpdate, progress, cts.Token);
+                        appSettings.Data.AddonUrls, appSettings.Data.WorkFolder, appSettings.Data.AddonTargetFolder, webView.IsEnabled, progress, cts.Token);
                     stopwatch.Stop();
 
                     SetProgress(null, "Clean up ...", null, null);

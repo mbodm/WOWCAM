@@ -69,6 +69,26 @@ namespace WOWCAM.Core.Parts.Logging
             }
         }
 
+        public void LogMethodEntry([CallerMemberName] string caller = "", [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        {
+            var message = $"Reached entry of '{caller}()' method.";
+
+            lock (syncRoot)
+            {
+                AppendLogEntry("Message", file, line, message);
+            }
+        }
+
+        public void LogMethodExit([CallerMemberName] string caller = "", [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        {
+            var message = $"Reached exit of '{caller}()' method.";
+
+            lock (syncRoot)
+            {
+                AppendLogEntry("Message", file, line, message);
+            }
+        }
+
         private void AppendLogEntry(string header, string file, int line, string message)
         {
             // var now = DateTime.UtcNow.ToIso8601(true);

@@ -18,7 +18,7 @@ namespace WOWCAM
         private readonly IProcessStarter processStarter;
         private readonly IUpdateManager updateManager;
         private readonly IWebViewProvider webViewProvider;
-        private readonly IAddonProcessing addonProcessing;
+        private readonly IAddonsProcessing addonProcessing;
 
         public MainWindow(
             ILogger logger,
@@ -27,7 +27,7 @@ namespace WOWCAM
             IProcessStarter processStarter,
             IUpdateManager updateManager,
             IWebViewProvider webViewProvider,
-            IAddonProcessing addonProcessing)
+            IAddonsProcessing addonProcessing)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));

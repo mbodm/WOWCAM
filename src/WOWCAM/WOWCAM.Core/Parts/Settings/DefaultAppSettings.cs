@@ -38,15 +38,15 @@ namespace WOWCAM.Core.Parts.Settings
                 var messages = new List<string>
                 {
                     "Application-Settings initialized:",
-                    $"{nameof(Data.WorkFolder)}                ->  {Data.WorkFolder}",
-                    $"{nameof(Data.Options)}                   ->  {optionsAsString}",
-                    $"{nameof(Data.WebViewEnvironmentFolder)}  ->  {Data.WebViewEnvironmentFolder}",
-                    $"{nameof(Data.WebViewUserDataFolder)}     ->  {Data.WebViewUserDataFolder}",
-                    $"{nameof(Data.AddonUrls)}                 ->  {Data.AddonUrls.Count()}",
-                    $"{nameof(Data.AddonDownloadFolder)}       ->  {Data.AddonDownloadFolder}",
-                    $"{nameof(Data.AddonWorkFolder)}          ->  {Data.AddonWorkFolder}",
-                    $"{nameof(Data.AddonTargetFolder)}         ->  {Data.AddonTargetFolder}",
-                    $"{nameof(Data.AppUpdateFolder)}           ->  {Data.AppUpdateFolder}"
+                    $"   {nameof(Data.WorkFolder)}                ->  {Data.WorkFolder}",
+                    $"   {nameof(Data.Options)}                   ->  {optionsAsString}",
+                    $"   {nameof(Data.WebViewEnvironmentFolder)}  ->  {Data.WebViewEnvironmentFolder}",
+                    $"   {nameof(Data.WebViewUserDataFolder)}     ->  {Data.WebViewUserDataFolder}",
+                    $"   {nameof(Data.AddonUrls)}                 ->  {Data.AddonUrls.Count()}",
+                    $"   {nameof(Data.AddonDownloadFolder)}       ->  {Data.AddonDownloadFolder}",
+                    $"   {nameof(Data.AddonWorkFolder)}           ->  {Data.AddonWorkFolder}",
+                    $"   {nameof(Data.AddonTargetFolder)}         ->  {Data.AddonTargetFolder}",
+                    $"   {nameof(Data.AppUpdateFolder)}           ->  {Data.AppUpdateFolder}"
                 };
 
                 logger.Log(messages);

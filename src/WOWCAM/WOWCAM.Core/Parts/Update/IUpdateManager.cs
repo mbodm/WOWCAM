@@ -6,8 +6,8 @@ namespace WOWCAM.Core.Parts.Update
     {
         Task<UpdateData> CheckForUpdateAsync(CancellationToken cancellationToken = default);
         Task DownloadUpdateAsync(UpdateData updateData, IProgress<DownloadProgress>? downloadProgress = default, CancellationToken cancellationToken = default);
-        void ApplyUpdate();
-        void RestartApplication();
-        bool RemoveBakFile();
+        Task ApplyUpdateAsync(CancellationToken cancellationToken = default);
+        void RestartApplication(uint delayInSeconds);
+        Task RemoveBakFileIfExistsAsync(CancellationToken cancellationToken = default);
     }
 }

@@ -15,15 +15,12 @@ namespace WOWCAM
             logger.ClearLog();
             logger.Log("Application started and log file was cleared.");
 
-            await LoadSettingsAsync();
-
-            updateManager.RemoveBakFile();
-
-            await ConfigureWebViewAsync();
+            await updateManager.RemoveBakFileIfExistsAsync();
+            await LoadAppSettingsAsync();
+            await ConfigureWebViewAsync(appSettings.Data.WebViewEnvironmentFolder);
             webViewProvider.SetWebView(webView.CoreWebView2);
 
             SetControls(true);
-
             button.TabIndex = 0;
             button.Focus();
         }
@@ -95,9 +92,8 @@ namespace WOWCAM
                     return;
                 }
 
-                updateManager.ApplyUpdate();
-                updateManager.RestartApplication();
-
+                await updateManager.ApplyUpdateAsync();
+                updateManager.RestartApplication(2);
                 Application.Current.Shutdown();
             }
             catch (Exception ex)
@@ -117,7 +113,7 @@ namespace WOWCAM
             {
                 if (FindResource("keyContextMenu") is ContextMenu contextMenu)
                 {
-                    await LoadSettingsAsync();
+                    await LoadAppSettingsAsync();
 
                     contextMenu.Items.Clear();
 
@@ -167,7 +163,7 @@ namespace WOWCAM
                 return;
             }
 
-            await LoadSettingsAsync();
+            await LoadAppSettingsAsync();
 
             var updatedAddons = 0u;
             var smartUpdate = appSettings.Data.Options.Contains("SmartUpdate", StringComparer.InvariantCultureIgnoreCase);

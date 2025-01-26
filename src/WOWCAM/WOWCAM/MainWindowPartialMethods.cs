@@ -6,7 +6,7 @@ namespace WOWCAM
 {
     public partial class MainWindow : Window
     {
-        private async Task LoadSettingsAsync(CancellationToken cancellationToken = default)
+        private async Task LoadAppSettingsAsync(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -23,8 +23,8 @@ namespace WOWCAM
 
             appSettings.Init();
         }
-        
-        private async Task ConfigureWebViewAsync()
+
+        private async Task ConfigureWebViewAsync(string webViewEnvironmentFolder)
         {
             webView.CoreWebView2InitializationCompleted += (sender, e) =>
             {
@@ -35,7 +35,7 @@ namespace WOWCAM
                 }
             };
 
-            var environment = await WebViewHelper.CreateEnvironmentAsync(appSettings.Data.WebViewEnvironmentFolder);
+            var environment = await WebViewHelper.CreateEnvironmentAsync(webViewEnvironmentFolder);
             await webView.EnsureCoreWebView2Async(environment);
         }
 

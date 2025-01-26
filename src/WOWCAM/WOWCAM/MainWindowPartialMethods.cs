@@ -10,9 +10,9 @@ namespace WOWCAM
         {
             try
             {
-                if (!config.StorageExists) await config.CreateStorageWithDefaultsAsync(cancellationToken);
-                await config.LoadFromStorageAsync(cancellationToken);
-                config.Validate();
+                if (!configModule.StorageExists) await configModule.CreateStorageWithDefaultsAsync(cancellationToken);
+                await configModule.LoadFromStorageAsync(cancellationToken);
+                configModule.Validate();
             }
             catch (Exception ex)
             {
@@ -21,7 +21,7 @@ namespace WOWCAM
                 return;
             }
 
-            appSettings.Init();
+            await appSettings.InitAsync();
         }
 
         private async Task ConfigureWebViewAsync(string webViewEnvironmentFolder)

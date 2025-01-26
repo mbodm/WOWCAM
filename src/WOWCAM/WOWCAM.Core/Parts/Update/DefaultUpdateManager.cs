@@ -86,7 +86,7 @@ namespace WOWCAM.Core.Parts.Update
                 throw new InvalidOperationException("Could not apply update (see log file for details).", e);
             }
 
-            return Task.Delay(250, cancellationToken);
+            return Task.Delay(100, cancellationToken);
         }
 
         public void RestartApplication(uint delayInSeconds)
@@ -137,7 +137,7 @@ namespace WOWCAM.Core.Parts.Update
                 logger.Log(e);
             }
 
-            return Task.Delay(250, cancellationToken);
+            return Task.Delay(100, cancellationToken);
         }
 
         private Version GetInstalledVersion()

@@ -2,7 +2,7 @@
 {
     public interface IAddonsProcessing
     {
-        public Task<uint> ProcessAddonsAsync(IEnumerable<string> addonUrls, string targetFolder, string workFolder, bool showDownloadDialog = false,
+        public Task<uint> ProcessAddonsAsync(IEnumerable<string> addonUrls, string targetFolder, string workFolder,
             IProgress<byte>? progress = default, CancellationToken cancellationToken = default);
     }
 }

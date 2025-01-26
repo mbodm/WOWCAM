@@ -4,6 +4,6 @@
     {
         AppSettingsData Data { get; }
 
-        void Init();
+        Task InitAsync(CancellationToken cancellationToken = default);
     }
 }

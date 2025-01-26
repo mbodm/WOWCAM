@@ -29,7 +29,7 @@ namespace WOWCAM
         {
             try
             {
-                processStarter.OpenFolderInExplorer(Path.GetDirectoryName(config.Storage) ?? string.Empty);
+                processStarter.OpenFolderInExplorer(Path.GetDirectoryName(configModule.StorageInformation) ?? string.Empty);
             }
             catch (Exception ex)
             {
@@ -82,7 +82,7 @@ namespace WOWCAM
                 // not solve the problem. I just added a short async Wait() delay instead, to keep things simple.
                 // (*)TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
                 // a scheduler can still produce async progress, even when a Task.WhenAll() already has finished.
-                await Task.Delay(1250);
+                await Task.Delay(1000);
 
                 SetProgress(null, "Download finished", 1, 1);
 
@@ -158,17 +158,14 @@ namespace WOWCAM
         private CancellationTokenSource? cts = null;
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button button || button.Content is not string buttonText)
+            if (sender is not Button button)
             {
                 return;
             }
 
             await LoadAppSettingsAsync();
-
-            var updatedAddons = 0u;
-            var smartUpdate = appSettings.Data.Options.Contains("SmartUpdate", StringComparer.InvariantCultureIgnoreCase);
-
-            if (buttonText == "_Cancel")
+            
+            if (button.Content.ToString() == "_Cancel")
             {
                 if (cts != null)
                 {
@@ -177,19 +174,23 @@ namespace WOWCAM
             }
             else
             {
-                SetControls(false);
-                SetProgress(true, smartUpdate ? "Processing addons ..." : "Download and unzip addons ...", 0, 100);
-                button.IsEnabled = true;
                 button.Content = "_Cancel";
                 cts = new CancellationTokenSource();
 
+                SetControls(false);
+                SetProgress(true, "Processing addons ...", 0, 100);
+                button.IsEnabled = true;
+                
+                webViewWrapper.HideDownloadDialog = !webView.IsEnabled;
+                
+                var updatedAddons = 0u;
                 var stopwatch = new Stopwatch();
                 try
                 {
                     stopwatch.Start();
-                    var progress = new Progress<byte>(p => progressBar.Value = p);
-                    updatedAddons = await addonProcessing.ProcessAddonsAsync(
-                        appSettings.Data.AddonUrls, appSettings.Data.WorkFolder, appSettings.Data.AddonTargetFolder, webView.IsEnabled, progress, cts.Token);
+                    updatedAddons = await addonsProcessing.ProcessAddonsAsync(
+                        appSettings.Data.AddonUrls, appSettings.Data.AddonTargetFolder, appSettings.Data.WorkFolder,
+                        new Progress<byte>(p => progressBar.Value = p), cts.Token);
                     stopwatch.Stop();
 
                     SetProgress(null, "Clean up ...", null, null);
@@ -200,7 +201,7 @@ namespace WOWCAM
                     // will solve the problem. I just added a short async wait delay instead, to keep things simple.
                     // *(TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
                     // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
-                    await Task.Delay(1250);
+                    await Task.Delay(1000);
                 }
                 catch (Exception ex)
                 {
@@ -224,12 +225,10 @@ namespace WOWCAM
 
                 var seconds = Math.Round((double)(stopwatch.ElapsedMilliseconds + 1250) / 1000);
                 var rounded = Convert.ToUInt32(seconds);
-                var addonOrAddons1 = PluralizeHelper.PluralizeWord("addon", () => updatedAddons != 1);
-                var addonOrAddons2 = PluralizeHelper.PluralizeWord("addon", () => appSettings.Data.AddonUrls.Count() != 1);
-                var statusText1 = $"Successfully updated {updatedAddons} {addonOrAddons1} in {rounded} seconds";
-                var statusText2 = $"Successfully finished {appSettings.Data.AddonUrls.Count()} {addonOrAddons2} in {rounded} seconds";
-
-                SetProgress(null, smartUpdate ? statusText1 : statusText2, null, null);
+                var addonOrAddons = PluralizeHelper.PluralizeWord("addon", () => updatedAddons != 1);
+                var statusText = $"Successfully updated {updatedAddons} {addonOrAddons} in {rounded} seconds";
+                
+                SetProgress(null, statusText, null, null);
             }
         }
     }

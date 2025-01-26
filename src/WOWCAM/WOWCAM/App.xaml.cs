@@ -24,17 +24,20 @@ namespace WOWCAM
             }
 
             var logger = new TextFileLogger();
-            var config = new XmlConfig(logger);
-            var appSettings = new DefaultAppSettings(logger, config);
+            var configStorage = new XmlConfigStorage(logger);
+            var configReader = new XmlConfigReader(logger, configStorage);
+            var configValidator = new XmlConfigValidator(logger);
+            var configModule = new ConfigModule(logger, configStorage, configReader, configValidator);
+            var appSettings = new DefaultAppSettings(logger, configModule);
             var processStarter = new DefaultProcessStarter(logger);
             var updateManager = new DefaultUpdateManager(logger, appSettings, httpClient);
             var webViewProvider = new DefaultWebViewProvider();
             var webViewWrapper = new DefaultWebViewWrapper(logger, webViewProvider);
-            var smartUpdateFeature = new DefaultSmartUpdateFeature(logger);
+            var smartUpdateFeature = new DefaultSmartUpdateFeature(logger, appSettings);
             var addonProcessing = new DefaultAddonProcessing(webViewWrapper, smartUpdateFeature);
             var addonsProcessing = new DefaultAddonsProcessing(logger, addonProcessing, webViewProvider, webViewWrapper, smartUpdateFeature);
 
-            MainWindow = new MainWindow(logger, config, appSettings, processStarter, updateManager, webViewProvider, addonsProcessing);
+            MainWindow = new MainWindow(logger, configModule, appSettings, processStarter, updateManager, webViewProvider, webViewWrapper, addonsProcessing);
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

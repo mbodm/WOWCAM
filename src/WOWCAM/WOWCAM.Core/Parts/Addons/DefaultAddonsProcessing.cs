@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using WOWCAM.Core.Parts.Logging;
 using WOWCAM.Core.Parts.WebView;
 using WOWCAM.Helper;
@@ -20,7 +21,7 @@ namespace WOWCAM.Core.Parts.Addons
 
         private readonly ConcurrentDictionary<string, uint> progressData = new();
 
-        public async Task<uint> ProcessAddonsAsync(IEnumerable<string> addonUrls, string targetFolder, string workFolder, bool showDownloadDialog = false,
+        public async Task<uint> ProcessAddonsAsync(IEnumerable<string> addonUrls, string targetFolder, string workFolder,
             IProgress<byte>? progress = default, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(addonUrls);
@@ -40,23 +41,37 @@ namespace WOWCAM.Core.Parts.Addons
                 throw new ArgumentException($"'{nameof(workFolder)}' cannot be null or whitespace.", nameof(workFolder));
             }
 
-            webViewWrapper.HideDownloadDialog = !showDownloadDialog;
+            // Prepare folders
 
-            // Prepare download folder
-
-            var downloadFolder = Path.Combine(workFolder, "MBODM-WOWCAM-Addons-Download");
-            if (Directory.Exists(downloadFolder)) await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
-            else Directory.CreateDirectory(downloadFolder);
+            var downloadFolder = Path.Combine(workFolder, "CurseDownload");
+            if (Directory.Exists(downloadFolder))
+            {
+                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
+            }
+            else
+            {
+                Directory.CreateDirectory(downloadFolder);
+            }
 
             var webView = webViewProvider.GetWebView();
             webView.Profile.DefaultDownloadFolderPath = downloadFolder;
 
-            // Prepare unzip folder
+            var unzipFolder = Path.Combine(workFolder, "CurseUnzip");
+            if (Directory.Exists(unzipFolder))
+            {
+                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
+            }
+            else
+            {
+                Directory.CreateDirectory(unzipFolder);
+            }
 
-            var unzipFolder = Path.Combine(workFolder, "MBODM-WOWCAM-Addons-Unzip");
-            if (Directory.Exists(unzipFolder)) await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
-            else Directory.CreateDirectory(unzipFolder);
-            
+            var smartUpdateFolder = Path.Combine(workFolder, "SmartUpdate");
+            if (!Directory.Exists(smartUpdateFolder))
+            {
+                Directory.CreateDirectory(smartUpdateFolder);
+            }
+
             // Prepare progress dictionary
 
             progressData.Clear();
@@ -141,10 +156,10 @@ namespace WOWCAM.Core.Parts.Addons
 
             return updatedAddonsCounter;
         }
-        
-        private void HandleNonCancellationException(Exception orgException, string bunchMessage)
+
+        private void HandleNonCancellationException(Exception orgException, string bunchMessage, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            logger.Log(orgException);
+            logger.Log(orgException, file, line);
 
             if (orgException is not TaskCanceledException && orgException is not OperationCanceledException)
             {
@@ -178,7 +193,7 @@ namespace WOWCAM.Core.Parts.Addons
         {
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(250, cancellationToken);
+            await Task.Delay(100, cancellationToken);
 
             // Clear target folder
             try
@@ -193,7 +208,7 @@ namespace WOWCAM.Core.Parts.Addons
 
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(250, cancellationToken);
+            await Task.Delay(100, cancellationToken);
 
             // Move to target folder
             try
@@ -211,7 +226,7 @@ namespace WOWCAM.Core.Parts.Addons
         {
             // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
             // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(250, cancellationToken);
+            await Task.Delay(100, cancellationToken);
 
             // Clean up temporary folders
             try

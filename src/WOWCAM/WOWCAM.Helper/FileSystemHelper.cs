@@ -111,13 +111,13 @@ namespace WOWCAM.Helper
 
             while (Directory.EnumerateFileSystemEntries(folder).Any())
             {
-                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
 
                 // Throw exception after ~500ms to prevent blocking forever.
 
                 counter++;
 
-                if (counter > 10)
+                if (counter > 5)
                 {
                     throw new InvalidOperationException("Could not delete folder content.");
                 }

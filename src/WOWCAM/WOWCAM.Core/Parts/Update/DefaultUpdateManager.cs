@@ -1,14 +1,14 @@
 ﻿using System.Diagnostics;
+using WOWCAM.Core.Parts.Config;
 using WOWCAM.Core.Parts.Logging;
-using WOWCAM.Core.Parts.Settings;
 using WOWCAM.Helper;
 
 namespace WOWCAM.Core.Parts.Update
 {
-    public sealed class DefaultUpdateManager(ILogger logger, IAppSettings appSettings, HttpClient httpClient) : IUpdateManager
+    public sealed class DefaultUpdateManager(ILogger logger, IConfigModule configModule, HttpClient httpClient) : IUpdateManager
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IAppSettings appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
+        private readonly IConfigModule configModule = configModule ?? throw new ArgumentNullException(nameof(DefaultUpdateManager.configModule));
         private readonly HttpClient httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
         private readonly string appName = AppHelper.GetApplicationName();
@@ -86,7 +86,7 @@ namespace WOWCAM.Core.Parts.Update
                 throw new InvalidOperationException("Could not apply update (see log file for details).", e);
             }
 
-            return Task.Delay(100, cancellationToken);
+            return Task.Delay(250, cancellationToken);
         }
 
         public void RestartApplication(uint delayInSeconds)
@@ -137,7 +137,7 @@ namespace WOWCAM.Core.Parts.Update
                 logger.Log(e);
             }
 
-            return Task.Delay(100, cancellationToken);
+            return Task.Delay(250, cancellationToken);
         }
 
         private Version GetInstalledVersion()
@@ -160,7 +160,7 @@ namespace WOWCAM.Core.Parts.Update
         {
             // Trust application settings and config validator (since this is business logic and not a helper) and therefore do no checks here
 
-            return appSettings.Data.AppUpdateFolder;
+            return configModule.AppSettings.AppUpdateFolder;
         }
 
         private string PrepareForUpdateAndReturnNewExeFilePath(Version installedVersion)

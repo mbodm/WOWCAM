@@ -6,24 +6,6 @@ namespace WOWCAM
 {
     public partial class MainWindow : Window
     {
-        private async Task LoadAppSettingsAsync(CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                if (!configModule.StorageExists) await configModule.CreateStorageWithDefaultsAsync(cancellationToken);
-                await configModule.LoadFromStorageAsync(cancellationToken);
-                configModule.Validate();
-            }
-            catch (Exception ex)
-            {
-                ShowError(ex.Message);
-                Setlinks(true, 0);
-                return;
-            }
-
-            await appSettings.InitAsync();
-        }
-
         private async Task ConfigureWebViewAsync(string webViewEnvironmentFolder)
         {
             webView.CoreWebView2InitializationCompleted += (sender, e) =>

@@ -48,11 +48,11 @@ namespace WOWCAM.Core.Parts.Config
             if (!Directory.Exists(configFolder))
             {
                 Directory.CreateDirectory(configFolder);
-                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(250, cancellationToken).ConfigureAwait(false);
             }
 
             await File.WriteAllTextAsync(xmlFile, s, cancellationToken).ConfigureAwait(false);
-            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(250, cancellationToken).ConfigureAwait(false);
 
             logger.LogMethodExit();
         }

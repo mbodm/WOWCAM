@@ -1,15 +1,15 @@
 ﻿using System.Collections.Concurrent;
 using System.Xml;
 using System.Xml.Linq;
+using WOWCAM.Core.Parts.Config;
 using WOWCAM.Core.Parts.Logging;
-using WOWCAM.Core.Parts.Settings;
 
 namespace WOWCAM.Core.Parts.Addons
 {
-    public sealed class DefaultSmartUpdateFeature(ILogger logger, IAppSettings appSettings) : ISmartUpdateFeature
+    public sealed class DefaultSmartUpdateFeature(ILogger logger, IConfigModule configModule) : ISmartUpdateFeature
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IAppSettings appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
+        private readonly IConfigModule configModule = configModule ?? throw new ArgumentNullException(nameof(configModule));
 
         private readonly ConcurrentDictionary<string, SmartUpdateData> dict = new();
 
@@ -46,7 +46,7 @@ namespace WOWCAM.Core.Parts.Addons
             {
                 var addonName = entry?.Attribute("addonName")?.Value ?? string.Empty;
                 var lastDownloadUrl = entry?.Attribute("lastDownloadUrl")?.Value ?? string.Empty;
-                var lastDownloadFile = entry?.Attribute("lastDownloadFile")?.Value ?? string.Empty;
+                var lastDownloadFile = entry?.Attribute("lastZipFile")?.Value ?? string.Empty;
 
                 if (string.IsNullOrWhiteSpace(addonName) || string.IsNullOrWhiteSpace(lastDownloadUrl) || string.IsNullOrEmpty(lastDownloadFile))
                 {
@@ -179,8 +179,8 @@ namespace WOWCAM.Core.Parts.Addons
             }
         }
 
-        private string GetRootFolderPath() => appSettings.Data.SmartUpdateFolder;
-        private string GetZipFolderPath() => Path.Combine(appSettings.Data.SmartUpdateFolder, "LastDownloads");
-        private string GetXmlFilePath() => Path.Combine(appSettings.Data.SmartUpdateFolder, "SmartUpdate.xml");
+        private string GetRootFolderPath() => configModule.AppSettings.SmartUpdateFolder;
+        private string GetZipFolderPath() => Path.Combine(configModule.AppSettings.SmartUpdateFolder, "LastDownloads");
+        private string GetXmlFilePath() => Path.Combine(configModule.AppSettings.SmartUpdateFolder, "SmartUpdate.xml");
     }
 }

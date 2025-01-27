@@ -2,13 +2,9 @@
 {
     public interface IConfigModule
     {
-        ConfigData Data { get; }
-
         string StorageInformation { get; } // Using such a generic term here since this could be a file/database/whatever
-        bool StorageExists { get; }
+        AppSettings AppSettings { get; }
 
-        Task CreateStorageWithDefaultsAsync(CancellationToken cancellationToken = default);
-        Task LoadFromStorageAsync(CancellationToken cancellationToken = default);
-        void Validate();
+        Task LoadAsync(CancellationToken cancellationToken = default);
     }
 }

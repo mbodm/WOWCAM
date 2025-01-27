@@ -3,7 +3,6 @@ using System.Windows;
 using WOWCAM.Core.Parts.Addons;
 using WOWCAM.Core.Parts.Config;
 using WOWCAM.Core.Parts.Logging;
-using WOWCAM.Core.Parts.Settings;
 using WOWCAM.Core.Parts.Tools;
 using WOWCAM.Core.Parts.Update;
 using WOWCAM.Core.Parts.WebView;
@@ -28,16 +27,15 @@ namespace WOWCAM
             var configReader = new XmlConfigReader(logger, configStorage);
             var configValidator = new XmlConfigValidator(logger);
             var configModule = new ConfigModule(logger, configStorage, configReader, configValidator);
-            var appSettings = new DefaultAppSettings(logger, configModule);
             var processStarter = new DefaultProcessStarter(logger);
-            var updateManager = new DefaultUpdateManager(logger, appSettings, httpClient);
+            var updateManager = new DefaultUpdateManager(logger, configModule, httpClient);
             var webViewProvider = new DefaultWebViewProvider();
             var webViewWrapper = new DefaultWebViewWrapper(logger, webViewProvider);
-            var smartUpdateFeature = new DefaultSmartUpdateFeature(logger, appSettings);
+            var smartUpdateFeature = new DefaultSmartUpdateFeature(logger, configModule);
             var addonProcessing = new DefaultAddonProcessing(webViewWrapper, smartUpdateFeature);
-            var addonsProcessing = new DefaultAddonsProcessing(logger, addonProcessing, webViewProvider, webViewWrapper, smartUpdateFeature);
+            var addonsProcessing = new DefaultAddonsProcessing(logger, configModule, addonProcessing, webViewProvider, smartUpdateFeature);
 
-            MainWindow = new MainWindow(logger, configModule, appSettings, processStarter, updateManager, webViewProvider, webViewWrapper, addonsProcessing);
+            MainWindow = new MainWindow(logger, configModule, processStarter, updateManager, webViewProvider, webViewWrapper, addonsProcessing);
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

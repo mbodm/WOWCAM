@@ -16,8 +16,8 @@ namespace WOWCAM
             logger.Log("Application started and log file was cleared.");
 
             await updateManager.RemoveBakFileIfExistsAsync();
-            await LoadAppSettingsAsync();
-            await ConfigureWebViewAsync(appSettings.Data.WebViewEnvironmentFolder);
+            await configModule.LoadAsync();
+            await ConfigureWebViewAsync(configModule.AppSettings.WebViewEnvironmentFolder);
             webViewProvider.SetWebView(webView.CoreWebView2);
 
             SetControls(true);
@@ -82,7 +82,7 @@ namespace WOWCAM
                 // not solve the problem. I just added a short async Wait() delay instead, to keep things simple.
                 // (*)TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
                 // a scheduler can still produce async progress, even when a Task.WhenAll() already has finished.
-                await Task.Delay(1000);
+                await Task.Delay(1250);
 
                 SetProgress(null, "Download finished", 1, 1);
 
@@ -107,38 +107,36 @@ namespace WOWCAM
             }
         }
 
-        private async void ProgressBar_MouseUp(object sender, MouseButtonEventArgs e)
+        private void ProgressBar_MouseUp(object sender, MouseButtonEventArgs e)
         {
             if (e.Source is ProgressBar && e.ChangedButton == MouseButton.Right && Keyboard.IsKeyDown(Key.LeftCtrl) && Keyboard.IsKeyDown(Key.LeftShift))
             {
                 if (FindResource("keyContextMenu") is ContextMenu contextMenu)
                 {
-                    await LoadAppSettingsAsync();
-
                     contextMenu.Items.Clear();
 
-                    var itemLogFile = new MenuItem { Header = "Show log file", Icon = new TextBlock { Text = "  1" } };
-                    itemLogFile.Click += (s, e) => processStarter.ShowLogFileInNotepad();
-                    contextMenu.Items.Add(itemLogFile);
-
-                    var itemProgramFolder = new MenuItem { Header = "Show program folder", Icon = new TextBlock { Text = "  2" } };
+                    var itemProgramFolder = new MenuItem { Header = "Show program folder", Icon = new TextBlock { Text = "  1" } };
                     itemProgramFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(AppHelper.GetApplicationExecutableFolder());
                     contextMenu.Items.Add(itemProgramFolder);
-
+                    
+                    var itemLogFile = new MenuItem { Header = "Show log file", Icon = new TextBlock { Text = "  2" } };
+                    itemLogFile.Click += (s, e) => processStarter.ShowLogFileInNotepad();
+                    contextMenu.Items.Add(itemLogFile);
+                    
                     var itemAddonsFolder = new MenuItem { Header = "Show addons folder", Icon = new TextBlock { Text = "  3" } };
-                    itemAddonsFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(appSettings.Data.AddonTargetFolder);
+                    itemAddonsFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(configModule.AppSettings.AddonTargetFolder);
                     contextMenu.Items.Add(itemAddonsFolder);
 
                     if (!webView.IsEnabled)
                     {
-                        var itemWebView = new MenuItem { Header = "Activate web Debug-Mode", Icon = new TextBlock { Text = "  4" } };
+                        var itemWebView = new MenuItem { Header = "Activate Debug-Mode (WebView2)", Icon = new TextBlock { Text = "  4" } };
 
                         itemWebView.Click += (s, e) =>
                         {
                             var question = string.Empty;
-                            question += $"Are you sure?{Environment.NewLine}{Environment.NewLine}";
                             question += $"Debug-Mode enables WebView2, with active dev tools.{Environment.NewLine}";
-                            question += $"Don't click any web content while progress is running!{Environment.NewLine}";
+                            question += $"Don't click any web content while progress is running!{Environment.NewLine}{Environment.NewLine}";
+                            question += $"Activate Debug-Mode?{Environment.NewLine}";
                             if (MessageBox.Show(question, "Question", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                             {
                                 ShowWebView();
@@ -162,8 +160,6 @@ namespace WOWCAM
             {
                 return;
             }
-
-            await LoadAppSettingsAsync();
             
             if (button.Content.ToString() == "_Cancel")
             {
@@ -189,7 +185,7 @@ namespace WOWCAM
                 {
                     stopwatch.Start();
                     updatedAddons = await addonsProcessing.ProcessAddonsAsync(
-                        appSettings.Data.AddonUrls, appSettings.Data.AddonTargetFolder, appSettings.Data.WorkFolder,
+                        configModule.AppSettings.AddonUrls, configModule.AppSettings.AddonTargetFolder, configModule.AppSettings.WorkFolder,
                         new Progress<byte>(p => progressBar.Value = p), cts.Token);
                     stopwatch.Stop();
 
@@ -201,7 +197,7 @@ namespace WOWCAM
                     // will solve the problem. I just added a short async wait delay instead, to keep things simple.
                     // *(TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
                     // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
-                    await Task.Delay(1000);
+                    await Task.Delay(1250);
                 }
                 catch (Exception ex)
                 {

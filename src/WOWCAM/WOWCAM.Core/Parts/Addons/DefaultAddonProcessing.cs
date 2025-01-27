@@ -33,11 +33,7 @@ namespace WOWCAM.Core.Parts.Addons
             cancellationToken.ThrowIfCancellationRequested();
 
             var smartUpdate = smartUpdateFeature.AddonExists(addonName, downloadUrl, zipFile) && Path.GetFileName(smartUpdateFeature.GetZipFilePath(addonName)) == zipFile;
-            if (smartUpdate)
-            {
-                progress?.Report(new AddonProgress(AddonState.NoNeedToDownload, addonName, 100));
-            }
-            else
+            if (!smartUpdate)
             {
                 // Download zip file
 
@@ -63,8 +59,15 @@ namespace WOWCAM.Core.Parts.Addons
                 throw new InvalidOperationException($"It seems the addon zip file ('{zipFile}') is corrupted, cause zip file validation failed.");
 
             await UnzipHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken);
-
-            progress?.Report(new AddonProgress(AddonState.UnzipFinished, addonName, 100));
+                        
+            if (smartUpdate)
+            {
+                progress?.Report(new AddonProgress(AddonState.WasSmartUpdate, addonName, 100));
+            }
+            else
+            {
+                progress?.Report(new AddonProgress(AddonState.UnzipFinished, addonName, 100));
+            }
         }
 
         private static byte CalcDownloadPercent(uint bytesReceived, uint bytesTotal)

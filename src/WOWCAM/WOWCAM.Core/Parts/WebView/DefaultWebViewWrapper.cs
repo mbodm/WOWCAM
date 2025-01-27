@@ -104,7 +104,7 @@ namespace WOWCAM.Core.Parts.WebView
             // NavigationStarting
             void NavigationStartingEventHandler(object? sender, CoreWebView2NavigationStartingEventArgs e)
             {
-                logger.Log(WebViewHelper.CreateLogLinesForNavigationStarting(sender, e));
+                logger.LogWebView2NavigationStarting(sender, e);
 
                 e.Cancel = cancellationToken.IsCancellationRequested;
             }
@@ -112,7 +112,7 @@ namespace WOWCAM.Core.Parts.WebView
             // NavigationCompleted
             void NavigationCompletedEventHandler(object? sender, CoreWebView2NavigationCompletedEventArgs e)
             {
-                logger.Log(WebViewHelper.CreateLogLinesForNavigationCompleted(sender, e));
+                logger.LogWebView2NavigationCompleted(sender, e);
 
                 if (sender is CoreWebView2 webView)
                 {
@@ -170,7 +170,7 @@ namespace WOWCAM.Core.Parts.WebView
             // DownloadStarting
             void DownloadStartingEventHandler(object? sender, CoreWebView2DownloadStartingEventArgs e)
             {
-                logger.Log(WebViewHelper.CreateLogLinesForDownloadStarting(sender, e));
+                logger.LogWebView2DownloadStarting(sender, e);
 
                 if (sender is CoreWebView2 webView)
                 {
@@ -262,7 +262,7 @@ namespace WOWCAM.Core.Parts.WebView
 
                 if (sender is CoreWebView2DownloadOperation downloadOperation)
                 {
-                    logger.Log(WebViewHelper.CreateLogLinesForStateChanged(sender, e));
+                    logger.LogWebView2StateChanged(sender, e);
 
                     switch (downloadOperation.State)
                     {

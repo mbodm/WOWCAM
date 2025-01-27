@@ -54,13 +54,16 @@ namespace WOWCAM.Core.Parts.Logging
         {
             ArgumentNullException.ThrowIfNull(exception);
 
-            var message = $"Exception occurred.{newLine} ### Exception-Type: {exception.GetType().Name}{newLine}" + $" ### Exception-Message: {exception.Message}";
+            var message = $"Exception occurred{newLine}";
+
+            message += $" => Exception-Type       = {exception.GetType().Name}{newLine}";
+            message += $" => Exception-Message    = {exception.Message}";
 
             if (!string.IsNullOrEmpty(exception.StackTrace))
             {
                 var formattedStackTrace = exception.StackTrace.Replace(newLine, string.Empty).Replace("   at ", $"{newLine}     at ");
 
-                message += $"{newLine} ### Exception-StackTrace:{formattedStackTrace}";
+                message += $"{newLine} => Exception-StackTrace = {formattedStackTrace}";
             }
 
             lock (syncRoot)
@@ -71,7 +74,7 @@ namespace WOWCAM.Core.Parts.Logging
 
         public void LogMethodEntry([CallerMemberName] string caller = "", [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            var message = $"Reached entry of '{caller}()' method.";
+            var message = $"Reached entry of {caller}() method";
 
             lock (syncRoot)
             {
@@ -81,7 +84,7 @@ namespace WOWCAM.Core.Parts.Logging
 
         public void LogMethodExit([CallerMemberName] string caller = "", [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            var message = $"Reached exit of '{caller}()' method.";
+            var message = $"Reached exit of {caller}() method";
 
             lock (syncRoot)
             {

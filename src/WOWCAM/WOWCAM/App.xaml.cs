@@ -3,7 +3,7 @@ using System.Windows;
 using WOWCAM.Core.Parts.Addons;
 using WOWCAM.Core.Parts.Config;
 using WOWCAM.Core.Parts.Logging;
-using WOWCAM.Core.Parts.Tools;
+using WOWCAM.Core.Parts.System;
 using WOWCAM.Core.Parts.Update;
 using WOWCAM.Core.Parts.WebView;
 

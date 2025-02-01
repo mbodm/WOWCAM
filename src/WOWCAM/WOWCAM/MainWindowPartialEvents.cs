@@ -15,10 +15,18 @@ namespace WOWCAM
             logger.ClearLog();
             logger.Log("Application started and log file was cleared.");
 
-            await updateManager.RemoveBakFileIfExistsAsync();
-            await configModule.LoadAsync();
-            await ConfigureWebViewAsync(configModule.AppSettings.WebViewEnvironmentFolder);
-            webViewProvider.SetWebView(webView.CoreWebView2);
+            try
+            {
+                await updateManager.RemoveBakFileIfExistsAsync();
+                await configModule.LoadAsync();
+                await ConfigureWebViewAsync(configModule.AppSettings.WebViewUserDataFolder);
+                webViewProvider.SetWebView(webView.CoreWebView2);
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex.Message);
+                return;
+            }
 
             SetControls(true);
             button.TabIndex = 0;
@@ -118,11 +126,11 @@ namespace WOWCAM
                     var itemProgramFolder = new MenuItem { Header = "Show program folder", Icon = new TextBlock { Text = "  1" } };
                     itemProgramFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(AppHelper.GetApplicationExecutableFolder());
                     contextMenu.Items.Add(itemProgramFolder);
-                    
+
                     var itemLogFile = new MenuItem { Header = "Show log file", Icon = new TextBlock { Text = "  2" } };
                     itemLogFile.Click += (s, e) => processStarter.ShowLogFileInNotepad();
                     contextMenu.Items.Add(itemLogFile);
-                    
+
                     var itemAddonsFolder = new MenuItem { Header = "Show addons folder", Icon = new TextBlock { Text = "  3" } };
                     itemAddonsFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(configModule.AppSettings.AddonTargetFolder);
                     contextMenu.Items.Add(itemAddonsFolder);
@@ -160,7 +168,7 @@ namespace WOWCAM
             {
                 return;
             }
-            
+
             if (button.Content.ToString() == "_Cancel")
             {
                 if (cts != null)
@@ -176,9 +184,9 @@ namespace WOWCAM
                 SetControls(false);
                 SetProgress(true, "Processing addons ...", 0, 100);
                 button.IsEnabled = true;
-                
+
                 webViewWrapper.HideDownloadDialog = !webView.IsEnabled;
-                
+
                 var updatedAddons = 0u;
                 var stopwatch = new Stopwatch();
                 try
@@ -223,7 +231,7 @@ namespace WOWCAM
                 var rounded = Convert.ToUInt32(seconds);
                 var addonOrAddons = PluralizeHelper.PluralizeWord("addon", () => updatedAddons != 1);
                 var statusText = $"Successfully updated {updatedAddons} {addonOrAddons} in {rounded} seconds";
-                
+
                 SetProgress(null, statusText, null, null);
             }
         }

@@ -3,7 +3,6 @@
     public sealed record AppSettings(
         IEnumerable<string> Options,
         string WorkFolder,
-        string WebViewEnvironmentFolder,
         string WebViewUserDataFolder,
         IEnumerable<string> AddonUrls,
         string AddonTargetFolder,
@@ -16,7 +15,6 @@
         {
             return new(
                 [],
-                string.Empty,
                 string.Empty,
                 string.Empty,
                 [],

@@ -6,19 +6,48 @@ namespace WOWCAM
 {
     public partial class MainWindow : Window
     {
-        private async Task ConfigureWebViewAsync(string webViewEnvironmentFolder)
+        private async Task ConfigureWebViewAsync(string webViewUserDataFolder)
         {
+            // The "CoreWebView2InitializationCompleted" event will be invoked BY the "EnsureCoreWebView2Async()" method and BEFORE its task returns.
+            // The MSDN documentation just says "invoked", but does not state if the task does also wait until the event handler has finished or not.
+            // Therefore we better use a "TaskCompletionSource" here, for our own task, to tell our app initialization if we should stop or continue.
+            // Sadly we can not do this part anywhere else outside, since we need access to the WebView2's WPF (or WinForms) encapsulation component.
+            // See the "Remarks" section here:
+            // https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.wpf.webview2
+            // See the "Returns" section here:
+            // https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.wpf.webview2.ensurecorewebview2async
+
+            var tcs = new TaskCompletionSource();
             webView.CoreWebView2InitializationCompleted += (sender, e) =>
             {
-                if (!e.IsSuccess)
+                if (e.IsSuccess)
                 {
-                    logger.Log($"WebView2 initialization failed (the event's exception message was '{e.InitializationException.Message}').");
-                    ShowError("WebView2 initialization failed (see log file for details).");
+                    tcs.TrySetResult();
+                }
+                else
+                {
+                    if (e.InitializationException == null)
+                    {
+                        tcs.TrySetException(new InvalidOperationException($"The WebView2 'CoreWebView2InitializationCompleted' event was invoked, but 'IsSuccess' was false."));
+                    }
+                    else
+                    {
+                        tcs.TrySetException(e.InitializationException);
+                    }
                 }
             };
 
-            var environment = await WebViewHelper.CreateEnvironmentAsync(webViewEnvironmentFolder);
-            await webView.EnsureCoreWebView2Async(environment);
+            try
+            {
+                var environment = await WebViewEnvironment.CreateAsync(webViewUserDataFolder);
+                await webView.EnsureCoreWebView2Async(environment);
+                await tcs.Task;
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                throw new InvalidOperationException("WebView2 initialization failed (see log file for details).");
+            }
         }
 
         private void SetControls(bool enabled)

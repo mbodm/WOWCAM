@@ -135,6 +135,7 @@ namespace WOWCAM.Core.Parts.Update
             catch (Exception e)
             {
                 logger.Log(e);
+                throw new InvalidOperationException("Error while removing .bak file of application update (see log file for details).", e);
             }
 
             return Task.Delay(250, cancellationToken);

@@ -31,7 +31,6 @@ namespace WOWCAM.Core.Parts.Config
                 AppSettings = new AppSettings(
                     Options: configData.ActiveOptions,
                     WorkFolder: workFolder,
-                    WebViewEnvironmentFolder: Path.Combine(configData.TempFolder, "MBODM-WOWCAM-WebView2-Env"),
                     WebViewUserDataFolder: Path.Combine(workFolder, "Temp", "WebView2-UDF"),
                     AddonUrls: configData.AddonUrls,
                     AddonTargetFolder: configData.TargetFolder,
@@ -46,7 +45,6 @@ namespace WOWCAM.Core.Parts.Config
                     "Application settings loaded",
                     $" => {nameof(AppSettings.Options)}                  = {optionsAsString}",
                     $" => {nameof(AppSettings.WorkFolder)}               = {AppSettings.WorkFolder}",
-                    $" => {nameof(AppSettings.WebViewEnvironmentFolder)} = {AppSettings.WebViewEnvironmentFolder}",
                     $" => {nameof(AppSettings.WebViewUserDataFolder)}    = {AppSettings.WebViewUserDataFolder}",
                     $" => {nameof(AppSettings.AddonUrls)}                = {AppSettings.AddonUrls.Count()}",
                     $" => {nameof(AppSettings.AddonTargetFolder)}        = {AppSettings.AddonTargetFolder}",
@@ -118,11 +116,6 @@ namespace WOWCAM.Core.Parts.Config
             }
 
             await Task.Delay(250, cancellationToken).ConfigureAwait(false);
-
-            if (!Directory.Exists(AppSettings.WebViewEnvironmentFolder))
-            {
-                Directory.CreateDirectory(AppSettings.WebViewEnvironmentFolder);
-            }
 
             if (!Directory.Exists(AppSettings.WebViewUserDataFolder))
             {

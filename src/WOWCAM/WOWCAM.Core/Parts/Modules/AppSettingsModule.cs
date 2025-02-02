@@ -1,17 +1,18 @@
-﻿using WOWCAM.Core.Parts.Logging;
+﻿using WOWCAM.Core.Parts.Config;
+using WOWCAM.Core.Parts.Logging;
 using WOWCAM.Helper;
 
-namespace WOWCAM.Core.Parts.Config
+namespace WOWCAM.Core.Parts.Modules
 {
-    public sealed class ConfigModule(ILogger logger, IConfigStorage storage, IConfigReader reader, IConfigValidator validator) : IConfigModule
+    public sealed class DefaultAppSettings(ILogger logger, IConfigStorage storage, IConfigReader reader, IConfigValidator validator) : IAppSettings
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly IConfigStorage storage = storage ?? throw new ArgumentNullException(nameof(storage));
         private readonly IConfigReader reader = reader ?? throw new ArgumentNullException(nameof(reader));
-        private readonly IConfigValidator validator = validator ?? throw new ArgumentNullException(nameof(ConfigModule.validator));
+        private readonly IConfigValidator validator = validator ?? throw new ArgumentNullException(nameof(DefaultAppSettings.validator));
 
         public string StorageInformation => storage.StorageInformation;
-        public AppSettings AppSettings { get; private set; } = AppSettings.Empty();
+        public SettingsData AppSettings { get; private set; } = AppSettings.Empty();
 
         public async Task LoadAsync(CancellationToken cancellationToken = default)
         {
@@ -96,7 +97,7 @@ namespace WOWCAM.Core.Parts.Config
             }
             catch (Exception e)
             {
-                if (e is ValidationException)
+                if (e is ConfigValidationException)
                 {
                     throw;
                 }

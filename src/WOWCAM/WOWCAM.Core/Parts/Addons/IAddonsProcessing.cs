@@ -2,7 +2,6 @@
 {
     public interface IAddonsProcessing
     {
-        public Task<uint> ProcessAddonsAsync(IEnumerable<string> addonUrls, string targetFolder, string workFolder,
-            IProgress<byte>? progress = default, CancellationToken cancellationToken = default);
+        public Task<uint> ProcessAddonsAsync(IProgress<byte>? progress = default, CancellationToken cancellationToken = default);
     }
 }

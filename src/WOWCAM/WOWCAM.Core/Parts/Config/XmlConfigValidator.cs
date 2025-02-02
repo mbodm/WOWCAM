@@ -21,14 +21,14 @@ namespace WOWCAM.Core.Parts.Config
 
             if (string.IsNullOrWhiteSpace(configData.TempFolder))
             {
-                throw new ValidationException("Config file contains no temp folder (not even the application's default fallback value of %TEMP% is there).");
+                throw new ConfigValidationException("Config file contains no temp folder (not even the application's default fallback value of %TEMP% is there).");
             }
 
             ValidateFolder(configData.TempFolder, "temp", MaxPathLength);
 
             if (string.IsNullOrWhiteSpace(configData.TargetFolder))
             {
-                throw new ValidationException("Config file contains no target folder to download and extract the zip files into.");
+                throw new ConfigValidationException("Config file contains no target folder to download and extract the zip files into.");
             }
 
             // Easy to foresee max length of temp. Not that easy to foresee max length of target, when considering content of
@@ -39,12 +39,12 @@ namespace WOWCAM.Core.Parts.Config
 
             if (!configData.AddonUrls.Any())
             {
-                throw new ValidationException("Config file contains 0 addon URL entries and so there is nothing to download.");
+                throw new ConfigValidationException("Config file contains 0 addon URL entries and so there is nothing to download.");
             }
 
             if (configData.AddonUrls.Any(url => !CurseHelper.IsAddonPageUrl(url)))
             {
-                throw new ValidationException("Config file contains at least 1 addon URL entry which is not a valid Curse addon URL.");
+                throw new ConfigValidationException("Config file contains at least 1 addon URL entry which is not a valid Curse addon URL.");
             }
 
             logger.LogMethodExit();
@@ -54,13 +54,13 @@ namespace WOWCAM.Core.Parts.Config
         {
             if (!FileSystemHelper.IsValidAbsolutePath(folderValue))
             {
-                throw new ValidationException(
+                throw new ConfigValidationException(
                     $"Config file contains a {folderName} folder which is not a valid folder path (given path must be a valid absolute path to a folder).");
             }
 
             if (folderValue.Length > maxChars)
             {
-                throw new ValidationException(
+                throw new ConfigValidationException(
                     $"Config file contains a {folderName} folder path which is too long (make sure given path is smaller than {maxChars} characters).");
             }
 
@@ -68,7 +68,7 @@ namespace WOWCAM.Core.Parts.Config
 
             if (!Directory.Exists(folderValue))
             {
-                throw new ValidationException(
+                throw new ConfigValidationException(
                     $"Config file contains a {folderName} folder which not exists (the app will not create any configured folder automatically, on purpose).");
             }
         }

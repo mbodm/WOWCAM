@@ -1,50 +1,36 @@
-﻿using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
-using WOWCAM.Core.Parts.Config;
+﻿using System.Runtime.CompilerServices;
 using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Core.Parts.Modules;
+using WOWCAM.Core.Parts.System;
 using WOWCAM.Core.Parts.WebView;
 using WOWCAM.Helper;
 
 namespace WOWCAM.Core.Parts.Addons
 {
-    // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
-    // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
-    // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
-
     public sealed class DefaultAddonsProcessing(
-        ILogger logger, IConfigModule configModule, IAddonProcessing addonProcessing, IWebViewProvider webViewProvider, ISmartUpdateFeature smartUpdateFeature) : IAddonsProcessing
+        ILogger logger,
+        IAppSettings appSettings,
+        IWebViewProvider webViewProvider,
+        IMultiAddonProcessor multiAddonProcessor,
+        ISmartUpdateFeature smartUpdateFeature,
+        IReliableFileOperations reliableFileOperations) : IAddonsProcessing
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IConfigModule configModule = configModule ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IAddonProcessing addonProcessing = addonProcessing ?? throw new ArgumentNullException(nameof(configModule));
+        private readonly IAppSettings appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
         private readonly IWebViewProvider webViewProvider = webViewProvider ?? throw new ArgumentNullException(nameof(webViewProvider));
+        private readonly IMultiAddonProcessor multiAddonProcessor = multiAddonProcessor ?? throw new ArgumentNullException(nameof(multiAddonProcessor));
         private readonly ISmartUpdateFeature smartUpdateFeature = smartUpdateFeature ?? throw new ArgumentNullException(nameof(smartUpdateFeature));
+        private readonly IReliableFileOperations reliableFileOperations = reliableFileOperations ?? throw new ArgumentNullException(nameof(reliableFileOperations));
 
-        private readonly ConcurrentDictionary<string, uint> progressData = new();
-
-        public async Task<uint> ProcessAddonsAsync(IEnumerable<string> addonUrls, string targetFolder, string workFolder,
-            IProgress<byte>? progress = default, CancellationToken cancellationToken = default)
+        public async Task<uint> ProcessAddonsAsync(IProgress<byte>? progress = null, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(addonUrls);
-
-            if (!addonUrls.Any())
-            {
-                return 0;
-            }
-
-            if (string.IsNullOrWhiteSpace(targetFolder))
-            {
-                throw new ArgumentException($"'{nameof(targetFolder)}' cannot be null or whitespace.", nameof(targetFolder));
-            }
-
-            if (string.IsNullOrWhiteSpace(workFolder))
-            {
-                throw new ArgumentException($"'{nameof(workFolder)}' cannot be null or whitespace.", nameof(workFolder));
-            }
+            var addonUrls = appSettings.AppSettings.AddonUrls;
+            var targetFolder = appSettings.AppSettings.AddonTargetFolder;
+            var workFolder = appSettings.AppSettings.WorkFolder;
 
             // Prepare folders
 
-            var downloadFolder = configModule.AppSettings.AddonDownloadFolder;
+            var downloadFolder = appSettings.AppSettings.AddonDownloadFolder;
             if (Directory.Exists(downloadFolder))
             {
                 await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
@@ -57,7 +43,7 @@ namespace WOWCAM.Core.Parts.Addons
             var webView = webViewProvider.GetWebView();
             webView.Profile.DefaultDownloadFolderPath = downloadFolder;
 
-            var unzipFolder = configModule.AppSettings.AddonUnzipFolder;
+            var unzipFolder = appSettings.AppSettings.AddonUnzipFolder;
             if (Directory.Exists(unzipFolder))
             {
                 await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
@@ -67,19 +53,10 @@ namespace WOWCAM.Core.Parts.Addons
                 Directory.CreateDirectory(unzipFolder);
             }
 
-            var smartUpdateFolder = configModule.AppSettings.SmartUpdateFolder;
+            var smartUpdateFolder = appSettings.AppSettings.SmartUpdateFolder;
             if (!Directory.Exists(smartUpdateFolder))
             {
                 Directory.CreateDirectory(smartUpdateFolder);
-            }
-
-            // Prepare progress dictionary
-
-            progressData.Clear();
-            foreach (var addonUrl in addonUrls)
-            {
-                var addonName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonUrl);
-                progressData.TryAdd(addonName, 0);
             }
 
             // Load SmartUpdate data
@@ -94,43 +71,12 @@ namespace WOWCAM.Core.Parts.Addons
                 throw;
             }
 
-            // Concurrently do for every addon "fetch -> download -> unzip" (or maybe skip last 2 parts if SmartUpdate is active)
+            // Process addons
 
-            uint updatedAddonsCounter = 0;
+            uint updatedAddons;
             try
             {
-                var tasks = addonUrls.Select(addonUrl =>
-                {
-                    var addonProgress = new Progress<AddonProgress>(p =>
-                    {
-                        switch (p.AddonState)
-                        {
-                            case AddonState.FetchFinished:
-                                progressData[p.AddonName] = 100;
-                                break;
-                            case AddonState.DownloadProgress:
-                                progressData[p.AddonName] = 100u + p.DownloadPercent;
-                                break;
-                            case AddonState.DownloadFinished:
-                                // Just to make sure download is 100%
-                                progressData[p.AddonName] = 200;
-                                break;
-                            case AddonState.UnzipFinished:
-                                progressData[p.AddonName] = 300;
-                                Interlocked.Increment(ref updatedAddonsCounter);
-                                break;
-                            case AddonState.WasSmartUpdate:
-                                progressData[p.AddonName] = 300;
-                                break;
-                        }
-
-                        progress?.Report(CalcTotalPercent());
-                    });
-
-                    return addonProcessing.ProcessAddonAsync(addonUrl, downloadFolder, unzipFolder, addonProgress, cancellationToken);
-                });
-
-                await Task.WhenAll(tasks);
+                updatedAddons = await multiAddonProcessor.ProcessAddonsAsync(addonUrls, targetFolder, workFolder, progress, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -150,86 +96,61 @@ namespace WOWCAM.Core.Parts.Addons
                 throw;
             }
 
-            // Move and clean up
+            // Move content and clean up
 
-            await MoveAsync(unzipFolder, targetFolder, cancellationToken);
+            await MoveContentAsync(unzipFolder, targetFolder, cancellationToken);
             await CleanUpAsync(downloadFolder, unzipFolder, cancellationToken);
 
-            return updatedAddonsCounter;
+            return updatedAddons;
         }
 
-        private void HandleNonCancellationException(Exception orgException, string bunchMessage, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        private void HandleNonCancellationException(Exception orgException, string errorMessage, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
             logger.Log(orgException, file, line);
 
             if (orgException is not TaskCanceledException && orgException is not OperationCanceledException)
             {
-                throw new InvalidOperationException(bunchMessage);
+                throw new InvalidOperationException(errorMessage);
             }
         }
 
-        private byte CalcTotalPercent()
+        private async Task MoveContentAsync(string unzipFolder, string targetFolder, CancellationToken cancellationToken = default)
         {
-            // Doing casts inside try/catch block (just to be sure)
-
-            try
-            {
-                var sumOfAllAddons = (ulong)progressData.Sum(kvp => kvp.Value);
-                var hundredPercent = (ulong)progressData.Count * 300;
-
-                var exact = (double)sumOfAllAddons / hundredPercent;
-                var exactPercent = exact * 100;
-                var roundedPercent = (byte)Math.Round(exactPercent);
-                var cappedPercent = roundedPercent > 100 ? (byte)100 : roundedPercent; // Cap it (just to be sure)
-
-                return cappedPercent;
-            }
-            catch
-            {
-                return 0;
-            }
-        }
-
-        private async Task MoveAsync(string unzipFolder, string targetFolder, CancellationToken cancellationToken = default)
-        {
-            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
-            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(250, cancellationToken);
+            await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             // Clear target folder
+
             try
             {
                 await FileSystemHelper.DeleteFolderContentAsync(targetFolder, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
-                HandleNonCancellationException(e, "An error occurred while deleting the content of target folder (see log file for details).");
-                throw;
+                logger.Log(e);
+                throw new InvalidOperationException("An error occurred while deleting the content of target folder (see log file for details).");
             }
 
-            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
-            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(250, cancellationToken);
+            await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             // Move to target folder
+
             try
             {
                 await FileSystemHelper.MoveFolderContentAsync(unzipFolder, targetFolder, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
-                HandleNonCancellationException(e, "An error occurred while moving the unzipped addons to target folder (see log file for details).");
-                throw;
+                logger.Log(e);
+                throw new InvalidOperationException("An error occurred while moving the unzipped addons to target folder (see log file for details).");
             }
         }
 
         private async Task CleanUpAsync(string downloadFolder, string unzipFolder, CancellationToken cancellationToken = default)
         {
-            // All operations are done for sure here, but the hardware buffers (or virus scan, or whatever) has not finished yet.
-            // Therefore give em time to finish their business. There is no other way, since this is not under the app's control.
-            await Task.Delay(250, cancellationToken);
+            await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             // Clean up temporary folders
+
             try
             {
                 await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
@@ -237,8 +158,8 @@ namespace WOWCAM.Core.Parts.Addons
             }
             catch (Exception e)
             {
-                HandleNonCancellationException(e, "An error occurred while deleting the content of temporary folders (see log file for details).");
-                throw;
+                logger.Log(e);
+                throw new InvalidOperationException("An error occurred while deleting the content of temporary folders (see log file for details).");
             }
         }
     }

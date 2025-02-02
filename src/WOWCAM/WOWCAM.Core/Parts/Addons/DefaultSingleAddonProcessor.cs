@@ -7,7 +7,7 @@ namespace WOWCAM.Core.Parts.Addons
     // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
     // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
 
-    public sealed class DefaultAddonProcessing(IWebViewWrapper webViewWrapper, ISmartUpdateFeature smartUpdateFeature) : IAddonProcessing
+    public sealed class DefaultSingleAddonProcessor(IWebViewWrapper webViewWrapper, ISmartUpdateFeature smartUpdateFeature) : ISingleAddonProcessor
     {
         private readonly IWebViewWrapper webViewWrapper = webViewWrapper ?? throw new ArgumentNullException(nameof(webViewWrapper));
         private readonly ISmartUpdateFeature smartUpdateFeature = smartUpdateFeature ?? throw new ArgumentNullException(nameof(smartUpdateFeature));
@@ -32,8 +32,15 @@ namespace WOWCAM.Core.Parts.Addons
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var smartUpdate = smartUpdateFeature.AddonExists(addonName, downloadUrl, zipFile) && Path.GetFileName(smartUpdateFeature.GetZipFilePath(addonName)) == zipFile;
-            if (!smartUpdate)
+            if (smartUpdateFeature.AddonExists(addonName, downloadUrl, zipFile))
+            {
+                // Copy zip file
+
+                File.Copy(smartUpdateFeature.GetZipFilePath(addonName), downloadFolder, true);
+
+                progress?.Report(new AddonProgress(AddonState.DownloadFinishedCauseSmartUpdate, addonName, 100));
+            }
+            else
             {
                 // Download zip file
 
@@ -53,21 +60,16 @@ namespace WOWCAM.Core.Parts.Addons
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var zipFilePath = smartUpdate ? smartUpdateFeature.GetZipFilePath(addonName) : Path.Combine(downloadFolder, zipFile);
+            var zipFilePath = Path.Combine(downloadFolder, zipFile);
 
             if (!await UnzipHelper.ValidateZipFileAsync(zipFilePath, cancellationToken))
+            {
                 throw new InvalidOperationException($"It seems the addon zip file ('{zipFile}') is corrupted, cause zip file validation failed.");
+            }
 
             await UnzipHelper.ExtractZipFileAsync(zipFilePath, unzipFolder, cancellationToken);
-                        
-            if (smartUpdate)
-            {
-                progress?.Report(new AddonProgress(AddonState.WasSmartUpdate, addonName, 100));
-            }
-            else
-            {
-                progress?.Report(new AddonProgress(AddonState.UnzipFinished, addonName, 100));
-            }
+
+            progress?.Report(new AddonProgress(AddonState.UnzipFinished, addonName, 100));
         }
 
         private static byte CalcDownloadPercent(uint bytesReceived, uint bytesTotal)

@@ -1,14 +1,14 @@
 ﻿using System.Diagnostics;
-using WOWCAM.Core.Parts.Config;
 using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Core.Parts.Modules;
 using WOWCAM.Helper;
 
 namespace WOWCAM.Core.Parts.Update
 {
-    public sealed class DefaultUpdateManager(ILogger logger, IConfigModule configModule, HttpClient httpClient) : IUpdateManager
+    public sealed class DefaultUpdateManager(ILogger logger, IAppSettings configModule, HttpClient httpClient) : IUpdateManager
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IConfigModule configModule = configModule ?? throw new ArgumentNullException(nameof(DefaultUpdateManager.configModule));
+        private readonly IAppSettings configModule = configModule ?? throw new ArgumentNullException(nameof(DefaultUpdateManager.configModule));
         private readonly HttpClient httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
         private readonly string appName = AppHelper.GetApplicationName();
@@ -141,7 +141,7 @@ namespace WOWCAM.Core.Parts.Update
             return Task.Delay(250, cancellationToken);
         }
 
-        private Version GetInstalledVersion()
+        public Version GetInstalledVersion()
         {
             try
             {

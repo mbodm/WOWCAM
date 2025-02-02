@@ -1,9 +1,9 @@
-﻿namespace WOWCAM.Core.Parts.Config
+﻿namespace WOWCAM.Core.Parts.Modules
 {
-    public interface IConfigModule
+    public interface IAppSettings
     {
         string StorageInformation { get; } // Using such a generic term here since this could be a file/database/whatever
-        AppSettings AppSettings { get; }
+        SettingsData AppSettings { get; }
 
         Task LoadAsync(CancellationToken cancellationToken = default);
     }

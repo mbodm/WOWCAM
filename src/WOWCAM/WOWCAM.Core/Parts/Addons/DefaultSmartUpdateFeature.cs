@@ -1,15 +1,15 @@
 ﻿using System.Collections.Concurrent;
 using System.Xml;
 using System.Xml.Linq;
-using WOWCAM.Core.Parts.Config;
 using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Core.Parts.Modules;
 
 namespace WOWCAM.Core.Parts.Addons
 {
-    public sealed class DefaultSmartUpdateFeature(ILogger logger, IConfigModule configModule) : ISmartUpdateFeature
+    public sealed class DefaultSmartUpdateFeature(ILogger logger, IAppSettings configModule) : ISmartUpdateFeature
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IConfigModule configModule = configModule ?? throw new ArgumentNullException(nameof(configModule));
+        private readonly IAppSettings configModule = configModule ?? throw new ArgumentNullException(nameof(configModule));
 
         private readonly ConcurrentDictionary<string, SmartUpdateData> dict = new();
 

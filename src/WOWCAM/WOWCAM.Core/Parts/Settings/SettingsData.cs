@@ -1,6 +1,6 @@
-﻿namespace WOWCAM.Core.Parts.Config
+﻿namespace WOWCAM.Core.Parts.Settings
 {
-    public sealed record AppSettings(
+    public sealed record SettingsData(
         IEnumerable<string> Options,
         string WorkFolder,
         string WebViewUserDataFolder,
@@ -11,7 +11,7 @@
         string SmartUpdateFolder,
         string AppUpdateFolder)
     {
-        public static AppSettings Empty()
+        public static SettingsData Empty()
         {
             return new(
                 [],

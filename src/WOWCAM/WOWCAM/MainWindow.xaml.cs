@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using WOWCAM.Core.Parts.Addons;
-using WOWCAM.Core.Parts.Config;
 using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Core.Parts.Modules;
 using WOWCAM.Core.Parts.System;
 using WOWCAM.Core.Parts.Update;
 using WOWCAM.Core.Parts.WebView;
@@ -12,21 +12,21 @@ namespace WOWCAM
     public partial class MainWindow : Window
     {
         private readonly ILogger logger;
-        private readonly IConfigModule configModule;
+        private readonly IAppSettings configModule;
         private readonly IProcessStarter processStarter;
         private readonly IUpdateManager updateManager;
         private readonly IWebViewProvider webViewProvider;
         private readonly IWebViewWrapper webViewWrapper;
-        private readonly IAddonsProcessing addonsProcessing;
+        private readonly ISingleAddonProcessor addonsProcessing;
 
         public MainWindow(
             ILogger logger,
-            IConfigModule configModule,
+            IAppSettings configModule,
             IProcessStarter processStarter,
             IUpdateManager updateManager,
             IWebViewProvider webViewProvider,
             IWebViewWrapper webViewWrapper,
-            IAddonsProcessing addonsProcessing)
+            ISingleAddonProcessor addonsProcessing)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.configModule = configModule ?? throw new ArgumentNullException(nameof(configModule));

@@ -3,6 +3,7 @@ using System.Windows;
 using WOWCAM.Core.Parts.Addons;
 using WOWCAM.Core.Parts.Config;
 using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Core.Parts.Settings;
 using WOWCAM.Core.Parts.System;
 using WOWCAM.Core.Parts.Update;
 using WOWCAM.Core.Parts.WebView;
@@ -26,12 +27,13 @@ namespace WOWCAM
             var configStorage = new XmlConfigStorage(logger);
             var configReader = new XmlConfigReader(logger, configStorage);
             var configValidator = new XmlConfigValidator(logger);
-            var configModule = new ConfigModule(logger, configStorage, configReader, configValidator);
+            var reliableFileOperations = new DefaultReliableFileOperations();
+            var appSettings = new DefaultAppSettings(logger, configStorage, configReader, configValidator, reliableFileOperations);
             var processStarter = new DefaultProcessStarter(logger);
-            var updateManager = new DefaultUpdateManager(logger, configModule, httpClient);
+            var updateManager = new DefaultUpdateManager(logger, appSettings, httpClient);
             var webViewProvider = new DefaultWebViewProvider();
             var webViewWrapper = new DefaultWebViewWrapper(logger, webViewProvider);
-            var smartUpdateFeature = new DefaultSmartUpdateFeature(logger, configModule);
+            var smartUpdateFeature = new DefaultSmartUpdateFeature(logger, appSettings);
             var addonProcessing = new DefaultSingleAddonProcessor(webViewWrapper, smartUpdateFeature);
             var addonsProcessing = new DefaultAddonsProcessing(logger, configModule, addonProcessing, webViewProvider, smartUpdateFeature);
 

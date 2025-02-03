@@ -5,7 +5,7 @@
         FetchFinished,
         DownloadProgress,
         DownloadFinished,
-        DownloadFinishedCauseSmartUpdate,
+        DownloadFinishedBySmartUpdate,
         UnzipFinished
     }
 }

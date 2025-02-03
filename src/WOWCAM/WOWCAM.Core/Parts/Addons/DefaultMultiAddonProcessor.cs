@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using WOWCAM.Core.Parts.Logging;
-using WOWCAM.Core.Parts.WebView;
+using WOWCAM.Core.Parts.Settings;
 using WOWCAM.Helper;
 
 namespace WOWCAM.Core.Parts.Addons
@@ -9,35 +9,19 @@ namespace WOWCAM.Core.Parts.Addons
     // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
     // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
 
-    public sealed class DefaultMultiAddonProcessor(
-        ILogger logger, ISingleAddonProcessor singleAddonProcessor, IWebViewProvider webViewProvider, ISmartUpdateFeature smartUpdateFeature) : IMultiAddonProcessor
+    public sealed class DefaultMultiAddonProcessor(ILogger logger, IAppSettings appSettings, ISingleAddonProcessor singleAddonProcessor) : IMultiAddonProcessor
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly IAppSettings appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
         private readonly ISingleAddonProcessor singleAddonProcessor = singleAddonProcessor ?? throw new ArgumentNullException(nameof(singleAddonProcessor));
-        private readonly IWebViewProvider webViewProvider = webViewProvider ?? throw new ArgumentNullException(nameof(webViewProvider));
-        private readonly ISmartUpdateFeature smartUpdateFeature = smartUpdateFeature ?? throw new ArgumentNullException(nameof(smartUpdateFeature));
 
         private readonly ConcurrentDictionary<string, uint> progressData = new();
 
-        public async Task<uint> ProcessAddonsAsync(IEnumerable<string> addonUrls, string targetFolder, string workFolder,
-            IProgress<byte>? progress = default, CancellationToken cancellationToken = default)
+        public async Task<uint> ProcessAddonsAsync(IProgress<byte>? progress = default, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(addonUrls);
+            logger.LogMethodEntry();
 
-            if (!addonUrls.Any())
-            {
-                return 0;
-            }
-
-            if (string.IsNullOrWhiteSpace(targetFolder))
-            {
-                throw new ArgumentException($"'{nameof(targetFolder)}' cannot be null or whitespace.", nameof(targetFolder));
-            }
-
-            if (string.IsNullOrWhiteSpace(workFolder))
-            {
-                throw new ArgumentException($"'{nameof(workFolder)}' cannot be null or whitespace.", nameof(workFolder));
-            }
+            var addonUrls = appSettings.Data.AddonUrls;
 
             // Prepare progress dictionary
 
@@ -48,7 +32,7 @@ namespace WOWCAM.Core.Parts.Addons
                 progressData.TryAdd(addonName, 0);
             }
 
-            // Concurrently do for every addon "fetch -> download -> unzip" (download part may be skipped/faked by SmartUpdate)
+            // Concurrently do for every addon "fetch -> download -> unzip" (download part may be skipped/faked internally by SmartUpdate)
 
             uint updatedAddonsCounter = 0;
 
@@ -65,10 +49,9 @@ namespace WOWCAM.Core.Parts.Addons
                             progressData[p.AddonName] = 100u + p.DownloadPercent;
                             break;
                         case AddonState.DownloadFinished:
-                            // Just to make sure download is 100%
-                            progressData[p.AddonName] = 200;
+                            progressData[p.AddonName] = 200; // Just to make sure download is 100%
                             break;
-                        case AddonState.DownloadFinishedCauseSmartUpdate:
+                        case AddonState.DownloadFinishedBySmartUpdate:
                             progressData[p.AddonName] = 200;
                             break;
                         case AddonState.UnzipFinished:
@@ -80,10 +63,12 @@ namespace WOWCAM.Core.Parts.Addons
                     progress?.Report(CalcTotalPercent());
                 });
 
-                return singleAddonProcessor.ProcessAddonAsync(addonUrl, downloadFolder, unzipFolder, addonProgress, cancellationToken);
+                return singleAddonProcessor.ProcessAddonAsync(addonUrl, addonProgress, cancellationToken);
             });
 
             await Task.WhenAll(tasks);
+
+            logger.LogMethodExit();
 
             return updatedAddonsCounter;
         }

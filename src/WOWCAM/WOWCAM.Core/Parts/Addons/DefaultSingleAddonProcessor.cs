@@ -1,4 +1,5 @@
-﻿using WOWCAM.Core.Parts.WebView;
+﻿using WOWCAM.Core.Parts.Settings;
+using WOWCAM.Core.Parts.WebView;
 using WOWCAM.Helper;
 
 namespace WOWCAM.Core.Parts.Addons
@@ -7,15 +8,17 @@ namespace WOWCAM.Core.Parts.Addons
     // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
     // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
 
-    public sealed class DefaultSingleAddonProcessor(IWebViewWrapper webViewWrapper, ISmartUpdateFeature smartUpdateFeature) : ISingleAddonProcessor
+    public sealed class DefaultSingleAddonProcessor(IAppSettings appSettings, IWebViewWrapper webViewWrapper, ISmartUpdateFeature smartUpdateFeature) : ISingleAddonProcessor
     {
+        private readonly IAppSettings appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
         private readonly IWebViewWrapper webViewWrapper = webViewWrapper ?? throw new ArgumentNullException(nameof(webViewWrapper));
         private readonly ISmartUpdateFeature smartUpdateFeature = smartUpdateFeature ?? throw new ArgumentNullException(nameof(smartUpdateFeature));
 
-        public async Task ProcessAddonAsync(string addonPageUrl, string downloadFolder, string unzipFolder,
-            IProgress<AddonProgress>? progress = default, CancellationToken cancellationToken = default)
+        public async Task ProcessAddonAsync(string addonPageUrl, IProgress<AddonProgress>? progress = default, CancellationToken cancellationToken = default)
         {
             var addonName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonPageUrl);
+            var downloadFolder = appSettings.Data.AddonDownloadFolder;
+            var unzipFolder = appSettings.Data.AddonUnzipFolder;
 
             // Fetch JSON data
 
@@ -38,7 +41,7 @@ namespace WOWCAM.Core.Parts.Addons
 
                 File.Copy(smartUpdateFeature.GetZipFilePath(addonName), downloadFolder, true);
 
-                progress?.Report(new AddonProgress(AddonState.DownloadFinishedCauseSmartUpdate, addonName, 100));
+                progress?.Report(new AddonProgress(AddonState.DownloadFinishedBySmartUpdate, addonName, 100));
             }
             else
             {

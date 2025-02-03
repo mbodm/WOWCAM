@@ -2,14 +2,17 @@
 using System.Xml;
 using System.Xml.Linq;
 using WOWCAM.Core.Parts.Logging;
-using WOWCAM.Core.Parts.Modules;
+using WOWCAM.Core.Parts.Settings;
+using WOWCAM.Core.Parts.System;
+using WOWCAM.Helper;
 
 namespace WOWCAM.Core.Parts.Addons
 {
-    public sealed class DefaultSmartUpdateFeature(ILogger logger, IAppSettings configModule) : ISmartUpdateFeature
+    public sealed class DefaultSmartUpdateFeature(ILogger logger, IAppSettings appSettings, IReliableFileOperations reliableFileOperations) : ISmartUpdateFeature
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly IAppSettings configModule = configModule ?? throw new ArgumentNullException(nameof(configModule));
+        private readonly IAppSettings appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
+        private readonly IReliableFileOperations reliableFileOperations = reliableFileOperations ?? throw new ArgumentNullException(nameof(reliableFileOperations));
 
         private readonly ConcurrentDictionary<string, SmartUpdateData> dict = new();
 
@@ -46,14 +49,18 @@ namespace WOWCAM.Core.Parts.Addons
             {
                 var addonName = entry?.Attribute("addonName")?.Value ?? string.Empty;
                 var lastDownloadUrl = entry?.Attribute("lastDownloadUrl")?.Value ?? string.Empty;
-                var lastDownloadFile = entry?.Attribute("lastZipFile")?.Value ?? string.Empty;
+                var lastZipFile = entry?.Attribute("lastZipFile")?.Value ?? string.Empty;
+                var changedAt = entry?.Attribute("changedAt")?.Value ?? string.Empty;
 
-                if (string.IsNullOrWhiteSpace(addonName) || string.IsNullOrWhiteSpace(lastDownloadUrl) || string.IsNullOrEmpty(lastDownloadFile))
+                if (string.IsNullOrWhiteSpace(addonName) ||
+                    string.IsNullOrWhiteSpace(lastDownloadUrl) ||
+                    string.IsNullOrWhiteSpace(lastZipFile) ||
+                    string.IsNullOrWhiteSpace(changedAt))
                 {
                     throw new InvalidOperationException("Error in SmartUpdate file: The <smartupdate> section contains one or more invalid entries.");
                 }
 
-                dict.TryAdd(addonName, new SmartUpdateData(addonName, lastDownloadUrl, lastDownloadFile));
+                dict.TryAdd(addonName, new SmartUpdateData(addonName, lastDownloadUrl, lastZipFile, changedAt));
             }
 
             logger.LogMethodExit();
@@ -66,7 +73,8 @@ namespace WOWCAM.Core.Parts.Addons
             var entries = dict.OrderBy(kvp => kvp.Key).Select(kvp => new XElement("entry",
                 new XAttribute("addonName", kvp.Key),
                 new XAttribute("lastDownloadUrl", kvp.Value.DownloadUrl),
-                new XAttribute("lastZipFile", kvp.Value.ZipFile)));
+                new XAttribute("lastZipFile", kvp.Value.ZipFile),
+                new XAttribute("changedAt", kvp.Value.TimeStamp)));
 
             var doc = new XDocument(new XElement("wowcam", new XElement("smartupdate", entries)));
 
@@ -111,7 +119,7 @@ namespace WOWCAM.Core.Parts.Addons
             return hasExactEntry && zipFileExists;
         }
 
-        public Task AddOrUpdateAddonAsync(string addonName, string downloadUrl, string zipFile, string downloadFolder, CancellationToken cancellationToken = default)
+        public void AddOrUpdateAddonAsync(string addonName, string downloadUrl, string zipFile)
         {
             if (string.IsNullOrWhiteSpace(addonName))
             {
@@ -128,19 +136,25 @@ namespace WOWCAM.Core.Parts.Addons
                 throw new ArgumentException($"'{nameof(zipFile)}' cannot be null or whitespace.", nameof(zipFile));
             }
 
-            if (string.IsNullOrWhiteSpace(downloadFolder))
+            if (AddonExists(addonName, downloadUrl, zipFile))
             {
-                throw new ArgumentException($"'{nameof(downloadFolder)}' cannot be null or whitespace.", nameof(downloadFolder));
+                return;
             }
 
-            dict.AddOrUpdate(addonName, new SmartUpdateData(addonName, downloadUrl, zipFile), (_, _) => new SmartUpdateData(addonName, downloadUrl, zipFile));
+            // Add to dict
+
+            var timeStamp = DateTime.UtcNow.ToIso8601();
+            var dictValue = new SmartUpdateData(addonName, downloadUrl, zipFile, timeStamp);
+            dict.AddOrUpdate(addonName, dictValue, (_, _) => dictValue);
+
+            // Copy zip file
 
             CreateFolderStructureIfNotExists();
-            var sourcePath = Path.Combine(downloadFolder, zipFile);
+            var sourcePath = Path.Combine(GetSourceFolderPath(), zipFile);
             var destPath = Path.Combine(GetZipFolderPath(), zipFile);
             File.Copy(sourcePath, destPath, true);
 
-            return Task.Delay(100, cancellationToken);
+            // There is no need for some final IReliableFileOperations delay here (since the zip files are independent copy operations in independent tasks)
         }
 
         public string GetZipFilePath(string addonName)
@@ -179,8 +193,9 @@ namespace WOWCAM.Core.Parts.Addons
             }
         }
 
-        private string GetRootFolderPath() => configModule.AppSettings.SmartUpdateFolder;
-        private string GetZipFolderPath() => Path.Combine(configModule.AppSettings.SmartUpdateFolder, "LastDownloads");
-        private string GetXmlFilePath() => Path.Combine(configModule.AppSettings.SmartUpdateFolder, "SmartUpdate.xml");
+        private string GetRootFolderPath() => appSettings.Data.SmartUpdateFolder;
+        private string GetZipFolderPath() => Path.Combine(GetRootFolderPath(), "LastDownloads");
+        private string GetXmlFilePath() => Path.Combine(GetRootFolderPath(), "SmartUpdate.xml");
+        private string GetSourceFolderPath() => appSettings.Data.AddonDownloadFolder;
     }
 }

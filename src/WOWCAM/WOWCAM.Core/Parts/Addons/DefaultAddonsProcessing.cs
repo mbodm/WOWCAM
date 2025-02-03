@@ -1,6 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using WOWCAM.Core.Parts.Logging;
-using WOWCAM.Core.Parts.Modules;
+﻿using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Core.Parts.Settings;
 using WOWCAM.Core.Parts.System;
 using WOWCAM.Core.Parts.WebView;
 using WOWCAM.Helper;
@@ -24,13 +23,9 @@ namespace WOWCAM.Core.Parts.Addons
 
         public async Task<uint> ProcessAddonsAsync(IProgress<byte>? progress = null, CancellationToken cancellationToken = default)
         {
-            var addonUrls = appSettings.AppSettings.AddonUrls;
-            var targetFolder = appSettings.AppSettings.AddonTargetFolder;
-            var workFolder = appSettings.AppSettings.WorkFolder;
-
             // Prepare folders
 
-            var downloadFolder = appSettings.AppSettings.AddonDownloadFolder;
+            var downloadFolder = appSettings.Data.AddonDownloadFolder;
             if (Directory.Exists(downloadFolder))
             {
                 await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
@@ -43,7 +38,7 @@ namespace WOWCAM.Core.Parts.Addons
             var webView = webViewProvider.GetWebView();
             webView.Profile.DefaultDownloadFolderPath = downloadFolder;
 
-            var unzipFolder = appSettings.AppSettings.AddonUnzipFolder;
+            var unzipFolder = appSettings.Data.AddonUnzipFolder;
             if (Directory.Exists(unzipFolder))
             {
                 await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
@@ -53,48 +48,41 @@ namespace WOWCAM.Core.Parts.Addons
                 Directory.CreateDirectory(unzipFolder);
             }
 
-            var smartUpdateFolder = appSettings.AppSettings.SmartUpdateFolder;
+            var smartUpdateFolder = appSettings.Data.SmartUpdateFolder;
             if (!Directory.Exists(smartUpdateFolder))
             {
                 Directory.CreateDirectory(smartUpdateFolder);
             }
 
+            // Just to make sure (target folder is already handled by config validation)
+
+            var targetFolder = appSettings.Data.AddonTargetFolder;
+            if (!Directory.Exists(targetFolder))
+            {
+                throw new InvalidOperationException("Configured target folder not exists.");
+            }
+
             // Load SmartUpdate data
 
-            try
-            {
-                await smartUpdateFeature.LoadAsync(cancellationToken);
-            }
-            catch (Exception e)
-            {
-                HandleNonCancellationException(e, "An error occurred while loading SmartUpdate data (see log file for details).");
-                throw;
-            }
+            await SmartUpdateLoadAsync(cancellationToken);
 
             // Process addons
 
             uint updatedAddons;
             try
             {
-                updatedAddons = await multiAddonProcessor.ProcessAddonsAsync(addonUrls, targetFolder, workFolder, progress, cancellationToken).ConfigureAwait(false);
+                updatedAddons = await multiAddonProcessor.ProcessAddonsAsync(progress, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
-                HandleNonCancellationException(e, "An error occurred while processing the addons (see log file for details).");
-                throw;
+                logger.Log(e);
+                if (IsCancellationException(e)) throw;
+                throw new InvalidOperationException("An error occurred while processing the addons (see log file for details).");
             }
 
             // Save SmartUpdate data
 
-            try
-            {
-                await smartUpdateFeature.SaveAsync(cancellationToken);
-            }
-            catch (Exception e)
-            {
-                HandleNonCancellationException(e, "An error occurred while saving SmartUpdate data (see log file for details).");
-                throw;
-            }
+            await SmartUpdateSaveAsync(cancellationToken);
 
             // Move content and clean up
 
@@ -104,13 +92,31 @@ namespace WOWCAM.Core.Parts.Addons
             return updatedAddons;
         }
 
-        private void HandleNonCancellationException(Exception orgException, string errorMessage, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        private async Task SmartUpdateLoadAsync(CancellationToken cancellationToken = default)
         {
-            logger.Log(orgException, file, line);
-
-            if (orgException is not TaskCanceledException && orgException is not OperationCanceledException)
+            try
             {
-                throw new InvalidOperationException(errorMessage);
+                await smartUpdateFeature.LoadAsync(cancellationToken);
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                if (IsCancellationException(e)) throw;
+                throw new InvalidOperationException("An error occurred while loading SmartUpdate data (see log file for details).");
+            }
+        }
+
+        private async Task SmartUpdateSaveAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await smartUpdateFeature.SaveAsync(cancellationToken);
+            }
+            catch (Exception e)
+            {
+                logger.Log(e);
+                if (IsCancellationException(e)) throw;
+                throw new InvalidOperationException("An error occurred while saving SmartUpdate data (see log file for details).");
             }
         }
 
@@ -118,7 +124,7 @@ namespace WOWCAM.Core.Parts.Addons
         {
             await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            // Clear target folder
+            // Clear the target folder
 
             try
             {
@@ -127,6 +133,7 @@ namespace WOWCAM.Core.Parts.Addons
             catch (Exception e)
             {
                 logger.Log(e);
+                if (IsCancellationException(e)) throw;
                 throw new InvalidOperationException("An error occurred while deleting the content of target folder (see log file for details).");
             }
 
@@ -141,6 +148,7 @@ namespace WOWCAM.Core.Parts.Addons
             catch (Exception e)
             {
                 logger.Log(e);
+                if (IsCancellationException(e)) throw;
                 throw new InvalidOperationException("An error occurred while moving the unzipped addons to target folder (see log file for details).");
             }
         }
@@ -159,8 +167,11 @@ namespace WOWCAM.Core.Parts.Addons
             catch (Exception e)
             {
                 logger.Log(e);
+                if (IsCancellationException(e)) throw;
                 throw new InvalidOperationException("An error occurred while deleting the content of temporary folders (see log file for details).");
             }
         }
+
+        private static bool IsCancellationException(Exception e) => e is TaskCanceledException || e is OperationCanceledException;
     }
 }

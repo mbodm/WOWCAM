@@ -1,7 +1,7 @@
 ﻿namespace WOWCAM.Core.Parts.Addons
 {
-    public interface IAddonsProcessing
+    public interface IAddonsProcessing : IMultiAddonProcessor
     {
-        public Task<uint> ProcessAddonsAsync(IProgress<byte>? progress = default, CancellationToken cancellationToken = default);
+        // Facade
     }
 }

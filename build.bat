@@ -19,8 +19,10 @@ if not exist "%RELEASE_FOLDER%" mkdir "%RELEASE_FOLDER%"
 copy /B /V /Y "%PUBLISH_FOLDER%\WOWCAM.exe" "%RELEASE_FOLDER%" >NUL
 copy /B /V /Y "%CURRENT_FOLDER%\installer\Install.bat" "%RELEASE_FOLDER%" >NUL
 
+echo Finished (you can now deploy everything inside 'release' folder)
+echo.
 echo Have a nice day.
 
 REM Show timeout when started via double click
 REM From https://stackoverflow.com/questions/5859854/detect-if-bat-file-is-running-via-double-click-or-from-cmd-window
-if /I %0 EQU "%~dpnx0" timeout /T 5
+if /I %0 EQU "%~dpnx0" timeout /T 9

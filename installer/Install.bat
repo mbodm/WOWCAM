@@ -9,6 +9,8 @@ echo - This batch script just copies the executable file to user's local program
 echo - This batch script does nothing else (therefore 'Install' is somewhat misleading here)
 echo.
 
+echo Copy...
+echo.
 if not exist "%INSTALL_FOLDER%" mkdir "%INSTALL_FOLDER%"
 copy /B /V /Y "%CURRENT_FOLDER%\WOWCAM.exe" "%INSTALL_FOLDER%" >NUL
 

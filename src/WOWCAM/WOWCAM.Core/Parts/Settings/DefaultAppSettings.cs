@@ -61,13 +61,13 @@ namespace WOWCAM.Core.Parts.Settings
             Data = new SettingsData(
                 Options: configData.ActiveOptions,
                 WorkFolder: workFolder,
-                WebViewUserDataFolder: Path.Combine(workFolder, "Temp", "WebView2-UDF"),
+                WebViewUserDataFolder: Path.Combine(workFolder, "TempFolders", "WebView2-UDF"),
                 AddonUrls: configData.AddonUrls,
                 AddonTargetFolder: configData.TargetFolder,
-                AddonDownloadFolder: Path.Combine(workFolder, "Temp", "Curse-Download"),
-                AddonUnzipFolder: Path.Combine(workFolder, "Temp", "Curse-Unzip"),
+                AddonDownloadFolder: Path.Combine(workFolder, "TempFolders", "Curse-Download"),
+                AddonUnzipFolder: Path.Combine(workFolder, "TempFolders", "Curse-Unzip"),
                 SmartUpdateFolder: Path.Combine(workFolder, "SmartUpdate"),
-                AppUpdateFolder: Path.Combine(workFolder, "Temp", "App-Update"));
+                AppUpdateFolder: Path.Combine(workFolder, "TempFolders", "App-Update"));
 
             var optionsAsString = Data.Options.Any() ? string.Join(", ", Data.Options) : "NONE";
             logger.Log(

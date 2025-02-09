@@ -161,7 +161,7 @@ namespace WOWCAM
             }
         }
 
-        private CancellationTokenSource? cts = null;
+        private CancellationTokenSource? cts;
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button button)
@@ -169,61 +169,41 @@ namespace WOWCAM
                 return;
             }
 
+            button.IsEnabled = false;
+
             if (button.Content.ToString() == "_Cancel")
             {
-                if (cts != null)
-                {
-                    await cts.CancelAsync();
-                }
+                cts?.Cancel();
+                return;
             }
-            else
-            {
-                button.Content = "_Cancel";
-                cts = new CancellationTokenSource();
 
-                SetControls(false);
-                SetProgress(true, "Processing addons ...", 0, 100);
+            button.Content = "_Cancel";
+
+            cts?.Dispose();
+            cts = new();
+
+            SetControls(false);
+            SetProgress(true, "Processing addons ...", 0, 100);
+            webViewWrapper.HideDownloadDialog = !webView.IsEnabled;
+
+            try
+            {
                 button.IsEnabled = true;
 
-                webViewWrapper.HideDownloadDialog = !webView.IsEnabled;
+                var stopwatch = Stopwatch.StartNew();
+                var updatedAddons = await addonsProcessing.ProcessAddonsAsync(new Progress<byte>(p => progressBar.Value = p), cts.Token);
+                stopwatch.Stop();
 
-                var updatedAddons = 0u;
-                var stopwatch = new Stopwatch();
-                try
-                {
-                    stopwatch.Start();
-                    updatedAddons = await addonsProcessing.ProcessAddonsAsync(new Progress<byte>(p => progressBar.Value = p), cts.Token);
-                    stopwatch.Stop();
+                button.IsEnabled = false;
+                SetProgress(null, "Clean up ...", null, null);
 
-                    SetProgress(null, "Clean up ...", null, null);
-
-                    // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
-                    // ProgressBar control from reaching its maximum shortly after the last async progress happened.
-                    // The control is painted natively by the WinApi/OS itself. Therefore also no event-based tricks
-                    // will solve the problem. I just added a short async wait delay instead, to keep things simple.
-                    // *(TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
-                    // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
-                    await Task.Delay(1250);
-                }
-                catch (Exception ex)
-                {
-                    if (ex is TaskCanceledException || ex is OperationCanceledException)
-                    {
-                        SetProgress(null, "Cancelled by user", null, null);
-                    }
-                    else
-                    {
-                        SetProgress(null, "Error occurred", null, null);
-                        ShowError(ex.Message);
-                    }
-
-                    return;
-                }
-                finally
-                {
-                    button.Content = "_Start";
-                    SetControls(true);
-                }
+                // Even with a typical semaphore-blocking-mechanism* it is impossible to prevent a WinForms/WPF
+                // ProgressBar control from reaching its maximum shortly after the last async progress happened.
+                // The control is painted natively by the WinApi/OS itself. Therefore also no event-based tricks
+                // will solve the problem. I just added a short async wait delay instead, to keep things simple.
+                // *(TAP concepts, when using IProgress<>, often need some semaphore-blocking-mechanism, because
+                // a scheduler can still produce async progress, even when Task.WhenAll() already has finished).
+                await Task.Delay(1250);
 
                 var seconds = Math.Round((double)(stopwatch.ElapsedMilliseconds + 1250) / 1000);
                 var rounded = Convert.ToUInt32(seconds);
@@ -231,6 +211,23 @@ namespace WOWCAM
                 var statusText = $"Successfully updated {updatedAddons} {addonOrAddons} in {rounded} seconds";
 
                 SetProgress(null, statusText, null, null);
+            }
+            catch (Exception ex)
+            {
+                if (ex is TaskCanceledException or OperationCanceledException)
+                {
+                    SetProgress(null, "Cancelled by user", null, null);
+                }
+                else
+                {
+                    SetProgress(null, "Error occurred", null, null);
+                    ShowError(ex.Message);
+                }
+            }
+            finally
+            {
+                button.Content = "_Start";
+                SetControls(true);
             }
         }
     }

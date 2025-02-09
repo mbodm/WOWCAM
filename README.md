@@ -1,6 +1,11 @@
 # WOWCAM
 A simple World of Warcraft addon manager for CurseForge addons
 
+🔥🔥🔥 Big news: WOWCAM is finally released! 🔥🔥🔥
+
+After nearly 1.5 years of development, and A LOT of crazy coding, i need to finally quote Walter (Breaking Bad):
+> All bad things must come to an end
+
 #### Under construction
 
 The new WOWCAM tool ("_**W**orld **o**f **W**arcraft **C**urse **A**ddon **M**anager_") evolves here...

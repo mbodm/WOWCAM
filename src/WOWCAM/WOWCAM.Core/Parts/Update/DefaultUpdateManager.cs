@@ -48,12 +48,16 @@ namespace WOWCAM.Core.Parts.Update
                     await FileSystemHelper.DeleteFolderContentAsync(updateFolder, cancellationToken).ConfigureAwait(false);
                 }
 
+                await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
+
                 var zipFilePath = Path.Combine(updateFolder, updateData.UpdateFileName);
                 await DownloadHelper.DownloadFileAsync(httpClient, updateData.UpdateDownloadUrl, zipFilePath, downloadProgress, cancellationToken).ConfigureAwait(false);
                 if (!File.Exists(zipFilePath))
                 {
                     throw new InvalidOperationException("Downloaded latest release, but update folder not contains zip file.");
                 }
+
+                await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
 
                 await UnzipHelper.ExtractZipFileAsync(zipFilePath, updateFolder, cancellationToken).ConfigureAwait(false);
                 var newExeFilePath = Path.Combine(updateFolder, appFileName);
@@ -69,7 +73,7 @@ namespace WOWCAM.Core.Parts.Update
             }
         }
 
-        public Task ApplyUpdateAsync(CancellationToken cancellationToken = default)
+        public async Task ApplyUpdateAsync(CancellationToken cancellationToken = default)
         {
             var installedVersion = GetInstalledVersion();
             var newExeFilePath = PrepareForUpdateAndReturnNewExeFilePath(installedVersion);
@@ -80,15 +84,16 @@ namespace WOWCAM.Core.Parts.Update
                 var bakFilePath = Path.ChangeExtension(exeFilePath, ".bak");
 
                 File.Move(exeFilePath, bakFilePath, true);
+                await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
+
                 File.Copy(newExeFilePath, exeFilePath, true);
+                await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
                 logger.Log(e);
                 throw new InvalidOperationException("Could not apply update (see log file for details).", e);
             }
-
-            return reliableFileOperations.WaitAsync(cancellationToken);
         }
 
         public void RestartApplication(uint delayInSeconds)
@@ -122,7 +127,7 @@ namespace WOWCAM.Core.Parts.Update
             }
         }
 
-        public Task RemoveBakFileIfExistsAsync(CancellationToken cancellationToken = default)
+        public async Task RemoveBakFileIfExistsAsync(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -132,6 +137,7 @@ namespace WOWCAM.Core.Parts.Update
                 if (File.Exists(bakFilePath))
                 {
                     File.Delete(bakFilePath);
+                    await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception e)
@@ -139,11 +145,9 @@ namespace WOWCAM.Core.Parts.Update
                 logger.Log(e);
                 throw new InvalidOperationException("Error while removing .bak file of application update (see log file for details).", e);
             }
-
-            return reliableFileOperations.WaitAsync(cancellationToken);
         }
 
-        public Version GetInstalledVersion()
+        private Version GetInstalledVersion()
         {
             try
             {

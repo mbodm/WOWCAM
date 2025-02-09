@@ -4,8 +4,7 @@ using WOWCAM.Helper;
 
 namespace WOWCAM.Core.Parts.Settings
 {
-    public sealed class DefaultAppSettings(
-        ILogger logger, IConfigStorage configStorage, IConfigReader configReader, IConfigValidator configValidator) : IAppSettings
+    public sealed class DefaultAppSettings(ILogger logger, IConfigStorage configStorage, IConfigReader configReader, IConfigValidator configValidator) : IAppSettings
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly IConfigStorage configStorage = configStorage ?? throw new ArgumentNullException(nameof(configStorage));

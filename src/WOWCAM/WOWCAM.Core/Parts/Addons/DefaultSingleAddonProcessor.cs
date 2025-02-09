@@ -56,7 +56,7 @@ namespace WOWCAM.Core.Parts.Addons
 
                 progress?.Report(new AddonProgress(AddonState.DownloadFinished, addonName, 100));
 
-                await smartUpdateFeature.AddOrUpdateAddonAsync(addonName, downloadUrl, zipFile, downloadFolder, cancellationToken);
+                await smartUpdateFeature.AddOrUpdateAddonAsync(addonName, downloadUrl, zipFile, cancellationToken);
             }
 
             // Extract zip file

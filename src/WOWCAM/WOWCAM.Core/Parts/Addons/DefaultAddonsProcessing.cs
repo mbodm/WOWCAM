@@ -25,46 +25,20 @@ namespace WOWCAM.Core.Parts.Addons
         {
             // Prepare folders
 
+            await PrepareFoldersAsync(cancellationToken).ConfigureAwait(false);
+
             var downloadFolder = appSettings.Data.AddonDownloadFolder;
-            if (Directory.Exists(downloadFolder))
-            {
-                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
-            }
-            else
-            {
-                Directory.CreateDirectory(downloadFolder);
-            }
+            var unzipFolder = appSettings.Data.AddonUnzipFolder;
+            var targetFolder = appSettings.Data.AddonTargetFolder;
+
+            // Pepare WebView
 
             var webView = webViewProvider.GetWebView();
             webView.Profile.DefaultDownloadFolderPath = downloadFolder;
 
-            var unzipFolder = appSettings.Data.AddonUnzipFolder;
-            if (Directory.Exists(unzipFolder))
-            {
-                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
-            }
-            else
-            {
-                Directory.CreateDirectory(unzipFolder);
-            }
-
-            var smartUpdateFolder = appSettings.Data.SmartUpdateFolder;
-            if (!Directory.Exists(smartUpdateFolder))
-            {
-                Directory.CreateDirectory(smartUpdateFolder);
-            }
-
-            // Just to make sure (target folder is already handled by config validation)
-
-            var targetFolder = appSettings.Data.AddonTargetFolder;
-            if (!Directory.Exists(targetFolder))
-            {
-                throw new InvalidOperationException("Configured target folder not exists.");
-            }
-
             // Load SmartUpdate data
 
-            await SmartUpdateLoadAsync(cancellationToken);
+            await SmartUpdateLoadAsync(cancellationToken).ConfigureAwait(false);
 
             // Process addons
 
@@ -82,21 +56,54 @@ namespace WOWCAM.Core.Parts.Addons
 
             // Save SmartUpdate data
 
-            await SmartUpdateSaveAsync(cancellationToken);
+            await SmartUpdateSaveAsync(cancellationToken).ConfigureAwait(false);
 
             // Move content and clean up
 
-            await MoveContentAsync(unzipFolder, targetFolder, cancellationToken);
-            await CleanUpAsync(downloadFolder, unzipFolder, cancellationToken);
+            await MoveContentAsync(unzipFolder, targetFolder, cancellationToken).ConfigureAwait(false);
+            await CleanUpAsync(downloadFolder, unzipFolder, cancellationToken).ConfigureAwait(false);
 
             return updatedAddons;
+        }
+
+        private async Task PrepareFoldersAsync(CancellationToken cancellationToken = default)
+        {
+            var downloadFolder = appSettings.Data.AddonDownloadFolder;
+            if (Directory.Exists(downloadFolder))
+            {
+                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                Directory.CreateDirectory(downloadFolder);
+            }
+
+            var unzipFolder = appSettings.Data.AddonUnzipFolder;
+            if (Directory.Exists(unzipFolder))
+            {
+                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                Directory.CreateDirectory(unzipFolder);
+            }
+
+            await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+            // Just to be sure (even when target folder was already handled by config validation)
+
+            var targetFolder = appSettings.Data.AddonTargetFolder;
+            if (!Directory.Exists(targetFolder))
+            {
+                throw new InvalidOperationException("Configured target folder not exists.");
+            }
         }
 
         private async Task SmartUpdateLoadAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                await smartUpdateFeature.LoadAsync(cancellationToken);
+                await smartUpdateFeature.LoadAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -110,7 +117,7 @@ namespace WOWCAM.Core.Parts.Addons
         {
             try
             {
-                await smartUpdateFeature.SaveAsync(cancellationToken);
+                await smartUpdateFeature.SaveAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -161,8 +168,8 @@ namespace WOWCAM.Core.Parts.Addons
 
             try
             {
-                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken);
-                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken);
+                await FileSystemHelper.DeleteFolderContentAsync(downloadFolder, cancellationToken).ConfigureAwait(false);
+                await FileSystemHelper.DeleteFolderContentAsync(unzipFolder, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {

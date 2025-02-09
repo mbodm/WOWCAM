@@ -5,10 +5,6 @@ using WOWCAM.Helper;
 
 namespace WOWCAM.Core.Parts.Addons
 {
-    // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
-    // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
-    // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
-
     public sealed class DefaultMultiAddonProcessor(ILogger logger, IAppSettings appSettings, ISingleAddonProcessor singleAddonProcessor) : IMultiAddonProcessor
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -19,6 +15,10 @@ namespace WOWCAM.Core.Parts.Addons
 
         public async Task<uint> ProcessAddonsAsync(IProgress<byte>? progress = default, CancellationToken cancellationToken = default)
         {
+            // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
+            // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
+            // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
+
             logger.LogMethodEntry();
 
             var addonUrls = appSettings.Data.AddonUrls;
@@ -50,13 +50,13 @@ namespace WOWCAM.Core.Parts.Addons
                             break;
                         case AddonState.DownloadFinished:
                             progressData[p.AddonName] = 200; // Just to make sure download is 100%
+                            Interlocked.Increment(ref updatedAddonsCounter);
                             break;
                         case AddonState.DownloadFinishedBySmartUpdate:
                             progressData[p.AddonName] = 200;
                             break;
                         case AddonState.UnzipFinished:
                             progressData[p.AddonName] = 300;
-                            Interlocked.Increment(ref updatedAddonsCounter);
                             break;
                     }
 

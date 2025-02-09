@@ -17,7 +17,7 @@ namespace WOWCAM
         private readonly IUpdateManager updateManager;
         private readonly IWebViewProvider webViewProvider;
         private readonly IWebViewWrapper webViewWrapper;
-        private readonly ISingleAddonProcessor addonsProcessing;
+        private readonly IAddonsProcessing addonsProcessing;
 
         public MainWindow(
             ILogger logger,
@@ -26,7 +26,7 @@ namespace WOWCAM
             IUpdateManager updateManager,
             IWebViewProvider webViewProvider,
             IWebViewWrapper webViewWrapper,
-            ISingleAddonProcessor addonsProcessing)
+            IAddonsProcessing addonsProcessing)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
             this.appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));

@@ -1,10 +1,12 @@
 ﻿using WOWCAM.Core.Parts.Logging;
+using WOWCAM.Core.Parts.System;
 
 namespace WOWCAM.Core.Parts.Config
 {
-    public sealed class XmlConfigStorage(ILogger logger) : IConfigStorage
+    public sealed class XmlConfigStorage(ILogger logger, IReliableFileOperations reliableFileOperations) : IConfigStorage
     {
         private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly IReliableFileOperations reliableFileOperations = reliableFileOperations ?? throw new ArgumentNullException(nameof(reliableFileOperations));
 
         private readonly string xmlFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MBODM", "WOWCAM.xml");
 
@@ -23,6 +25,7 @@ namespace WOWCAM.Core.Parts.Config
                 <wowcam>
                 	<general>
                 		<profile>retail</profile>
+                		<theme>system</theme>
                 		<temp>%TEMP%</temp>
                 	</general>
                 	<options>
@@ -48,11 +51,11 @@ namespace WOWCAM.Core.Parts.Config
             if (!Directory.Exists(configFolder))
             {
                 Directory.CreateDirectory(configFolder);
-                await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+                await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
 
             await File.WriteAllTextAsync(xmlFile, s, cancellationToken).ConfigureAwait(false);
-            await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+            await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
 
             logger.LogMethodExit();
         }

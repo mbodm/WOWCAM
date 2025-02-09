@@ -20,6 +20,10 @@ namespace WOWCAM.Core.Parts.Addons
         {
             logger.LogMethodEntry();
 
+            // It is better to check (and maybe create) the folders once at startup than checking them for every single addon knocking at the door
+
+            await CreateFolderStructureIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
+
             dict.Clear();
 
             var xmlFile = GetXmlFilePath();
@@ -122,7 +126,7 @@ namespace WOWCAM.Core.Parts.Addons
             return hasExactEntry && zipFileExists;
         }
 
-        public async Task AddOrUpdateAddonAsync(string addonName, string downloadUrl, string zipFile, CancellationToken cancellationToken = default)
+        public void AddOrUpdateAddon(string addonName, string downloadUrl, string zipFile)
         {
             if (string.IsNullOrWhiteSpace(addonName))
             {
@@ -150,16 +154,15 @@ namespace WOWCAM.Core.Parts.Addons
             var dictValue = new SmartUpdateData(addonName, downloadUrl, zipFile, timeStamp);
             dict.AddOrUpdate(addonName, dictValue, (_, _) => dictValue);
 
-            // Copy zip file
+            // Save zip file
 
-            await CreateFolderStructureIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
-            var sourcePath = Path.Combine(GetSourceFolderPath(), zipFile);
+            var sourcePath = Path.Combine(GetExternalFolderPath(), zipFile);
             var destPath = Path.Combine(GetZipFolderPath(), zipFile);
             File.Copy(sourcePath, destPath, true);
             // No need for some final IReliableFileOperations delay here (the zip files are independent copy operations in independent tasks and nothing immediately relies on them)
         }
 
-        public string GetZipFilePath(string addonName)
+        public void DeployZipFile(string addonName)
         {
             if (string.IsNullOrWhiteSpace(addonName))
             {
@@ -177,7 +180,10 @@ namespace WOWCAM.Core.Parts.Addons
                 throw new InvalidProgramException("SmartUpdate could not found an existing zip file for given addon name.");
             }
 
-            return zipFilePath;
+            var sourcePath = zipFilePath;
+            var destPath = Path.Combine(GetExternalFolderPath(), value.ZipFile);
+            File.Copy(sourcePath, destPath, true);
+            // No need for some final IReliableFileOperations delay here (the zip files are independent copy operations in independent tasks and nothing immediately relies on them)
         }
 
         private async Task CreateFolderStructureIfNotExistsAsync(CancellationToken cancellationToken = default)
@@ -200,6 +206,6 @@ namespace WOWCAM.Core.Parts.Addons
         private string GetRootFolderPath() => appSettings.Data.SmartUpdateFolder;
         private string GetZipFolderPath() => Path.Combine(GetRootFolderPath(), "LastDownloads");
         private string GetXmlFilePath() => Path.Combine(GetRootFolderPath(), "SmartUpdate.xml");
-        private string GetSourceFolderPath() => appSettings.Data.AddonDownloadFolder;
+        private string GetExternalFolderPath() => appSettings.Data.AddonDownloadFolder;
     }
 }

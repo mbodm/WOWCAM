@@ -24,20 +24,21 @@ namespace WOWCAM
             }
 
             var logger = new TextFileLogger();
-            var configStorage = new XmlConfigStorage(logger);
+            var reliableFileOperations = new DefaultReliableFileOperations();
+            var configStorage = new XmlConfigStorage(logger, reliableFileOperations);
             var configReader = new XmlConfigReader(logger, configStorage);
             var configValidator = new XmlConfigValidator(logger);
-            var reliableFileOperations = new DefaultReliableFileOperations();
-            var appSettings = new DefaultAppSettings(logger, configStorage, configReader, configValidator, reliableFileOperations);
+            var appSettings = new DefaultAppSettings(logger, configStorage, configReader, configValidator);
             var processStarter = new DefaultProcessStarter(logger);
-            var updateManager = new DefaultUpdateManager(logger, appSettings, httpClient);
+            var updateManager = new DefaultUpdateManager(logger, appSettings, reliableFileOperations, httpClient);
             var webViewProvider = new DefaultWebViewProvider();
             var webViewWrapper = new DefaultWebViewWrapper(logger, webViewProvider);
-            var smartUpdateFeature = new DefaultSmartUpdateFeature(logger, appSettings);
-            var addonProcessing = new DefaultSingleAddonProcessor(webViewWrapper, smartUpdateFeature);
-            var addonsProcessing = new DefaultAddonsProcessing(logger, configModule, addonProcessing, webViewProvider, smartUpdateFeature);
+            var smartUpdateFeature = new DefaultSmartUpdateFeature(logger, appSettings, reliableFileOperations);
+            var singleAddonProcessor = new DefaultSingleAddonProcessor(appSettings, webViewWrapper, smartUpdateFeature);
+            var multiAddonProcessor = new DefaultMultiAddonProcessor(logger, appSettings, singleAddonProcessor);
+            var addonsProcessing = new DefaultAddonsProcessing(logger, appSettings, webViewProvider, multiAddonProcessor, smartUpdateFeature, reliableFileOperations);
 
-            MainWindow = new MainWindow(logger, configModule, processStarter, updateManager, webViewProvider, webViewWrapper, addonsProcessing);
+            MainWindow = new MainWindow(logger, appSettings, processStarter, updateManager, webViewProvider, webViewWrapper, addonsProcessing);
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)

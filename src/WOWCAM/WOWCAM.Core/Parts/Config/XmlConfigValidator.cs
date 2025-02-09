@@ -19,6 +19,11 @@ namespace WOWCAM.Core.Parts.Config
 
             const int MaxPathLength = 240;
 
+            if (string.IsNullOrWhiteSpace(configData.Theme))
+            {
+                throw new ConfigValidationException("Config file contains no theme setting (not even the application's default fallback value of 'system' is there).");
+            }
+
             if (string.IsNullOrWhiteSpace(configData.TempFolder))
             {
                 throw new ConfigValidationException("Config file contains no temp folder (not even the application's default fallback value of %TEMP% is there).");

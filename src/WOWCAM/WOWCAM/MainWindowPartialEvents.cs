@@ -18,8 +18,8 @@ namespace WOWCAM
             try
             {
                 await updateManager.RemoveBakFileIfExistsAsync();
-                await configModule.LoadAsync();
-                await ConfigureWebViewAsync(configModule.AppSettings.WebViewUserDataFolder);
+                await appSettings.LoadAsync();
+                await ConfigureWebViewAsync(appSettings.Data.WebViewUserDataFolder);
                 webViewProvider.SetWebView(webView.CoreWebView2);
             }
             catch (Exception ex)
@@ -37,7 +37,7 @@ namespace WOWCAM
         {
             try
             {
-                processStarter.OpenFolderInExplorer(Path.GetDirectoryName(configModule.StorageInformation) ?? string.Empty);
+                processStarter.OpenFolderInExplorer(Path.GetDirectoryName(appSettings.ConfigStorageInformation) ?? string.Empty);
             }
             catch (Exception ex)
             {
@@ -132,7 +132,7 @@ namespace WOWCAM
                     contextMenu.Items.Add(itemLogFile);
 
                     var itemAddonsFolder = new MenuItem { Header = "Show addons folder", Icon = new TextBlock { Text = "  3" } };
-                    itemAddonsFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(configModule.AppSettings.AddonTargetFolder);
+                    itemAddonsFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(appSettings.Data.AddonTargetFolder);
                     contextMenu.Items.Add(itemAddonsFolder);
 
                     if (!webView.IsEnabled)
@@ -192,9 +192,7 @@ namespace WOWCAM
                 try
                 {
                     stopwatch.Start();
-                    updatedAddons = await addonsProcessing.ProcessAddonsAsync(
-                        configModule.AppSettings.AddonUrls, configModule.AppSettings.AddonTargetFolder, configModule.AppSettings.WorkFolder,
-                        new Progress<byte>(p => progressBar.Value = p), cts.Token);
+                    updatedAddons = await addonsProcessing.ProcessAddonsAsync(new Progress<byte>(p => progressBar.Value = p), cts.Token);
                     stopwatch.Stop();
 
                     SetProgress(null, "Clean up ...", null, null);

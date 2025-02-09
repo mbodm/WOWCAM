@@ -23,9 +23,13 @@ namespace WOWCAM.Core.Parts.Addons
 
         public async Task<uint> ProcessAddonsAsync(IProgress<byte>? progress = null, CancellationToken cancellationToken = default)
         {
+            // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
+            // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
+            // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
+
             // Prepare folders
 
-            await PrepareFoldersAsync(cancellationToken).ConfigureAwait(false);
+            await PrepareFoldersAsync(cancellationToken);
 
             var downloadFolder = appSettings.Data.AddonDownloadFolder;
             var unzipFolder = appSettings.Data.AddonUnzipFolder;
@@ -38,14 +42,14 @@ namespace WOWCAM.Core.Parts.Addons
 
             // Load SmartUpdate data
 
-            await SmartUpdateLoadAsync(cancellationToken).ConfigureAwait(false);
+            await SmartUpdateLoadAsync(cancellationToken);
 
             // Process addons
 
             uint updatedAddons;
             try
             {
-                updatedAddons = await multiAddonProcessor.ProcessAddonsAsync(progress, cancellationToken).ConfigureAwait(false);
+                updatedAddons = await multiAddonProcessor.ProcessAddonsAsync(progress, cancellationToken);
             }
             catch (Exception e)
             {
@@ -56,12 +60,12 @@ namespace WOWCAM.Core.Parts.Addons
 
             // Save SmartUpdate data
 
-            await SmartUpdateSaveAsync(cancellationToken).ConfigureAwait(false);
+            await SmartUpdateSaveAsync(cancellationToken);
 
             // Move content and clean up
 
-            await MoveContentAsync(unzipFolder, targetFolder, cancellationToken).ConfigureAwait(false);
-            await CleanUpAsync(downloadFolder, unzipFolder, cancellationToken).ConfigureAwait(false);
+            await MoveContentAsync(unzipFolder, targetFolder, cancellationToken);
+            await CleanUpAsync(downloadFolder, unzipFolder, cancellationToken);
 
             return updatedAddons;
         }

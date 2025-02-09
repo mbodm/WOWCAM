@@ -23,6 +23,7 @@ namespace WOWCAM.Core.Parts.Config
 
             var result = new ConfigData(
                 ActiveProfile: activeProfile,
+                Theme: GetTheme(doc),
                 TempFolder: GetTempFolder(doc),
                 ActiveOptions: GetActiveOptions(doc),
                 TargetFolder: GetTargetFolder(doc, activeProfile),
@@ -75,6 +76,14 @@ namespace WOWCAM.Core.Parts.Config
             }
         }
 
+        private static string GetTheme(XDocument doc)
+        {
+            // No <theme> not means error since it's not a must-have setting (a fallback value is used if <theme> not exists)
+            var result = doc.Root?.Element("general")?.Element("theme")?.Value?.Trim() ?? "system";
+
+            return result;
+        }
+
         private static string GetTempFolder(XDocument doc)
         {
             // No <temp> not means error since it's not a must-have setting (a fallback value is used if <temp> not exists)
@@ -107,7 +116,7 @@ namespace WOWCAM.Core.Parts.Config
                 }
             }
 
-            return result;
+            return result.AsEnumerable();
         }
 
         private static string GetTargetFolder(XDocument doc, string profile)

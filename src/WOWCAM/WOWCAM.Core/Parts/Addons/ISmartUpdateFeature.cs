@@ -5,7 +5,7 @@
         Task LoadAsync(CancellationToken cancellationToken = default);
         Task SaveAsync(CancellationToken cancellationToken = default);
         bool AddonExists(string addonName, string downloadUrl, string zipFile);
-        Task AddOrUpdateAddonAsync(string addonName, string downloadUrl, string zipFile, CancellationToken cancellationToken = default);
-        string GetZipFilePath(string addonName);
+        void AddOrUpdateAddon(string addonName, string downloadUrl, string zipFile);
+        void DeployZipFile(string addonName);
     }
 }

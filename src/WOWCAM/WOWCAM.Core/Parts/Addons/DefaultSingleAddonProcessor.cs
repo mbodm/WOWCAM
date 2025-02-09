@@ -4,10 +4,6 @@ using WOWCAM.Helper;
 
 namespace WOWCAM.Core.Parts.Addons
 {
-    // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
-    // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
-    // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
-
     public sealed class DefaultSingleAddonProcessor(IAppSettings appSettings, IWebViewWrapper webViewWrapper, ISmartUpdateFeature smartUpdateFeature) : ISingleAddonProcessor
     {
         private readonly IAppSettings appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
@@ -16,6 +12,10 @@ namespace WOWCAM.Core.Parts.Addons
 
         public async Task ProcessAddonAsync(string addonPageUrl, IProgress<AddonProgress>? progress = default, CancellationToken cancellationToken = default)
         {
+            // No ".ConfigureAwait(false)" here, cause otherwise the wrapped WebView's scheduler is not the correct one.
+            // In general, the Microsoft WebView2 has to use the UI thread scheduler as its scheduler, to work properly.
+            // Remember: This is also true for "ContinueWith()" blocks aka "code after await", even when it is a helper.
+
             var addonName = CurseHelper.GetAddonSlugNameFromAddonPageUrl(addonPageUrl);
             var downloadFolder = appSettings.Data.AddonDownloadFolder;
             var unzipFolder = appSettings.Data.AddonUnzipFolder;
@@ -39,7 +39,7 @@ namespace WOWCAM.Core.Parts.Addons
             {
                 // Copy zip file
 
-                File.Copy(smartUpdateFeature.GetZipFilePath(addonName), downloadFolder, true);
+                smartUpdateFeature.DeployZipFile(addonName);
 
                 progress?.Report(new AddonProgress(AddonState.DownloadFinishedBySmartUpdate, addonName, 100));
             }
@@ -56,7 +56,7 @@ namespace WOWCAM.Core.Parts.Addons
 
                 progress?.Report(new AddonProgress(AddonState.DownloadFinished, addonName, 100));
 
-                await smartUpdateFeature.AddOrUpdateAddonAsync(addonName, downloadUrl, zipFile, cancellationToken);
+                smartUpdateFeature.AddOrUpdateAddon(addonName, downloadUrl, zipFile);
             }
 
             // Extract zip file

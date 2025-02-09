@@ -27,10 +27,16 @@ namespace WOWCAM.Core.Parts.WebView
             // Therefore a semaphore is used to make sure "navigating to page" runs atomic, to prevent any concurrent navigation.
             // You may ask "why even bother with TAP then, instead of sync stuff?" and you will find the answer in below methods.
 
-            await semaphore.WaitAsync(cancellationToken);
             logger.Log("Navigate to page URL.");
-            await NonConcurrentNavigateAsync(pageUrl, false, cancellationToken);
-            semaphore.Release();
+            await semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                await NonConcurrentNavigateAsync(pageUrl, false, cancellationToken);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
 
         public async Task<string> NavigateToPageAndExecuteJavaScriptAsync(string pageUrl, string javaScript, CancellationToken cancellationToken = default)
@@ -52,11 +58,18 @@ namespace WOWCAM.Core.Parts.WebView
             // This means: A simple "encapsulate WebView2 EAP into TAP" approach is not enough, to handle the design of WebView2.
             // Therefore a semaphore is used to make sure the whole "navigating to page and executing the JavaScript" runs atomic.
 
-            await semaphore.WaitAsync(cancellationToken);
             logger.Log("Navigate to page URL and execute JavaScript code.");
-            await NonConcurrentNavigateAsync(pageUrl, false, cancellationToken);
-            var jsonAsBase64 = await ExecuteJavaScriptAsync(javaScript);
-            semaphore.Release();
+            string jsonAsBase64;
+            await semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                await NonConcurrentNavigateAsync(pageUrl, false, cancellationToken);
+                jsonAsBase64 = await ExecuteJavaScriptAsync(javaScript);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
 
             var bytes = Convert.FromBase64String(jsonAsBase64);
             var json = Encoding.UTF8.GetString(bytes);
@@ -79,10 +92,17 @@ namespace WOWCAM.Core.Parts.WebView
             // Therefore a semaphore is used to first run an atomic navigation, till download starts (which can run concurrently).
             // The key concept is "navigate sequentially while download concurrently" to get useful TAP handling out of WebView2.
 
-            await semaphore.WaitAsync(cancellationToken);
             logger.Log("Navigate to download URL and start asynchronous download.");
-            var downloadOperation = await NonConcurrentNavigateAsync(downloadUrl, true, cancellationToken);
-            semaphore.Release();
+            CoreWebView2DownloadOperation? downloadOperation;
+            await semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                downloadOperation = await NonConcurrentNavigateAsync(downloadUrl, true, cancellationToken);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
 
             if (downloadOperation == null)
             {

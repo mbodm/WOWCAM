@@ -88,6 +88,9 @@ namespace WOWCAM.Core.Parts.Update
 
                 File.Copy(newExeFilePath, exeFilePath, true);
                 await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                await FileSystemHelper.DeleteFolderContentAsync(GetUpdateFolder(), cancellationToken).ConfigureAwait(false);
+                await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {

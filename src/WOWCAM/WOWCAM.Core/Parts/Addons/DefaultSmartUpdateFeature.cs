@@ -38,7 +38,7 @@ namespace WOWCAM.Core.Parts.Addons
             catch (Exception e)
             {
                 logger.Log(e);
-                throw new InvalidOperationException("Error while loading SmartUpdate file: The file is either empty or not a valid XML file.");
+                throw new InvalidOperationException("Error while loading SmartUpdate file: The file is either empty or not a valid XML file.", e);
             }
 
             var root = doc.Element("wowcam") ?? throw new InvalidOperationException("Error in SmartUpdate file: The <wowcam> root element not exists.");
@@ -60,7 +60,10 @@ namespace WOWCAM.Core.Parts.Addons
                     throw new InvalidOperationException("Error in SmartUpdate file: The <smartupdate> section contains one or more invalid entries.");
                 }
 
-                dict.TryAdd(addonName, new SmartUpdateData(addonName, lastDownloadUrl, lastZipFile, changedAt));
+                if (!dict.TryAdd(addonName, new SmartUpdateData(addonName, lastDownloadUrl, lastZipFile, changedAt)))
+                {
+                    throw new InvalidOperationException("Error in SmartUpdate file: The <smartupdate> section contains multiple entries for the same addon.");
+                }
             }
 
             logger.LogMethodExit();
@@ -78,7 +81,7 @@ namespace WOWCAM.Core.Parts.Addons
 
             var doc = new XDocument(new XElement("wowcam", new XElement("smartupdate", entries)));
 
-            CreateFolderStructureIfNotExists();
+            await CreateFolderStructureIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
 
             var xmlFile = GetXmlFilePath();
             using var fileStream = new FileStream(xmlFile, FileMode.Create, FileAccess.Write, FileShare.Read);
@@ -113,13 +116,13 @@ namespace WOWCAM.Core.Parts.Addons
                 return false;
             }
 
-            var hasExactEntry = value.DownloadUrl == downloadUrl && value.ZipFile == zipFile;
+            var hasExactEntry = value.AddonName == addonName && value.DownloadUrl == downloadUrl && value.ZipFile == zipFile;
             var zipFileExists = File.Exists(Path.Combine(GetZipFolderPath(), zipFile));
 
             return hasExactEntry && zipFileExists;
         }
 
-        public void AddOrUpdateAddonAsync(string addonName, string downloadUrl, string zipFile)
+        public async Task AddOrUpdateAddonAsync(string addonName, string downloadUrl, string zipFile, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(addonName))
             {
@@ -149,12 +152,11 @@ namespace WOWCAM.Core.Parts.Addons
 
             // Copy zip file
 
-            CreateFolderStructureIfNotExists();
+            await CreateFolderStructureIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
             var sourcePath = Path.Combine(GetSourceFolderPath(), zipFile);
             var destPath = Path.Combine(GetZipFolderPath(), zipFile);
             File.Copy(sourcePath, destPath, true);
-
-            // There is no need for some final IReliableFileOperations delay here (since the zip files are independent copy operations in independent tasks)
+            // No need for some final IReliableFileOperations delay here (the zip files are independent copy operations in independent tasks and nothing immediately relies on them)
         }
 
         public string GetZipFilePath(string addonName)
@@ -178,18 +180,20 @@ namespace WOWCAM.Core.Parts.Addons
             return zipFilePath;
         }
 
-        private void CreateFolderStructureIfNotExists()
+        private async Task CreateFolderStructureIfNotExistsAsync(CancellationToken cancellationToken = default)
         {
             var rootFolder = GetRootFolderPath();
             if (!Directory.Exists(rootFolder))
             {
                 Directory.CreateDirectory(rootFolder);
+                await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
 
             var zipFolder = GetZipFolderPath();
             if (!Directory.Exists(zipFolder))
             {
                 Directory.CreateDirectory(zipFolder);
+                await reliableFileOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
         }
 

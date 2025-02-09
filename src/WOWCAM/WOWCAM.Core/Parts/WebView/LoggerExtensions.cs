@@ -9,13 +9,13 @@ namespace WOWCAM.Core.Parts.WebView
         {
             logger.Log(CreateLogLines("NavigationStarting",
             [
-                $"{nameof(sender)}          = {sender}",
-                $"{nameof(e)}               = {e}",
-                $"{nameof(e.IsRedirected)}    = {e.IsRedirected}",
-                $"{nameof(e.IsUserInitiated)} = {e.IsUserInitiated}",
-                $"{nameof(e.NavigationId)}    = {e.NavigationId}",
-                $"{nameof(e.NavigationKind)}  = {e.NavigationKind}",
-                $"{nameof(e.Uri)}             = \"{e.Uri}\""
+                $"sender          = {sender}",
+                $"e               = {e}",
+                $"IsRedirected    = {e.IsRedirected}",
+                $"IsUserInitiated = {e.IsUserInitiated}",
+                $"NavigationId    = {e.NavigationId}",
+                $"NavigationKind  = {e.NavigationKind}",
+                $"Uri             = \"{e.Uri}\""
             ]));
         }
 
@@ -23,12 +23,12 @@ namespace WOWCAM.Core.Parts.WebView
         {
             logger.Log(CreateLogLines("NavigationCompleted",
             [
-                $"{nameof(sender)}         = {sender}",
-                $"{nameof(e)}              = {e}",
-                $"{nameof(e.HttpStatusCode)} = {e.HttpStatusCode}",
-                $"{nameof(e.IsSuccess)}      = {e.IsSuccess}",
-                $"{nameof(e.NavigationId)}   = {e.NavigationId}",
-                $"{nameof(e.WebErrorStatus)} = {e.WebErrorStatus}"
+                $"sender         = {sender}",
+                $"e              = {e}",
+                $"HttpStatusCode = {e.HttpStatusCode}",
+                $"IsSuccess      = {e.IsSuccess}",
+                $"NavigationId   = {e.NavigationId}",
+                $"WebErrorStatus = {e.WebErrorStatus}"
             ]));
         }
 
@@ -36,11 +36,11 @@ namespace WOWCAM.Core.Parts.WebView
         {
             logger.Log(CreateLogLines("DownloadStarting",
             [
-                $"{nameof(sender)}                                = {sender}",
-                $"{nameof(e)}                                     = {e}",
-                $"{nameof(e.DownloadOperation.ResultFilePath)}      = \"{e.DownloadOperation.ResultFilePath}\"",
-                $"{nameof(e.DownloadOperation.TotalBytesToReceive)} = {e.DownloadOperation.TotalBytesToReceive}",
-                $"{nameof(e.DownloadOperation.Uri)}                 = \"{e.DownloadOperation.Uri}\""
+                $"sender              = {sender}",
+                $"e                   = {e}",
+                $"ResultFilePath      = \"{e.DownloadOperation.ResultFilePath}\"",
+                $"TotalBytesToReceive = {e.DownloadOperation.TotalBytesToReceive}",
+                $"Uri                 = \"{e.DownloadOperation.Uri}\""
             ]));
         }
 
@@ -50,22 +50,22 @@ namespace WOWCAM.Core.Parts.WebView
             {
                 logger.Log(CreateLogLines("StateChanged",
                 [
-                    $"{nameof(sender)}                              = {sender}",
-                    $"{nameof(e)}                                   = {e}",
-                    $"{nameof(downloadOperation.BytesReceived)}       = {downloadOperation.BytesReceived}",
-                    $"{nameof(downloadOperation.InterruptReason)}     = {downloadOperation.InterruptReason}",
-                    $"{nameof(downloadOperation.ResultFilePath)}      = \"{downloadOperation.ResultFilePath}\"",
-                    $"{nameof(downloadOperation.State)}               = {downloadOperation.State}",
-                    $"{nameof(downloadOperation.TotalBytesToReceive)} = {downloadOperation.TotalBytesToReceive}",
-                    $"{nameof(downloadOperation.Uri)}                 = \"{downloadOperation.Uri}\""
+                    $"sender              = {sender}",
+                    $"e                   = {e}",
+                    $"BytesReceived       = {downloadOperation.BytesReceived}",
+                    $"InterruptReason     = {downloadOperation.InterruptReason}",
+                    $"ResultFilePath      = \"{downloadOperation.ResultFilePath}\"",
+                    $"State               = {downloadOperation.State}",
+                    $"TotalBytesToReceive = {downloadOperation.TotalBytesToReceive}",
+                    $"Uri                 = \"{downloadOperation.Uri}\""
                 ]));
             }
             else
             {
                 logger.Log(CreateLogLines("StateChanged",
                 [
-                    $"{nameof(sender)} = {sender}",
-                    $"{nameof(e)}      = {e}",
+                    $"sender = {sender}",
+                    $"e      = {e}",
                 ]));
             }
         }

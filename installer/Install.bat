@@ -4,7 +4,7 @@ set CURRENT_FOLDER=%cd%
 set INSTALL_FOLDER=%LocalAppData%\Programs\WOWCAM
 
 cls
-echo. && echo WOWCAM Install 1.0.0 (by MBODM 01/2025) && echo.
+echo. && echo WOWCAM Install 1.0.1 (by MBODM 02/2025) && echo.
 echo - This batch script just copies the executable file to user's local programs directory
 echo - This batch script does nothing else (therefore 'Install' is somewhat misleading here)
 echo.

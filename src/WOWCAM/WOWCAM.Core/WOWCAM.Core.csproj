@@ -7,9 +7,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Parts\Modules\**" />
-	  <EmbeddedResource Remove="Parts\Modules\**" />
-	  <None Remove="Parts\Modules\**" />
+		<Compile Remove="Parts\Modules\**" />
+		<EmbeddedResource Remove="Parts\Modules\**" />
+		<None Remove="Parts\Modules\**" />
 	</ItemGroup>
 
 	<ItemGroup>

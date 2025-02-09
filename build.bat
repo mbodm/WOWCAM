@@ -6,7 +6,7 @@ set PROJECT_FOLDER=%CURRENT_FOLDER%\src\WOWCAM\WOWCAM
 set PUBLISH_FOLDER=%PROJECT_FOLDER%\bin\Release\net8.0-windows\win-x64\publish
 
 cls
-echo. && echo WOWCAM build script 1.0.4 (by MBODM 01/2025) && echo.
+echo. && echo WOWCAM build script 1.0.5 (by MBODM 02/2025) && echo.
 echo Will perform the following 5 steps now: && echo.
 echo 1) dotnet clean && echo 2) dotnet build && echo 3) dotnet publish
 echo 4) copy executable && echo 5) copy installer && echo.

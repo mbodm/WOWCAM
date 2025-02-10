@@ -3,7 +3,7 @@ A simple World of Warcraft addon manager for CurseForge addons
 
 🔥🔥🔥 Breaking News: WOWCAM has finally released! 🔥🔥🔥
 
-After nearly 1.5 years of development (and a LOT of crazy coding), i can finally say:
+After nearly 1.5 years of development (and a LOT of crazy coding), i can finally use this quote:
 
 _"All bad things must come to an end!"_
 

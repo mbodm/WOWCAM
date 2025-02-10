@@ -1,7 +1,7 @@
 # WOWCAM
 A simple World of Warcraft addon manager for CurseForge addons
 
-🔥🔥🔥 Big news: WOWCAM has finally released! 🔥🔥🔥
+🔥🔥🔥 Breaking news: WOWCAM has finally released! 🔥🔥🔥
 
 After nearly 1.5 years of development, and A LOT of crazy coding, same as in _Breaking Bad_, i can finally say:
 

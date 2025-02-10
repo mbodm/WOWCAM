@@ -42,6 +42,9 @@ namespace WOWCAM
             MinHeight = Height;
             Title = $"WOWCAM {AppHelper.GetApplicationVersion()}";
 
+            textBlockConfigFolder.Visibility = Visibility.Hidden;
+            textBlockCheckUpdates.Visibility = Visibility.Hidden;
+
             SetProgress(false, string.Empty, 0, 100);
             SetControls(false);
         }

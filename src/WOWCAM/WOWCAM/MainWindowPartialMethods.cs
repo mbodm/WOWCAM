@@ -52,7 +52,8 @@ namespace WOWCAM
 
         private void SetControls(bool enabled)
         {
-            Setlinks(enabled);
+            SetLink(0, enabled);
+            SetLink(1, enabled);
             SetProgress(enabled, null, null, null);
             button.IsEnabled = enabled;
         }
@@ -76,24 +77,37 @@ namespace WOWCAM
             border.Visibility = Visibility.Visible;
         }
 
-        private void Setlinks(bool enabled, uint target = 2)
+        private void SetLink(uint target, bool enabled)
         {
             // target == 0 -> config folder link
             // target == 1 -> check updates link
-            // target == 2 -> both links
 
-            if (target == 0 || target == 2)
+            if (target == 0 && linksPanel.Children.Contains(textBlockConfigFolder))
             {
-                //textBlockConfigFolder.IsEnabled = enabled;
                 hyperlinkConfigFolder.IsEnabled = enabled;
                 DisableHyperlinkHoverEffect(hyperlinkConfigFolder);
             }
 
-            if (target == 1 || target == 2)
+            if (target == 1 && linksPanel.Children.Contains(textBlockCheckUpdates))
             {
-                //textBlockCheckUpdates.IsEnabled = enabled;
                 hyperlinkCheckUpdates.IsEnabled = enabled;
                 DisableHyperlinkHoverEffect(hyperlinkCheckUpdates);
+            }
+        }
+
+        private void RemoveLink(uint target)
+        {
+            // target == 0 -> config folder link
+            // target == 1 -> check updates link
+
+            if (target == 0 && linksPanel.Children.Contains(textBlockConfigFolder))
+            {
+                linksPanel.Children.Remove(textBlockConfigFolder);
+            }
+
+            if (target == 1 && linksPanel.Children.Contains(textBlockCheckUpdates))
+            {
+                linksPanel.Children.Remove(textBlockCheckUpdates);
             }
         }
 

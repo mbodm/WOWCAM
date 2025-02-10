@@ -10,7 +10,7 @@
         <ContextMenu x:Key="keyContextMenu" />
     </Window.Resources>
     <DockPanel LastChildFill="True" Margin="10">
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Right">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" HorizontalAlignment="Right" Name="linksPanel">
             <TextBlock Name="textBlockConfigFolder">
                 <Hyperlink TextDecorations="None" Name="hyperlinkConfigFolder" Click="HyperlinkConfigFolder_Click">Show config folder</Hyperlink>
             </TextBlock>

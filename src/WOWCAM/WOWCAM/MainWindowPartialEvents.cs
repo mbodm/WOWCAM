@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using WOWCAM.Helper;
 
@@ -28,9 +29,25 @@ namespace WOWCAM
                 return;
             }
 
+            if (appSettings.Data.Options.Contains("autoupdate"))
+            {
+                RemoveLink(1);
+                textBlockConfigFolder.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                textBlockCheckUpdates.Visibility = Visibility.Visible;
+                textBlockConfigFolder.Visibility = Visibility.Visible;
+            }
+
             SetControls(true);
             button.TabIndex = 0;
             button.Focus();
+
+            if (appSettings.Data.Options.Contains("autoupdate"))
+            {
+                hyperlinkCheckUpdates.RaiseEvent(new RoutedEventArgs(Hyperlink.ClickEvent));
+            }
         }
 
         private void HyperlinkConfigFolder_Click(object sender, RoutedEventArgs e)
@@ -55,7 +72,11 @@ namespace WOWCAM
                 var updateData = await updateManager.CheckForUpdateAsync();
                 if (!updateData.UpdateAvailable)
                 {
-                    ShowInfo("You already have the latest WOWCAM version.");
+                    if (!appSettings.Data.Options.Contains("autoupdate"))
+                    {
+                        ShowInfo("You already have the latest WOWCAM version.");
+                    }
+
                     return;
                 }
 

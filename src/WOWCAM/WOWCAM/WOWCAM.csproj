@@ -26,7 +26,7 @@
 		<SelfContained>true</SelfContained>
 		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<!-- The following tag is required nowadays to prevent Version from additionally containing the SourceRevisionId. -->
 		<!-- For some background information about Version and SourceRevisionId in newer projects, please have a look at: -->
 		<!-- https://stackoverflow.com/questions/77514501/visual-studio-2022-v17-8-appends-string-to-dll-product-version-and-assemblyinfor -->

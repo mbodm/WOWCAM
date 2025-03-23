@@ -136,6 +136,9 @@ namespace WOWCAM.Core.Parts.WebView
 
                 if (sender is CoreWebView2 webView)
                 {
+                    // It's totally fine to remove the handlers here for everyone, regardless of "download" or not.
+                    // Cause the "NavigationCompleted" event occurs only once at the end, independent of redirects.
+
                     webView.NavigationStarting -= NavigationStartingEventHandler;
                     webView.NavigationCompleted -= NavigationCompletedEventHandler;
 

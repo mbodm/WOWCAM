@@ -1,6 +1,6 @@
 ﻿using WOWCAM.Core.Parts.Config;
 using WOWCAM.Core.Parts.Logging;
-using WOWCAM.Helper;
+using WOWCAM.Helper.Parts;
 
 namespace WOWCAM.Core.Parts.Settings
 {

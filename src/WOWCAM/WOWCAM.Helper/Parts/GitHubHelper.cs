@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace WOWCAM.Helper
+namespace WOWCAM.Helper.Parts
 {
     public sealed class GitHubHelper
     {

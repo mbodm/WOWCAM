@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace WOWCAM.Helper
+namespace WOWCAM.Helper.Parts
 {
     public sealed class AppHelper
     {

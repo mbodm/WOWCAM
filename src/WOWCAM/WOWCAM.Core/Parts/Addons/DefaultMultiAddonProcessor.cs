@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using WOWCAM.Core.Parts.Logging;
 using WOWCAM.Core.Parts.Settings;
-using WOWCAM.Helper;
+using WOWCAM.Helper.Parts;
 
 namespace WOWCAM.Core.Parts.Addons
 {

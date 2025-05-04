@@ -5,7 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
-using WOWCAM.Helper;
+using WOWCAM.Helper.Parts;
 
 namespace WOWCAM
 {

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
-using WOWCAM.Helper;
+using WOWCAM.Helper.Parts;
 
 namespace WOWCAM.Core.Parts.Logging
 {

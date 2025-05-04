@@ -1,4 +1,4 @@
-﻿using WOWCAM.Helper;
+﻿using WOWCAM.Helper.Parts;
 
 namespace WOWCAM.Core.Parts.Update
 {

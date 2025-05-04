@@ -1,6 +1,6 @@
 ﻿using System.IO.Compression;
 
-namespace WOWCAM.Helper
+namespace WOWCAM.Helper.Parts
 {
     public sealed class UnzipHelper
     {

@@ -2,7 +2,7 @@
 using WOWCAM.Core.Parts.Settings;
 using WOWCAM.Core.Parts.System;
 using WOWCAM.Core.Parts.WebView;
-using WOWCAM.Helper;
+using WOWCAM.Helper.Parts;
 
 namespace WOWCAM.Core.Parts.Addons
 {

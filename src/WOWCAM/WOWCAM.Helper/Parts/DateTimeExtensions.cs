@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 
-namespace WOWCAM.Helper
+namespace WOWCAM.Helper.Parts
 {
     public static class DateTimeExtensions
     {

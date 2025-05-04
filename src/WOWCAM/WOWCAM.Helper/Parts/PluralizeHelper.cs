@@ -1,4 +1,4 @@
-﻿namespace WOWCAM.Helper
+﻿namespace WOWCAM.Helper.Parts
 {
     public sealed class PluralizeHelper
     {

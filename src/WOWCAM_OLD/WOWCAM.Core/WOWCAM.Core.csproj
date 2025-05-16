@@ -7,13 +7,17 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3240.44" />
+		<Compile Remove="Parts\Modules\**" />
+		<EmbeddedResource Remove="Parts\Modules\**" />
+		<None Remove="Parts\Modules\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\WOWCAM.Helper\WOWCAM.Helper.csproj" />
-		<ProjectReference Include="..\WOWCAM.Logging\WOWCAM.Logging.csproj" />
-		<ProjectReference Include="..\WOWCAM.WebView\WOWCAM.WebView.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -1,13 +1,12 @@
-﻿using System.IO;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Documents;
-using WOWCAM.WebView;
+using WOWCAM.Core.Parts.WebView;
 
 namespace WOWCAM
 {
     public partial class MainWindow : Window
     {
-        private async Task ConfigureWebViewAsync()
+        private async Task ConfigureWebViewAsync(string webViewUserDataFolder)
         {
             // The "CoreWebView2InitializationCompleted" event will be invoked BY the "EnsureCoreWebView2Async()" method and BEFORE its task returns.
             // The MSDN documentation just says "invoked", but does not state if the task does also wait until the event handler has finished or not.
@@ -40,8 +39,7 @@ namespace WOWCAM
 
             try
             {
-                var userDataFolder = Path.Combine(settingsModule.SettingsData.TempFolder, "WebView2-UDF");
-                var environment = await WebViewEnvironment.CreateAsync(userDataFolder);
+                var environment = await WebViewEnvironment.CreateAsync(webViewUserDataFolder);
                 await webView.EnsureCoreWebView2Async(environment);
                 await tcs.Task;
             }

@@ -5,8 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
-using WOWCAM.Helper.Parts.Application;
-using WOWCAM.Helper.Parts.Download;
+using WOWCAM.Helper.Parts;
 
 namespace WOWCAM
 {
@@ -19,8 +18,10 @@ namespace WOWCAM
 
             try
             {
-                await updateModule.RemoveBakFileIfExistsAsync();
-                await settingsModule.LoadAsync();
+                await updateManager.RemoveBakFileIfExistsAsync();
+                await appSettings.LoadAsync();
+                await ConfigureWebViewAsync(appSettings.Data.WebViewUserDataFolder);
+                webViewProvider.SetWebView(webView.CoreWebView2);
             }
             catch (Exception ex)
             {
@@ -28,7 +29,7 @@ namespace WOWCAM
                 return;
             }
 
-            if (settingsModule.SettingsData.Options.Contains("autoupdate"))
+            if (appSettings.Data.Options.Contains("autoupdate"))
             {
                 RemoveLink(1);
                 textBlockConfigFolder.Visibility = Visibility.Visible;
@@ -43,19 +44,9 @@ namespace WOWCAM
             button.TabIndex = 0;
             button.Focus();
 
-            if (settingsModule.SettingsData.Options.Contains("autoupdate"))
+            if (appSettings.Data.Options.Contains("autoupdate"))
             {
                 hyperlinkCheckUpdates.RaiseEvent(new RoutedEventArgs(Hyperlink.ClickEvent));
-            }
-
-            try
-            {
-                await ConfigureWebViewAsync();
-                addonsModule.SetWebView(webView.CoreWebView2);
-            }
-            catch (Exception ex)
-            {
-                ShowError(ex.Message);
             }
         }
 
@@ -63,7 +54,7 @@ namespace WOWCAM
         {
             try
             {
-                systemModule.OpenFolderInExplorer(Path.GetDirectoryName(settingsModule.StorageInformation) ?? string.Empty);
+                processStarter.OpenFolderInExplorer(Path.GetDirectoryName(appSettings.ConfigStorageInformation) ?? string.Empty);
             }
             catch (Exception ex)
             {
@@ -78,10 +69,10 @@ namespace WOWCAM
                 SetControls(false);
                 SetProgress(true, null, null, null);
 
-                var updateData = await updateModule.CheckForUpdateAsync();
+                var updateData = await updateManager.CheckForUpdateAsync();
                 if (!updateData.UpdateAvailable)
                 {
-                    if (!settingsModule.SettingsData.Options.Contains("autoupdate"))
+                    if (!appSettings.Data.Options.Contains("autoupdate"))
                     {
                         ShowInfo("You already have the latest WOWCAM version.");
                     }
@@ -105,7 +96,7 @@ namespace WOWCAM
                 }
 
                 SetProgress(null, "Downloading application update", 0, null);
-                await updateModule.DownloadUpdateAsync(updateData, new Progress<DownloadProgress>(p =>
+                await updateManager.DownloadUpdateAsync(updateData, new Progress<DownloadProgress>(p =>
                 {
                     var receivedMB = ((double)p.ReceivedBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
                     var totalMB = ((double)p.TotalBytes / 1024 / 1024).ToString("0.00", CultureInfo.InvariantCulture);
@@ -130,7 +121,8 @@ namespace WOWCAM
                     return;
                 }
 
-                await updateModule.ApplyUpdateAndRestartApplicationAsync();
+                await updateManager.ApplyUpdateAsync();
+                updateManager.RestartApplication(2);
                 Application.Current.Shutdown();
             }
             catch (Exception ex)
@@ -153,15 +145,15 @@ namespace WOWCAM
                     contextMenu.Items.Clear();
 
                     var itemProgramFolder = new MenuItem { Header = "Show program folder", Icon = new TextBlock { Text = "  1" } };
-                    itemProgramFolder.Click += (s, e) => systemModule.OpenFolderInExplorer(AppHelper.GetApplicationExecutableFolder());
+                    itemProgramFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(AppHelper.GetApplicationExecutableFolder());
                     contextMenu.Items.Add(itemProgramFolder);
 
                     var itemLogFile = new MenuItem { Header = "Show log file", Icon = new TextBlock { Text = "  2" } };
-                    itemLogFile.Click += (s, e) => systemModule.ShowLogFileInNotepad();
+                    itemLogFile.Click += (s, e) => processStarter.ShowLogFileInNotepad();
                     contextMenu.Items.Add(itemLogFile);
 
                     var itemAddonsFolder = new MenuItem { Header = "Show addons folder", Icon = new TextBlock { Text = "  3" } };
-                    itemAddonsFolder.Click += (s, e) => systemModule.OpenFolderInExplorer(settingsModule.SettingsData.AddonTargetFolder);
+                    itemAddonsFolder.Click += (s, e) => processStarter.OpenFolderInExplorer(appSettings.Data.AddonTargetFolder);
                     contextMenu.Items.Add(itemAddonsFolder);
 
                     if (!webView.IsEnabled)
@@ -213,16 +205,14 @@ namespace WOWCAM
 
             SetControls(false);
             SetProgress(true, "Processing addons ...", 0, 100);
-            addonsModule.HideDownloadDialog = !webView.IsEnabled;
+            webViewWrapper.HideDownloadDialog = !webView.IsEnabled;
 
             try
             {
-                await settingsModule.LoadAsync(); // Reload settings
-
                 button.IsEnabled = true;
 
                 var stopwatch = Stopwatch.StartNew();
-                var updatedAddons = await addonsModule.ProcessAddonsAsync(new Progress<byte>(p => progressBar.Value = p), cts.Token);
+                var updatedAddons = await addonsProcessing.ProcessAddonsAsync(new Progress<byte>(p => progressBar.Value = p), cts.Token);
                 stopwatch.Stop();
 
                 button.IsEnabled = false;

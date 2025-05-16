@@ -1,40 +1,25 @@
 ﻿using System.Windows;
-using WOWCAM.Core.Parts.Addons;
-using WOWCAM.Core.Parts.Logging;
-using WOWCAM.Core.Parts.Settings;
-using WOWCAM.Core.Parts.System;
-using WOWCAM.Core.Parts.Update;
-using WOWCAM.Core.Parts.WebView;
-using WOWCAM.Helper.Parts;
+using WOWCAM.Core.Parts.Modules;
+using WOWCAM.Helper.Parts.Application;
+using WOWCAM.Logging;
 
 namespace WOWCAM
 {
     public partial class MainWindow : Window
     {
         private readonly ILogger logger;
-        private readonly IAppSettings appSettings;
-        private readonly IProcessStarter processStarter;
-        private readonly IUpdateManager updateManager;
-        private readonly IWebViewProvider webViewProvider;
-        private readonly IWebViewWrapper webViewWrapper;
-        private readonly IAddonsProcessing addonsProcessing;
+        private readonly ISettingsModule settingsModule;
+        private readonly ISystemModule systemModule;
+        private readonly IUpdateModule updateModule;
+        private readonly IAddonsModule addonsModule;
 
-        public MainWindow(
-            ILogger logger,
-            IAppSettings appSettings,
-            IProcessStarter processStarter,
-            IUpdateManager updateManager,
-            IWebViewProvider webViewProvider,
-            IWebViewWrapper webViewWrapper,
-            IAddonsProcessing addonsProcessing)
+        public MainWindow(ILogger logger, ISettingsModule settingsModule, ISystemModule systemModule, IUpdateModule updateModule, IAddonsModule addonsModule)
         {
             this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            this.appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
-            this.processStarter = processStarter ?? throw new ArgumentNullException(nameof(processStarter));
-            this.updateManager = updateManager ?? throw new ArgumentNullException(nameof(updateManager));
-            this.webViewProvider = webViewProvider ?? throw new ArgumentNullException(nameof(webViewProvider));
-            this.webViewWrapper = webViewWrapper ?? throw new ArgumentNullException(nameof(webViewWrapper));
-            this.addonsProcessing = addonsProcessing ?? throw new ArgumentNullException(nameof(addonsProcessing));
+            this.settingsModule = settingsModule ?? throw new ArgumentNullException(nameof(settingsModule));
+            this.systemModule = systemModule ?? throw new ArgumentNullException(nameof(systemModule));
+            this.updateModule = updateModule ?? throw new ArgumentNullException(nameof(updateModule));
+            this.addonsModule = addonsModule ?? throw new ArgumentNullException(nameof(addonsModule));
 
             InitializeComponent();
 

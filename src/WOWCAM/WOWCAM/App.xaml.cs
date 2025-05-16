@@ -1,12 +1,15 @@
-﻿using System.Net.Http;
+﻿using System.IO;
+using System.Net.Http;
 using System.Windows;
-using WOWCAM.Core.Parts.Addons;
-using WOWCAM.Core.Parts.Config;
-using WOWCAM.Core.Parts.Logging;
-using WOWCAM.Core.Parts.Settings;
-using WOWCAM.Core.Parts.System;
+using WOWCAM.Core.Parts.Logic.Addons;
+using WOWCAM.Core.Parts.Logic.Config;
+using WOWCAM.Core.Parts.Logic.System;
+using WOWCAM.Core.Parts.Logic.Update;
+using WOWCAM.Core.Parts.Modules;
 using WOWCAM.Core.Parts.Update;
-using WOWCAM.Core.Parts.WebView;
+using WOWCAM.Helper.Parts.Application;
+using WOWCAM.Logging;
+using WOWCAM.WebView;
 
 namespace WOWCAM
 {
@@ -23,22 +26,24 @@ namespace WOWCAM
                 return;
             }
 
-            var logger = new TextFileLogger();
+            var logFile = Path.Combine(AppHelper.GetApplicationExecutableFolder(), $"{AppHelper.GetApplicationName()}.log");
+            var logger = new TextFileLogger(logFile);
             var reliableFileOperations = new DefaultReliableFileOperations();
             var configStorage = new XmlConfigStorage(logger, reliableFileOperations);
             var configReader = new XmlConfigReader(logger, configStorage);
             var configValidator = new XmlConfigValidator(logger);
-            var appSettings = new DefaultAppSettings(logger, configStorage, configReader, configValidator);
-            var processStarter = new DefaultProcessStarter(logger);
-            var updateManager = new DefaultUpdateManager(logger, appSettings, reliableFileOperations, httpClient);
+            var settingsModule = new DefaultSettingsModule(logger, configStorage, configReader, configValidator);
+            var systemModule = new DefaultSystemModule(logger);
+            var updateManager = new DefaultUpdateManager(reliableFileOperations, httpClient);
+            var updateModule = new DefaultUpdateModule(logger, settingsModule, updateManager);
             var webViewProvider = new DefaultWebViewProvider();
             var webViewWrapper = new DefaultWebViewWrapper(logger, webViewProvider);
-            var smartUpdateFeature = new DefaultSmartUpdateFeature(logger, appSettings, reliableFileOperations);
-            var singleAddonProcessor = new DefaultSingleAddonProcessor(appSettings, webViewWrapper, smartUpdateFeature);
-            var multiAddonProcessor = new DefaultMultiAddonProcessor(logger, appSettings, singleAddonProcessor);
-            var addonsProcessing = new DefaultAddonsProcessing(logger, appSettings, webViewProvider, multiAddonProcessor, smartUpdateFeature, reliableFileOperations);
+            var smartUpdateFeature = new DefaultSmartUpdateFeature(logger, reliableFileOperations);
+            var singleAddonProcessor = new DefaultSingleAddonProcessor(webViewWrapper, smartUpdateFeature);
+            var multiAddonProcessor = new DefaultMultiAddonProcessor(logger, singleAddonProcessor);
+            var addonsModule = new DefaultAddonsModule(logger, webViewProvider, webViewWrapper, settingsModule, smartUpdateFeature, multiAddonProcessor, reliableFileOperations);
 
-            MainWindow = new MainWindow(logger, appSettings, processStarter, updateManager, webViewProvider, webViewWrapper, addonsProcessing);
+            MainWindow = new MainWindow(logger, settingsModule, systemModule, updateModule, addonsModule);
         }
 
         private void Application_Startup(object sender, StartupEventArgs e)
